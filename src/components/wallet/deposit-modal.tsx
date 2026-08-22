@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownToLine, Info, Loader2 } from "lucide-react";
+import { ArrowDownToLine, Info } from "lucide-react";
+
+import { BrandedSpinner } from "@/components/brand/branded-loader";
 
 import { CopyField } from "@/components/wallet/copy-field";
 import { CryptoAssetSelector } from "@/components/wallet/crypto-asset-selector";
@@ -247,7 +249,7 @@ function AddressUnavailable({
         disabled={pending}
         className="self-start"
       >
-        {pending && <Loader2 className="animate-spin" />}
+        {pending && <BrandedSpinner />}
         Check for an address
       </Button>
 

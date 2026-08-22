@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Send } from "lucide-react";
+import { Send } from "lucide-react";
+
+import { BrandedSpinner } from "@/components/brand/branded-loader";
 
 import { FormField } from "@/components/auth/form-field";
 import { FormMessage } from "@/components/auth/form-message";
@@ -55,7 +57,7 @@ export function ForgotPasswordForm() {
       >
         {submitting ? (
           <>
-            <Loader2 aria-hidden="true" className="animate-spin" />
+            <BrandedSpinner />
             Sending…
           </>
         ) : (

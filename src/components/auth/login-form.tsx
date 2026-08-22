@@ -3,7 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+
+import { BrandedSpinner } from "@/components/brand/branded-loader";
 
 import { FormField, PasswordField } from "@/components/auth/form-field";
 import { FormMessage } from "@/components/auth/form-message";
@@ -102,7 +104,7 @@ export function LoginForm() {
       >
         {submitting ? (
           <>
-            <Loader2 aria-hidden="true" className="animate-spin" />
+            <BrandedSpinner />
             Signing in…
           </>
         ) : (

@@ -1,10 +1,6 @@
-"use client";
-
 import * as React from "react";
-import { motion } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 
-import { revealViewport, transitions } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 type StatCardProps = {
@@ -16,7 +12,6 @@ type StatCardProps = {
   note?: string;
   /** Emphasises the primary figure on the overview. */
   emphasis?: boolean;
-  index?: number;
   className?: string;
 };
 
@@ -26,6 +21,12 @@ type StatCardProps = {
  * Values arrive already formatted, and a zero balance is displayed as an actual
  * zero — a real account with no activity, which is what every account is today.
  * Nothing here derives a number from plan terms.
+ *
+ * Rendered on the server so the `icon` prop stays a plain import rather than
+ * crossing the server/client boundary (Lucide icons are `forwardRef` objects and
+ * are not serializable). Entrance animation comes from wrapping the card in
+ * `RevealItem`, which keeps the motion in one client component instead of one per
+ * card.
  */
 export function StatCard({
   label,
@@ -33,17 +34,12 @@ export function StatCard({
   icon: Icon,
   note,
   emphasis = false,
-  index = 0,
   className,
 }: StatCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={revealViewport}
-      transition={{ ...transitions.base, delay: index * 0.06 }}
+    <div
       className={cn(
-        "surface group/stat relative flex flex-col gap-5 overflow-hidden rounded-xl border p-5 transition-colors duration-500 sm:p-6",
+        "surface group/stat relative flex h-full flex-col gap-5 overflow-hidden rounded-xl border p-5 transition-colors duration-500 sm:p-6",
         emphasis
           ? "border-gold-500/22 hover:border-gold-500/35"
           : "border-white/10 hover:border-white/20",
@@ -74,7 +70,7 @@ export function StatCard({
         </span>
       </div>
 
-      <div className="relative flex flex-col gap-1.5">
+      <div className="relative mt-auto flex flex-col gap-1.5">
         <p
           data-numeric
           className={cn(
@@ -90,6 +86,6 @@ export function StatCard({
           </p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

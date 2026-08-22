@@ -9,22 +9,28 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 
+import { useTheme } from "@/components/theme/theme-provider"
+
 /**
  * Toast host.
  *
- * The product ships a single dark theme, so `theme` is pinned rather than read
- * from a theme provider — that also keeps `next-themes` out of the bundle.
+ * `theme` follows the app's own preference rather than `next-themes`, so toasts
+ * match the surface behind them in both palettes without adding a second theme
+ * system to the bundle. Colours come from the semantic tokens, so a palette edit
+ * moves them too.
  */
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme } = useTheme()
+
   return (
     <Sonner
-      theme="dark"
+      theme={theme}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4 text-success" />,
         info: <InfoIcon className="size-4 text-brand" />,
         warning: <TriangleAlertIcon className="size-4 text-warning" />,
-        error: <OctagonXIcon className="size-4 text-red-300" />,
+        error: <OctagonXIcon className="size-4 text-destructive" />,
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       style={
@@ -37,7 +43,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast border-hairline shadow-2xl",
+          toast: "cn-toast border-hairline shadow-float",
           description: "text-muted-foreground",
         },
       }}

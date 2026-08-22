@@ -36,7 +36,7 @@ export function SiteHeader() {
       className={cn(
         "sticky top-0 z-50 w-full transition-[background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
         scrolled
-          ? "border-b border-hairline bg-surface-1/72 shadow-[0_12px_40px_-28px_rgba(0,0,0,0.9)] backdrop-blur-xl backdrop-saturate-150"
+          ? "glass border-b border-hairline shadow-card"
           : "border-b border-transparent bg-transparent"
       )}
     >

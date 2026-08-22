@@ -170,8 +170,8 @@ export function InvestmentPlanCard({
           </div>
 
           <p className="text-[0.7rem] leading-relaxed text-subtle-foreground">
-            Figures are stated plan terms, not guaranteed returns, and do not
-            represent funds received or paid.
+            Figures are stated plan terms and do not represent funds received or
+            paid.
           </p>
         </div>
       </div>

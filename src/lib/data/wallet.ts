@@ -3,6 +3,7 @@ import "server-only";
 import type {
   DepositAddress,
   DepositRecord,
+  SavedAddress,
   WithdrawalRequest,
 } from "@/types/crypto";
 import type { Tables } from "@/types/database";
@@ -66,11 +67,30 @@ function mapWithdrawal(row: Tables<"withdrawal_requests">): WithdrawalRequest {
     amountCents: row.amount_cents,
     quotedAssetAmount: row.quoted_asset_amount,
     quotedNetworkFee: row.quoted_network_fee,
+    quotedUsdPerUnit: row.quoted_usd_per_unit,
+    quoteProvider: row.quote_provider,
+    quotedAt: row.quoted_at,
+    serviceFeeCents: row.service_fee_cents ?? 0,
+    totalDeductedCents: row.total_deducted_cents,
     status: row.status,
     txHash: row.tx_hash,
     failureReason: row.failure_reason,
     createdAt: row.created_at,
     settledAt: row.settled_at,
+  };
+}
+
+function mapSavedAddress(
+  row: Tables<"saved_withdrawal_addresses">
+): SavedAddress {
+  return {
+    id: row.id,
+    methodId: row.method_id,
+    label: row.label,
+    address: row.address,
+    memo: row.memo,
+    createdAt: row.created_at,
+    lastUsedAt: row.last_used_at,
   };
 }
 
@@ -139,4 +159,63 @@ export async function getUserWithdrawals(
   if (error) return failed(describeError(error, "getUserWithdrawals"));
 
   return ready(data.map(mapWithdrawal));
+}
+
+/**
+ * One withdrawal, by id.
+ *
+ * The `user_id` filter is belt-and-braces: RLS already restricts the table to the
+ * owner, so a request for someone else's id returns nothing regardless. Both are
+ * kept because the status page is addressable by URL, and a page that leaks
+ * another account's destination address on a guessed UUID would be a serious
+ * failure — one guard is a policy, two is a design.
+ *
+ * `null` means "no such withdrawal for you", which the page renders as a
+ * not-found rather than an error.
+ */
+export async function getWithdrawalById(
+  id: string
+): Promise<DataResult<WithdrawalRequest | null>> {
+  const resolved = await resolveQueryContext();
+  if (resolved.status !== "ready") return resolved;
+
+  const { supabase, userId } = resolved.context;
+
+  const { data, error } = await supabase
+    .from("withdrawal_requests")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) return failed(describeError(error, "getWithdrawalById"));
+
+  return ready(data ? mapWithdrawal(data) : null);
+}
+
+/**
+ * The user's saved destination addresses.
+ *
+ * Opt-in: a row exists here only because the user explicitly chose to save it.
+ * Every entry carries its `method_id`, so the asset and network travel with the
+ * address and no display can quietly omit the network.
+ */
+export async function getSavedAddresses(
+  limit = 25
+): Promise<DataResult<SavedAddress[]>> {
+  const resolved = await resolveQueryContext();
+  if (resolved.status !== "ready") return resolved;
+
+  const { supabase, userId } = resolved.context;
+
+  const { data, error } = await supabase
+    .from("saved_withdrawal_addresses")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return failed(describeError(error, "getSavedAddresses"));
+
+  return ready(data.map(mapSavedAddress));
 }

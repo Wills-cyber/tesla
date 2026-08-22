@@ -698,6 +698,17 @@
     padding-bottom: var(--bottom-nav-clearance);
   }
 
+  /* A page's primary action, pinned within reach on a phone.
+     `bottom` is the same clearance token the nav reserves, so the bar settles
+     directly above the floating nav on every breakpoint instead of hiding
+     behind it. Used by the withdrawal flow, where the confirm action must never
+     require scrolling past the address the user is checking. */
+  .sticky-actions {
+    position: sticky;
+    bottom: var(--bottom-nav-clearance);
+    z-index: 30;
+  }
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

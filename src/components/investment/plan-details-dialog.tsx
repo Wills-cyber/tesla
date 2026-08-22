@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarClock, ShieldAlert } from "lucide-react";
+import { CalendarClock, ScrollText } from "lucide-react";
 
 import { PlanTermsList } from "@/components/investment/plan-terms-list";
 import {
@@ -118,24 +118,21 @@ export function PlanRiskNotice({ className }: { className?: string }) {
     <section
       className={
         className ??
-        "flex gap-3.5 rounded-xl border border-warning/25 bg-warning-surface p-4 sm:p-5"
+        "flex gap-3.5 rounded-xl border border-hairline bg-surface-2 p-4 sm:p-5"
       }
     >
-      <ShieldAlert
+      <ScrollText
         aria-hidden="true"
-        className="mt-0.5 size-4.5 shrink-0 text-warning"
+        className="mt-0.5 size-4.5 shrink-0 text-brand"
       />
       <div className="flex flex-col gap-1.5">
         <p className="text-sm font-semibold text-foreground">
-          Stated terms, not a guarantee
+          Stated plan terms
         </p>
         <p className="text-xs leading-relaxed text-muted-foreground">
           These figures describe what the plan proposes to pay if it performs as
-          published. They are not a guarantee or warranty of profit, are not
-          risk-free, and are not covered by any deposit-insurance or
-          investor-compensation scheme. Investing carries risk, including loss of
-          the capital you commit. Nothing here is financial, investment, tax or
-          legal advice.
+          published. They are not a record of funds received or paid. Nothing
+          here is financial, investment, tax or legal advice.
         </p>
       </div>
     </section>

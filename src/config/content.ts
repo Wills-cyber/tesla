@@ -180,10 +180,10 @@ export const faqs: readonly FaqItem[] = [
       "Withdrawals are not enabled and will follow the same schedule as deposits. Because no funds are held on the platform today, there is nothing to withdraw. Any change to this will be announced in your dashboard notifications.",
   },
   {
-    id: "are-returns-guaranteed",
-    question: "Are investment returns guaranteed?",
+    id: "what-do-the-figures-mean",
+    question: "What do the figures on each plan mean?",
     answer:
-      "No. The figures shown on each plan are stated terms — what the plan proposes to pay if it performs as described. They are not a guarantee, a warranty, or a promise of profit, and they are not protected by any deposit insurance or investor compensation scheme. Investing carries risk, including the risk of losing some or all of the capital you commit. Nothing on this site is financial, investment, tax or legal advice. Consider taking independent professional advice before making any financial decision. See our Risk Disclosure for the full statement.",
+      "They are stated terms — what the plan proposes to pay if it performs as described. They are not a record of money received or paid, and none of them are active while the platform is pre-launch. Nothing on this site is financial, investment, tax or legal advice. Consider taking independent professional advice before making any financial decision.",
   },
 ] as const;
 

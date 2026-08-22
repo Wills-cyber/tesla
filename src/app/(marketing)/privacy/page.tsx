@@ -89,8 +89,7 @@ export default function PrivacyPage() {
           This policy will be updated when the backend is connected and again if
           funding features are introduced. The date at the top of this page always
           reflects the last substantive revision. See also our{" "}
-          <Link href="/terms">Terms of Service</Link> and{" "}
-          <Link href="/risk-disclosure">Risk Disclosure</Link>.
+          <Link href="/terms">Terms of Service</Link>.
         </p>
       </LegalSection>
     </LegalPage>

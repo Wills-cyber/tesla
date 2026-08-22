@@ -8,7 +8,7 @@ import {
 } from "@/config/crypto";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import type { PaymentMethod } from "@/types/crypto";
+import type { PaymentMethod, WithdrawalPolicy } from "@/types/crypto";
 import type { Tables } from "@/types/database";
 
 import { describeError, failed, ready, type DataResult } from "./query-context";
@@ -96,18 +96,23 @@ export async function getPaymentMethods(): Promise<DataResult<PaymentMethod[]>> 
 /**
  * Platform withdrawal policy.
  *
- * Read from `platform_settings` so the floor can be changed without a deploy.
- * The database function `request_withdrawal` reads the same row, so the number
- * the UI shows and the number the server enforces cannot drift.
+ * Read from `platform_settings` so the floor, the ceiling and the service fee can
+ * be changed without a deploy. The database function `request_withdrawal` reads
+ * the same rows, so the numbers the UI shows and the numbers the server enforces
+ * cannot drift.
+ *
+ * Two `null`-ish values are load-bearing. `maximumCents: null` means no ceiling
+ * is configured and the UI must display none — an invented maximum blocks a
+ * legitimate withdrawal. `serviceFeeBps: 0` means the platform charges no fee,
+ * which is different from not knowing the fee: the network fee, which genuinely
+ * isn't known until a provider quotes it, lives on the quote instead.
  */
-export type WithdrawalPolicy = {
-  minimumCents: number;
-  withdrawalsEnabled: boolean;
-  depositsEnabled: boolean;
-};
+export type { WithdrawalPolicy };
 
 const FALLBACK_POLICY: WithdrawalPolicy = {
   minimumCents: MINIMUM_WITHDRAWAL_CENTS,
+  maximumCents: null,
+  serviceFeeBps: 0,
   withdrawalsEnabled: false,
   depositsEnabled: false,
 };
@@ -115,6 +120,13 @@ const FALLBACK_POLICY: WithdrawalPolicy = {
 function readNumber(value: unknown, fallback: number): number {
   const parsed = typeof value === "string" ? Number(value) : value;
   return typeof parsed === "number" && Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/** `null` stays `null`. An absent ceiling must not collapse to zero. */
+function readNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const parsed = typeof value === "string" ? Number(value) : value;
+  return typeof parsed === "number" && Number.isFinite(parsed) ? parsed : null;
 }
 
 export async function getWithdrawalPolicy(): Promise<
@@ -130,6 +142,8 @@ export async function getWithdrawalPolicy(): Promise<
     .select("key, value")
     .in("key", [
       "minimum_withdrawal_cents",
+      "maximum_withdrawal_cents",
+      "withdrawal_service_fee_bps",
       "withdrawals_enabled",
       "deposits_enabled",
     ]);
@@ -138,10 +152,24 @@ export async function getWithdrawalPolicy(): Promise<
 
   const settings = new Map((data ?? []).map((row) => [row.key, row.value]));
 
+  const maximumCents = readNullableNumber(
+    settings.get("maximum_withdrawal_cents")
+  );
+  const minimumCents = readNumber(
+    settings.get("minimum_withdrawal_cents"),
+    FALLBACK_POLICY.minimumCents
+  );
+
   return ready({
-    minimumCents: readNumber(
-      settings.get("minimum_withdrawal_cents"),
-      FALLBACK_POLICY.minimumCents
+    minimumCents,
+    // A ceiling below the floor is a misconfiguration that would lock every
+    // withdrawal out with a contradictory message. Discard it and let the floor
+    // stand rather than render an impossible range.
+    maximumCents:
+      maximumCents !== null && maximumCents >= minimumCents ? maximumCents : null,
+    serviceFeeBps: Math.max(
+      0,
+      readNumber(settings.get("withdrawal_service_fee_bps"), 0)
     ),
     withdrawalsEnabled: settings.get("withdrawals_enabled") === true,
     depositsEnabled: settings.get("deposits_enabled") === true,

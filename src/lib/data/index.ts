@@ -31,8 +31,10 @@ export {
 } from "./payment-methods";
 export {
   getDepositAddress,
+  getSavedAddresses,
   getUserDeposits,
   getUserWithdrawals,
+  getWithdrawalById,
 } from "./wallet";
 export { resolveOrEmpty } from "./resolve";
 

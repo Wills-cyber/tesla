@@ -311,7 +311,7 @@ export default async function DashboardPage() {
 
       {/* ------------------------------------------------------------- Legal */}
       <section
-        aria-labelledby="risk-heading"
+        aria-labelledby="legal-heading"
         className="panel-sunken flex flex-col gap-4 p-6 sm:p-7"
       >
         <div className="flex items-center gap-3">
@@ -321,18 +321,15 @@ export default async function DashboardPage() {
           >
             <ScrollText className="size-4" />
           </span>
-          <h2 id="risk-heading" className="text-base font-semibold">
-            Before you invest
+          <h2 id="legal-heading" className="text-base font-semibold">
+            Legal
           </h2>
         </div>
 
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground text-pretty">
           The figures on every plan are <strong>stated terms</strong> — what the plan
-          proposes to pay if it performs as published. They are not guaranteed, not
-          risk-free, and not covered by any deposit-insurance or investor-compensation
-          scheme. Investing carries risk, including the loss of some or all of the
-          capital you commit. Nothing on this platform is financial, investment, tax
-          or legal advice.
+          proposes to pay if it performs as published. Nothing on this platform is
+          financial, investment, tax or legal advice.
         </p>
 
         <p className="max-w-3xl text-xs leading-relaxed text-subtle-foreground">
@@ -341,9 +338,6 @@ export default async function DashboardPage() {
 
         <div className="flex flex-wrap gap-2.5">
           <Button asChild variant="hairline" size="md">
-            <Link href={legalRoutes.riskDisclosure}>Risk Disclosure</Link>
-          </Button>
-          <Button asChild variant="ghost" size="md">
             <Link href={legalRoutes.terms}>Terms</Link>
           </Button>
           <Button asChild variant="ghost" size="md">

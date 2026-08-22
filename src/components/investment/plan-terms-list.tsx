@@ -7,7 +7,7 @@ export type PlanTerm = {
   value: string;
   /** Renders the value in the accent colour — use for the headline figure. */
   emphasis?: boolean;
-  /** Small clarifier under the label, e.g. "stated, not guaranteed". */
+  /** Small clarifier under the label, e.g. "Capital required to enter". */
   hint?: string;
 };
 

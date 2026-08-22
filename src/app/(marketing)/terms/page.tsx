@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { LegalPage, LegalSection } from "@/components/legal/legal-page";
 import { siteConfig } from "@/config/site";
@@ -34,9 +33,9 @@ export default function TermsPage() {
         </p>
         <p>
           Nothing on this platform is an offer, solicitation or invitation to
-          invest, or a recommendation regarding any financial product. See the{" "}
-          <Link href="/risk-disclosure">Risk Disclosure</Link> for what the
-          published figures do and do not mean.
+          invest, or a recommendation regarding any financial product. Published
+          plan figures are stated terms and are not a record of funds received or
+          paid.
         </p>
       </LegalSection>
 

@@ -45,7 +45,29 @@ export const depositAddressRequestSchema = z.object({
   methodId: methodIdField,
 });
 
-export const withdrawalRequestSchema = z.object({
+/**
+ * The user's own name for a saved address.
+ *
+ * Rendered back to them verbatim, so it is length-bounded and stripped of
+ * characters that would let a label impersonate UI chrome in a list of addresses.
+ */
+const addressLabelField = z
+  .string()
+  .trim()
+  .min(1, "Give this address a name so you can recognise it.")
+  .max(60, "Keep the name under 60 characters.")
+  .regex(
+    /^[\p{L}\p{N} .,'’&()\-—·]+$/u,
+    "Use letters, numbers, spaces and basic punctuation."
+  );
+
+/**
+ * The withdrawal payload, before cross-field checks.
+ *
+ * Kept as a plain object so `.pick()` still works for the quote schema below —
+ * a refined schema is no longer an object and cannot be narrowed.
+ */
+const withdrawalRequestFields = z.object({
   methodId: methodIdField,
   amountUsd: usdAmountField,
   destinationAddress: addressField,
@@ -58,12 +80,58 @@ export const withdrawalRequestSchema = z.object({
   addressConfirmed: z.literal(true, {
     message: "Confirm the destination address and network before withdrawing.",
   }),
+  /**
+   * Opt-in address book entry.
+   *
+   * Defaults to `false`. Saving is never a side effect of withdrawing — an
+   * address the user did not ask to keep is not kept.
+   */
+  saveAddress: z.boolean().default(false),
+  addressLabel: z.string().trim().max(60).optional(),
+});
+
+export const withdrawalRequestSchema = withdrawalRequestFields
+  // A save request without a name would create an unidentifiable entry, so the
+  // pair is validated together rather than the label being silently defaulted.
+  .refine(
+    (values) => !values.saveAddress || (values.addressLabel?.length ?? 0) > 0,
+    {
+      path: ["addressLabel"],
+      message: "Name this address, or clear “Save this address”.",
+    }
+  );
+
+/**
+ * The subset a quote needs.
+ *
+ * A separate schema rather than a `.pick()` off the refined one: the refinement
+ * above covers fields a quote has no opinion about, and re-using it would make
+ * quoting fail for reasons unrelated to quoting.
+ */
+export const withdrawalQuoteSchema = withdrawalRequestFields.pick({
+  methodId: true,
+  amountUsd: true,
+});
+
+export const savedAddressSchema = z.object({
+  methodId: methodIdField,
+  label: addressLabelField,
+  address: addressField,
+});
+
+export const savedAddressIdSchema = z.object({
+  id: z.uuid("That saved address reference isn't valid."),
+});
+
+export const withdrawalIdSchema = z.object({
+  id: z.uuid("That withdrawal reference isn't valid."),
 });
 
 export type DepositAddressRequestValues = z.infer<
   typeof depositAddressRequestSchema
 >;
 export type WithdrawalRequestValues = z.infer<typeof withdrawalRequestSchema>;
+export type SavedAddressValues = z.infer<typeof savedAddressSchema>;
 
 /** `"500.25"` → `50025`. Exact: the string is parsed digit-wise, not via float. */
 export function usdStringToCents(value: string): number {

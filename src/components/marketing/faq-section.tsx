@@ -33,10 +33,10 @@ export function FaqSection() {
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 Still unclear on something? Read the{" "}
                 <Link
-                  href="/risk-disclosure"
+                  href="/terms"
                   className="text-brand-emphasis underline decoration-brand/45 underline-offset-4 transition-colors hover:decoration-brand"
                 >
-                  Risk Disclosure
+                  Terms of Service
                 </Link>
                 .
               </p>

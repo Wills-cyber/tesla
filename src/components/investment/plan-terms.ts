@@ -7,8 +7,8 @@ import type { PlanTerm } from "@/components/investment/plan-terms-list";
  * Derives the display terms for a plan.
  *
  * Kept in one place so the card, the details dialog and the dashboard can never
- * describe the same plan differently — and so the "stated, not guaranteed"
- * qualifiers travel with the numbers rather than being remembered per surface.
+ * describe the same plan differently — and so the "stated term" qualifiers travel
+ * with the numbers rather than being remembered per surface.
  */
 export function getPlanTerms(plan: InvestmentPlan): PlanTerm[] {
   const currency = plan.currency;
@@ -30,7 +30,7 @@ export function getPlanTerms(plan: InvestmentPlan): PlanTerm[] {
         currency,
         compactDecimals: true,
       }),
-      hint: "Stated plan term — not a guaranteed payment",
+      hint: "Stated plan term, per payment period",
     },
     { label: "Payment Periods", value: String(plan.paymentPeriods) },
     {
@@ -39,7 +39,7 @@ export function getPlanTerms(plan: InvestmentPlan): PlanTerm[] {
         currency,
         compactDecimals: true,
       }),
-      hint: "Stated plan term — not a guaranteed return",
+      hint: "Stated plan term, across the full term",
     },
     {
       label: "Principal",

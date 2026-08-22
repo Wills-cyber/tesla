@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Receipt, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpFromLine, Receipt, ShieldCheck } from "lucide-react";
 
 import { FeatureCard } from "@/components/dashboard/feature-card";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -10,7 +10,6 @@ import { DepositList } from "@/components/wallet/deposit-list";
 import { DepositModal } from "@/components/wallet/deposit-modal";
 import { TransactionList } from "@/components/wallet/transaction-list";
 import { WalletCard } from "@/components/wallet/wallet-card";
-import { WithdrawModal } from "@/components/wallet/withdraw-modal";
 import { WithdrawalList } from "@/components/wallet/withdrawal-list";
 import { Button } from "@/components/ui/button";
 import { walletExplainers } from "@/config/content";
@@ -27,7 +26,7 @@ import {
 } from "@/lib/data";
 import { MINIMUM_WITHDRAWAL_CENTS } from "@/config/crypto";
 import { formatCurrency } from "@/lib/format";
-import { EMPTY_BALANCE, spendableCents } from "@/types/balance";
+import { EMPTY_BALANCE } from "@/types/balance";
 
 export const metadata: Metadata = {
   title: "Wallet",
@@ -79,6 +78,8 @@ export default async function WalletPage() {
   const { data: methods } = resolveOrEmpty(methodsResult, []);
   const { data: policy } = resolveOrEmpty(policyResult, {
     minimumCents: MINIMUM_WITHDRAWAL_CENTS,
+    maximumCents: null,
+    serviceFeeBps: 0,
     withdrawalsEnabled: false,
     depositsEnabled: false,
   });
@@ -88,9 +89,6 @@ export default async function WalletPage() {
   const depositMethods = methods.filter(
     (method) => method.depositEnabled || !policy.depositsEnabled
   );
-  const withdrawalMethods = methods;
-
-  const spendable = spendableCents(balance);
 
   return (
     <>
@@ -114,11 +112,15 @@ export default async function WalletPage() {
         actions={
           <>
             <DepositModal methods={depositMethods} />
-            <WithdrawModal
-              methods={withdrawalMethods}
-              spendableCents={spendable}
-              minimumCents={policy.minimumCents}
-            />
+
+            {/* A route, not a modal. The flow is five deliberate steps and an
+                irreversible action — see `wallet/withdraw/page.tsx`. */}
+            <Button asChild variant="accent" size="md">
+              <Link href={appRoutes.withdraw}>
+                <ArrowUpFromLine />
+                Withdraw
+              </Link>
+            </Button>
           </>
         }
       />
@@ -145,18 +147,45 @@ export default async function WalletPage() {
         </div>
       )}
 
-      {/* -------------------------------------------------------- Withdrawals */}
-      {withdrawals.length > 0 && (
-        <section
-          aria-labelledby="withdrawals-heading"
-          className="flex flex-col gap-4"
-        >
-          <h2 id="withdrawals-heading" className="text-lg font-semibold">
-            Withdrawal requests
-          </h2>
+      {/* -------------------------------------------------- Withdrawal history */}
+      <section
+        aria-labelledby="withdrawals-heading"
+        className="flex flex-col gap-4"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <div className="flex flex-col gap-1.5">
+            <h2 id="withdrawals-heading" className="text-lg font-semibold">
+              Withdrawal History
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Every withdrawal request, with its asset, network, amount and state.
+            </p>
+          </div>
+
+          <Button asChild variant="ghost" size="sm">
+            <Link href={appRoutes.withdraw}>
+              New withdrawal
+              <ArrowRight />
+            </Link>
+          </Button>
+        </div>
+
+        {withdrawals.length === 0 ? (
+          <EmptyState
+            icon={ArrowUpFromLine}
+            title="No withdrawals yet"
+            description={`Withdrawals of ${formatCurrency(policy.minimumCents)} or more will appear here, with their status and transaction hash.`}
+            note="Withdrawals are not enabled yet — no payout provider is connected, so no request has ever been created and nothing has been sent on-chain. Every row that appears here in future will correspond to a real request."
+            action={
+              <Button asChild variant="hairline" size="md">
+                <Link href={appRoutes.withdraw}>Open the withdrawal flow</Link>
+              </Button>
+            }
+          />
+        ) : (
           <WithdrawalList withdrawals={withdrawals} methods={methods} />
-        </section>
-      )}
+        )}
+      </section>
 
       {/* ----------------------------------------------------------- Deposits */}
       {deposits.length > 0 && (

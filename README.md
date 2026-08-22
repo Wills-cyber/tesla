@@ -6,7 +6,7 @@ around electric vehicles and mobility technology.
 **This is a pre-launch product.** Deposits, withdrawals and live investment
 activity are not implemented. Every figure attached to a plan is a *stated term*
 — what a plan proposes if it performs as published — not a record of capital
-received, held or paid, and not a guaranteed return. The dashboard shows zero
+received, held or paid. The dashboard shows zero
 balances and empty histories because that is the genuine state of a pre-launch
 account, not because data is missing.
 
@@ -58,7 +58,7 @@ visible "backend not connected" label and all figures read zero.
 | `/dashboard/notifications` | Account and platform updates |
 | `/dashboard/profile` | Details, account status, security, sign out |
 | `/dashboard/deposit` · `/dashboard/withdraw` | Availability status — no payment flow |
-| `/terms` · `/privacy` · `/risk-disclosure` | Legal |
+| `/terms` · `/privacy` | Legal |
 
 ## Architecture
 
@@ -169,4 +169,5 @@ These are load-bearing, not stylistic:
   configuration only.
 - Money-moving features stay behind `featureFlags` in `src/config/site.ts` and
   render a status panel with no form to submit.
-- Returns are never described as guaranteed. See `/risk-disclosure`.
+- Plan figures are always described as stated terms, never as a record of funds
+  received or paid.

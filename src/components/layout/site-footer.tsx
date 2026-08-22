@@ -62,10 +62,9 @@ export function SiteFooter() {
             {siteConfig.affiliationDisclaimer}
           </p>
           <p className="max-w-4xl text-xs leading-relaxed text-subtle-foreground">
-            Figures shown for any investment plan are stated plan terms, not
-            guaranteed returns, and are not a record of funds received or paid.
-            Investing involves risk, including possible loss of capital. Nothing
-            on this site is financial, investment, tax or legal advice.
+            Figures shown for any investment plan are stated plan terms, and are
+            not a record of funds received or paid. Nothing on this site is
+            financial, investment, tax or legal advice.
           </p>
 
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">

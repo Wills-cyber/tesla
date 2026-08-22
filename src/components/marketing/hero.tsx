@@ -149,7 +149,7 @@ export function Hero() {
             >
               Account creation is open. Deposits, withdrawals and live investment
               activity are not yet available — plan figures shown are stated
-              terms, not guaranteed returns.
+              terms.
             </motion.p>
           </div>
 

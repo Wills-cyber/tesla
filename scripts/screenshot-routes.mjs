@@ -46,7 +46,6 @@ const ROUTES = [
   { path: "/wallet/activity", name: "wallet-activity" },
   { path: "/profile", name: "profile" },
   { path: "/notifications", name: "notifications" },
-  { path: "/risk-disclosure", name: "risk-disclosure", viewports: ["desktop"] },
   { path: "/does-not-exist", name: "not-found", viewports: ["desktop"] },
 ];
 

@@ -219,22 +219,18 @@ export default async function ProfilePage() {
           <Section
             id="legal"
             icon={ScrollText}
-            title="Legal & risk"
+            title="Legal"
             heading="legal-heading"
           >
             <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
-              Investment figures shown on this platform are stated plan terms, not
-              guaranteed returns. Investing carries risk, including loss of the
-              capital you commit.
+              Investment figures shown on this platform are stated plan terms.
+              Nothing here is financial, investment, tax or legal advice.
             </p>
             <p className="text-xs leading-relaxed text-subtle-foreground">
               {siteConfig.affiliationDisclaimer}
             </p>
             <div className="flex flex-wrap gap-2.5">
               <Button asChild variant="hairline" size="md">
-                <Link href={legalRoutes.riskDisclosure}>Risk Disclosure</Link>
-              </Button>
-              <Button asChild variant="ghost" size="md">
                 <Link href={legalRoutes.terms}>Terms</Link>
               </Button>
               <Button asChild variant="ghost" size="md">

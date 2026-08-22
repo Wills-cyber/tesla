@@ -71,7 +71,8 @@ export type WithdrawalStatusEnum =
   | "processing"
   | "completed"
   | "failed"
-  | "rejected";
+  | "rejected"
+  | "cancelled";
 
 type ProfileRow = {
   id: string;
@@ -247,8 +248,14 @@ type WithdrawalRequestRow = {
   /** numeric(38,18) — returned as a string. Never parsed into a float. */
   quoted_asset_amount: string | null;
   quoted_network_fee: string | null;
+  /** USD price of one asset unit at quote time. numeric, so a string. */
+  quoted_usd_per_unit: string | null;
   quote_provider: string | null;
   quoted_at: string | null;
+  /** Platform fee in USD cents. `0` when none is configured. */
+  service_fee_cents: number;
+  /** `amount_cents + service_fee_cents` — what leaves the USD ledger. */
+  total_deducted_cents: number | null;
   status: WithdrawalStatusEnum;
   tx_hash: string | null;
   failure_reason: string | null;
@@ -256,6 +263,26 @@ type WithdrawalRequestRow = {
   created_at: string;
   updated_at: string;
   settled_at: string | null;
+};
+
+/**
+ * An opt-in destination address book entry.
+ *
+ * The only client-writable table in the payments schema, and the least dangerous
+ * one: an entry here cannot move money. `method_id` is stored alongside the
+ * address so the network can never be dropped from a display, and a database
+ * trigger freezes both columns after insert — re-pointing an entry would
+ * silently redirect a destination the user believes they verified.
+ */
+type SavedWithdrawalAddressRow = {
+  id: string;
+  user_id: string;
+  method_id: string;
+  label: string;
+  address: string;
+  memo: string | null;
+  created_at: string;
+  last_used_at: string | null;
 };
 
 /**
@@ -493,13 +520,37 @@ export type Database = {
           >,
         ];
       };
+      saved_withdrawal_addresses: {
+        Row: SavedWithdrawalAddressRow;
+        Insert: Partial<SavedWithdrawalAddressRow> &
+          Pick<
+            SavedWithdrawalAddressRow,
+            "user_id" | "method_id" | "label" | "address"
+          >;
+        Update: Partial<SavedWithdrawalAddressRow>;
+        Relationships: [
+          Relationship<
+            "saved_withdrawal_addresses_user_id_fkey",
+            ["user_id"],
+            "profiles",
+            ["id"]
+          >,
+          Relationship<
+            "saved_withdrawal_addresses_method_id_fkey",
+            ["method_id"],
+            "payment_methods",
+            ["id"]
+          >,
+        ];
+      };
     };
     Views: Record<never, never>;
     /**
-     * `request_withdrawal` is the only write path for a withdrawal. It performs
-     * every server-side check (account status, enabled pair, address format,
-     * platform minimum, spendable balance) inside the database — see
-     * `supabase/migrations/0003_wallet_and_payments.sql`.
+     * `request_withdrawal` is the only write path for a withdrawal, and
+     * `cancel_withdrawal` the only way to release one. Both perform every
+     * server-side check (account status, enabled pair, address format, platform
+     * minimum and maximum, service fee, spendable balance, ownership) inside the
+     * database — see `supabase/migrations/0004_withdrawal_experience.sql`.
      */
     Functions: {
       request_withdrawal: {
@@ -511,7 +562,12 @@ export type Database = {
           p_quoted_network_fee?: string | null;
           p_quote_provider?: string | null;
           p_quoted_at?: string | null;
+          p_quoted_usd_per_unit?: string | null;
         };
+        Returns: WithdrawalRequestRow;
+      };
+      cancel_withdrawal: {
+        Args: { p_withdrawal_id: string };
         Returns: WithdrawalRequestRow;
       };
     };

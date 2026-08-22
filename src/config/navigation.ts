@@ -23,6 +23,10 @@ export const appRoutes = {
   investments: "/investments",
   wallet: "/wallet",
   walletActivity: "/wallet/activity",
+  /** The multi-step withdrawal flow. A page, not a modal — see the route file. */
+  withdraw: "/wallet/withdraw",
+  /** A single withdrawal request's status. Addressable, so it can be shared. */
+  withdrawalDetail: (id: string) => `/wallet/withdraw/${id}`,
   profile: "/profile",
   notifications: "/notifications",
 } as const;
@@ -30,7 +34,6 @@ export const appRoutes = {
 export const legalRoutes = {
   terms: "/terms",
   privacy: "/privacy",
-  riskDisclosure: "/risk-disclosure",
 } as const;
 
 export const authRoutes = {
@@ -170,7 +173,6 @@ export const footerNav = {
     items: [
       { label: "Terms", href: legalRoutes.terms },
       { label: "Privacy", href: legalRoutes.privacy },
-      { label: "Risk Disclosure", href: legalRoutes.riskDisclosure },
     ],
   },
 } as const;

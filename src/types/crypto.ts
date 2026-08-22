@@ -111,7 +111,8 @@ export type WithdrawalStatus =
   | "processing"
   | "completed"
   | "failed"
-  | "rejected";
+  | "rejected"
+  | "cancelled";
 
 export type WithdrawalRequest = {
   id: string;
@@ -125,11 +126,49 @@ export type WithdrawalRequest = {
   quotedAssetAmount: string | null;
   /** Network fee quoted at submission, as a decimal string in the asset. */
   quotedNetworkFee: string | null;
+  /** USD price of one asset unit at submission. Decimal string, never a float. */
+  quotedUsdPerUnit: string | null;
+  /** Which rate provider priced it. Recorded for auditability. */
+  quoteProvider: string | null;
+  quotedAt: string | null;
+  /** Platform fee in USD cents. `0` when none is configured. */
+  serviceFeeCents: number;
+  /** `amountCents + serviceFeeCents`. `null` on rows written before fees. */
+  totalDeductedCents: number | null;
   status: WithdrawalStatus;
   txHash: string | null;
   failureReason: string | null;
   createdAt: string;
   settledAt: string | null;
+};
+
+/** Terminal states — nothing further will happen to the request. */
+export const TERMINAL_WITHDRAWAL_STATUSES = [
+  "completed",
+  "failed",
+  "rejected",
+  "cancelled",
+] as const satisfies readonly WithdrawalStatus[];
+
+export function isWithdrawalTerminal(status: WithdrawalStatus): boolean {
+  return (TERMINAL_WITHDRAWAL_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * A saved destination address.
+ *
+ * Always carries the pair it was saved for. Displaying an address without its
+ * network is how someone pays out ERC-20 USDT to a TRC-20 wallet, so the network
+ * is part of the record rather than something the UI is trusted to remember.
+ */
+export type SavedAddress = {
+  id: string;
+  methodId: string;
+  label: string;
+  address: string;
+  memo: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
 };
 
 /* ------------------------------------------------------------------- Quotes */
@@ -163,3 +202,55 @@ export type ExchangeQuote = {
 export type QuoteResult =
   | { status: "ready"; quote: ExchangeQuote }
   | { status: "unavailable"; reason: string };
+
+/* --------------------------------------------------------------------- Fees */
+
+/**
+ * What a withdrawal costs, broken into the parts a user is entitled to see.
+ *
+ * Two currencies are in play and conflating them is how fee displays end up
+ * lying. The USD side is what leaves the platform ledger: the amount requested
+ * plus any platform service fee. The asset side is what happens on-chain: the
+ * network takes its fee out of the transfer itself, so it reduces what *arrives*
+ * without changing what was debited.
+ *
+ * Every asset-side field is `null` when no live quote exists. That is not a
+ * degraded state to paper over — the network fee is the provider's number and
+ * depends on live chain conditions, so there is nothing honest to put there.
+ */
+export type WithdrawalCosts = {
+  /** What the user asked to withdraw, in USD cents. */
+  amountCents: number;
+  /** Platform fee, in USD cents. `0` when none is configured. */
+  serviceFeeCents: number;
+  /** `amountCents + serviceFeeCents` — the debit against the balance. */
+  totalDeductedCents: number;
+  /** Asset units the quote buys, before the network fee. */
+  grossAssetAmount: string | null;
+  /** Network fee in asset units, as quoted by the provider. */
+  networkFeeAsset: string | null;
+  /** The network fee expressed in USD cents, for the fee table. */
+  networkFeeCents: number | null;
+  /** What actually arrives at the destination, in asset units. */
+  netAssetAmount: string | null;
+  /** What arrives, valued in USD cents at the quoted rate. */
+  netUsdCents: number | null;
+  /** The quote these figures came from, or `null` when none was available. */
+  quote: ExchangeQuote | null;
+};
+
+/**
+ * Platform withdrawal policy.
+ *
+ * `maximumCents` is `null` when no ceiling is configured, and that is a
+ * meaningful `null`: the UI must render nothing rather than invent a limit.
+ * `serviceFeeBps` of `0` likewise means the platform charges no fee, not that the
+ * fee is unknown.
+ */
+export type WithdrawalPolicy = {
+  minimumCents: number;
+  maximumCents: number | null;
+  serviceFeeBps: number;
+  withdrawalsEnabled: boolean;
+  depositsEnabled: boolean;
+};

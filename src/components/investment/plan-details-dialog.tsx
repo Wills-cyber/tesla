@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CalendarClock, ScrollText } from "lucide-react";
 
+import { PlanImage } from "@/components/investment/plan-image";
 import { PlanTermsList } from "@/components/investment/plan-terms-list";
 import {
   PlanStatusPill,
@@ -50,7 +51,7 @@ export function PlanDetailsDialog({ plan, trigger }: PlanDetailsDialogProps) {
       <DialogContent className="max-h-[88vh] gap-0 overflow-y-auto p-0 shadow-float sm:max-w-2xl">
         <DialogHeader className="border-b border-hairline p-6 text-left sm:p-7">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="eyebrow">{plan.vehicleType}</span>
+            <span className="eyebrow">{plan.vehicleModel}</span>
             <PlanStatusPill status={plan.status} />
           </div>
           <DialogTitle className="mt-3 text-2xl font-semibold sm:text-[1.75rem]">
@@ -62,6 +63,14 @@ export function PlanDetailsDialog({ plan, trigger }: PlanDetailsDialogProps) {
         </DialogHeader>
 
         <div className="flex flex-col gap-8 p-6 sm:p-7">
+          {/* Large vehicle image — the same asset the card uses, unclipped. */}
+          <PlanImage
+            src={plan.imageUrl}
+            alt={plan.vehicleModel}
+            sizes="(min-width: 640px) 42rem, 92vw"
+            className="rounded-xl border border-hairline"
+          />
+
           <section className="flex flex-col gap-4">
             <h3 className="eyebrow">Stated terms</h3>
             <PlanTermsList terms={terms} layout="grid" />

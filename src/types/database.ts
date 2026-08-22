@@ -91,6 +91,9 @@ type InvestmentPlanRow = {
   slug: string;
   name: string;
   summary: string;
+  /** The specific vehicle model the plan references, e.g. `Tesla Model 3`. */
+  vehicle_model: string;
+  /** Broader market segment, used for grouping. Free-form text. */
   vehicle_type: string;
   currency: string;
   investment_amount_cents: number;
@@ -101,7 +104,8 @@ type InvestmentPlanRow = {
   principal_cents: number;
   completion_amount_cents: number;
   status: PlanStatusEnum;
-  image_key: string;
+  /** Public path to the plan's vehicle image, e.g. `/images/investments/…webp`. */
+  image_url: string;
   featured: boolean;
   sort_order: number;
   created_at: string;

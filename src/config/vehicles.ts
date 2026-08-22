@@ -105,13 +105,14 @@ export const heroVehicleImage = {
   alt: "Illustration of a premium electric vehicle in three-quarter profile",
 } as const;
 
-/** Lookup used by `InvestmentPlanCard` via `plan.imageKey`. */
-export const planImages: Record<
-  string,
-  { src: string; width: number; height: number; alt: string }
-> = {
-  "compact-sedan": vehicleShowcase[0].image,
-  "crossover-suv": vehicleShowcase[1].image,
-  "electric-truck": vehicleShowcase[2].image,
-  "performance-sedan": vehicleShowcase[3].image,
-};
+/**
+ * Investment-plan artwork is NOT configured here.
+ *
+ * Plans carry their own `imageUrl` (see `src/config/investment-plans.ts`), which
+ * points straight at `public/images/investments/<slug>.webp`. That removed the
+ * lookup table that used to live here: a key had to be resolved by the
+ * application, so changing a plan's artwork needed a deploy. A path does not.
+ *
+ * The showcase entries above remain for the marketing vehicle section, which is
+ * about vehicle *categories* rather than plans.
+ */

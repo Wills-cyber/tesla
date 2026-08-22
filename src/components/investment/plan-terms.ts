@@ -14,7 +14,8 @@ export function getPlanTerms(plan: InvestmentPlan): PlanTerm[] {
   const currency = plan.currency;
 
   return [
-    { label: "Vehicle Type", value: plan.vehicleType },
+    { label: "Vehicle", value: plan.vehicleModel },
+    { label: "Segment", value: plan.vehicleType },
     {
       label: "Investment",
       value: formatCurrency(plan.investmentAmountCents, {
@@ -48,6 +49,46 @@ export function getPlanTerms(plan: InvestmentPlan): PlanTerm[] {
         compactDecimals: true,
       }),
       hint: "Capital returned at end of term",
+    },
+    {
+      label: "Completion Amount",
+      value: formatCurrency(plan.completionAmountCents, {
+        currency,
+        compactDecimals: true,
+      }),
+      emphasis: true,
+      hint: "Principal + total stated profit",
+    },
+  ];
+}
+
+/**
+ * The figures shown on a marketplace card.
+ *
+ * Deliberately *not* the full term sheet. The card already gives the entry amount
+ * and the duration their own emphasised block, so repeating them in the list below
+ * would say the same thing twice in the same card. What remains is the part a
+ * reader is actually comparing between plans: what each period pays, how many
+ * there are, and where the term ends up.
+ */
+export function getPlanCardTerms(plan: InvestmentPlan): PlanTerm[] {
+  const currency = plan.currency;
+
+  return [
+    {
+      label: "Weekly Stated Profit",
+      value: formatCurrency(plan.statedWeeklyProfitCents, {
+        currency,
+        compactDecimals: true,
+      }),
+      hint: `Across ${plan.paymentPeriods} payment periods`,
+    },
+    {
+      label: "Total Stated Profit",
+      value: formatCurrency(plan.statedTotalProfitCents, {
+        currency,
+        compactDecimals: true,
+      }),
     },
     {
       label: "Completion Amount",

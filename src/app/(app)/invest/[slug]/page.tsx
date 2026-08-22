@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   CalendarClock,
+  Clock,
   Info,
   TrendingUp,
   Wallet,
@@ -11,15 +12,14 @@ import {
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { InvestmentProgress } from "@/components/investment/investment-progress";
+import { PlanImage } from "@/components/investment/plan-image";
 import { PlanRiskNotice } from "@/components/investment/plan-details-dialog";
 import { PlanTermsList } from "@/components/investment/plan-terms-list";
 import { getPlanTerms } from "@/components/investment/plan-terms";
 import { PlanStatusPill } from "@/components/common/status-pill";
-import { VehicleImage } from "@/components/vehicles/vehicle-image";
 import { Button } from "@/components/ui/button";
 import { appRoutes } from "@/config/navigation";
 import { featureFlags } from "@/config/site";
-import { planImages } from "@/config/vehicles";
 import {
   getInvestmentPlanBySlug,
   getUserBalance,
@@ -76,7 +76,6 @@ export default async function InvestmentPlanPage({
     ...EMPTY_BALANCE,
   });
 
-  const image = planImages[plan.imageKey];
   const isOpen = plan.status === "open";
   const activationEnabled = featureFlags.investmentActivationEnabled;
   const fundsAvailable = balance.availableCents >= plan.investmentAmountCents;
@@ -104,7 +103,7 @@ export default async function InvestmentPlanPage({
       </div>
 
       <PageHeader
-        eyebrow={plan.vehicleType}
+        eyebrow={`${plan.vehicleModel} · ${plan.vehicleType}`}
         title={plan.name}
         description={plan.summary}
         badge={<PlanStatusPill status={plan.status} className="self-start" />}
@@ -113,20 +112,15 @@ export default async function InvestmentPlanPage({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
         {/* ------------------------------------------------------- Term sheet */}
         <div className="flex flex-col gap-6">
-          {image && (
-            <div className="panel relative overflow-hidden bg-surface-2">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-12 bottom-3 h-20 rounded-[50%] bg-brand/12 blur-2xl"
-              />
-              <VehicleImage
-                source={image}
-                sizes="(min-width: 1024px) 55vw, 92vw"
-                className="px-8 py-10"
-                priority
-              />
-            </div>
-          )}
+          {/* Large vehicle image. Same asset as the marketplace card, given the
+              full column width and eager-loaded as the page's LCP element. */}
+          <PlanImage
+            src={plan.imageUrl}
+            alt={plan.vehicleModel}
+            sizes="(min-width: 1024px) 55vw, 92vw"
+            priority
+            className="panel overflow-hidden"
+          />
 
           <section
             aria-labelledby="stated-terms-heading"
@@ -193,13 +187,41 @@ export default async function InvestmentPlanPage({
 
             {canActivate ? (
               // Unreachable in the current build: `investmentActivationEnabled` is
-              // false. When activation ships, this becomes the real Server Action.
+              // false and no plan is `open`. When activation ships, this button
+              // becomes the real Server Action — the surrounding gate (open plan +
+              // flag + funded wallet) is already the condition it will need, so
+              // flipping a plan to `open` is all that changes here.
               <Button asChild variant="accent" size="md" className="w-full">
                 <Link href={appRoutes.wallet}>
                   <TrendingUp />
                   Start Investment
                 </Link>
               </Button>
+            ) : !isOpen ? (
+              /* Coming Soon. The primary action is deliberately *not* a disabled
+                 "Start Investment" — a dead button invites repeated clicking and
+                 explains nothing. It states the plan's real status and offers the
+                 one thing that is actually useful now. */
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col items-center gap-2.5 rounded-xl border border-brand-border bg-surface-1 p-5 text-center">
+                  <span
+                    aria-hidden="true"
+                    className="grid size-10 place-items-center rounded-xl border border-hairline bg-surface-2 text-brand"
+                  >
+                    <Clock className="size-4" />
+                  </span>
+                  <p className="text-sm font-semibold">Coming Soon</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    This plan is published but not open for investment. Nothing is
+                    committed by viewing it, and no investment exists on your
+                    account until a plan is opened and you activate it yourself.
+                  </p>
+                </div>
+
+                <Button asChild variant="hairline" size="md" className="w-full">
+                  <Link href={appRoutes.invest}>Browse other plans</Link>
+                </Button>
+              </div>
             ) : (
               <div className="flex flex-col gap-3">
                 <Button asChild variant="accent" size="md" className="w-full">
@@ -215,13 +237,7 @@ export default async function InvestmentPlanPage({
                     className="mt-0.5 size-3.5 shrink-0 text-brand"
                   />
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    {!isOpen ? (
-                      <>
-                        This plan is not open for investment yet. When it opens, you
-                        will be able to activate it from here — provided the entry
-                        amount is available in your wallet.
-                      </>
-                    ) : !activationEnabled ? (
+                    {!activationEnabled ? (
                       <>
                         Investment activation is not enabled yet. It requires
                         payment processing and the ledger to be connected, and

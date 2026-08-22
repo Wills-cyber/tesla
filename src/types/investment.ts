@@ -7,8 +7,15 @@
  */
 export type PlanStatus = "coming_soon" | "open" | "closed" | "sold_out";
 
+/**
+ * Market segment a plan is modelled on.
+ *
+ * A category, not a manufacturer claim. See `vehicleModel` for the specific model
+ * the plan references.
+ */
 export type VehicleCategory =
   | "Electric Vehicle"
+  | "Electric Sedan"
   | "Electric SUV"
   | "Electric Truck"
   | "Performance Sedan";
@@ -28,6 +35,16 @@ export type InvestmentPlan = {
   name: string;
   /** Short marketing line shown under the plan name. */
   summary: string;
+  /**
+   * The specific vehicle model the plan is modelled around, e.g. `Tesla Model 3`.
+   *
+   * A descriptive reference to a vehicle model, nothing more. TESLA Electronics is
+   * an independent platform and these plans are neither offered, sponsored nor
+   * endorsed by Tesla, Inc. — see `siteConfig.affiliationDisclaimer`, which every
+   * surface showing these plans renders.
+   */
+  vehicleModel: string;
+  /** Broader market segment, used for grouping and filtering. */
   vehicleType: VehicleCategory;
   currency: Currency;
   /** Capital required to enter the plan, in cents. */
@@ -45,8 +62,14 @@ export type InvestmentPlan = {
   /** `principalCents + statedTotalProfitCents`, in cents. */
   completionAmountCents: number;
   status: PlanStatus;
-  /** Reference to an image in `vehicleConfig`; safe to swap for real photography. */
-  imageKey: string;
+  /**
+   * Public path to the plan's vehicle image.
+   *
+   * Mirrors the `image_url` column. Real files live at
+   * `public/images/investments/<slug>.webp` and can be replaced in place — the
+   * path is the whole contract, so no component changes when artwork lands.
+   */
+  imageUrl: string;
   featured?: boolean;
 };
 

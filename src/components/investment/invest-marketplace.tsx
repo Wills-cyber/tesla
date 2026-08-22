@@ -10,36 +10,58 @@ import { Input } from "@/components/ui/input";
 import { RevealGroup, RevealItem } from "@/components/common/reveal";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { InvestmentPlan, PlanStatus } from "@/types/investment";
+import type { InvestmentPlan } from "@/types/investment";
 
-type SortKey = "featured" | "amount-asc" | "amount-desc" | "duration-asc";
+/**
+ * Availability filter.
+ *
+ * `available` means "can actually be entered", which is `status === "open"` and
+ * nothing else. A plan that is closed or fully allocated is not available, and
+ * lumping it in with open plans would be the kind of shortcut that gets someone
+ * clicking Start Investment on a plan that cannot take capital.
+ */
+type Availability = "all" | "coming_soon" | "available";
+
+/** Ordering. `featured` is the default and puts the introductory plan first. */
+type SortKey = "featured" | "amount-asc" | "amount-desc";
+
+const AVAILABILITY_OPTIONS: readonly { key: Availability; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "coming_soon", label: "Coming Soon" },
+  { key: "available", label: "Available" },
+];
 
 const SORT_OPTIONS: readonly { key: SortKey; label: string }[] = [
   { key: "featured", label: "Featured" },
-  { key: "amount-asc", label: "Lowest entry" },
-  { key: "amount-desc", label: "Highest entry" },
-  { key: "duration-asc", label: "Shortest term" },
+  { key: "amount-asc", label: "Lower Investment" },
+  { key: "amount-desc", label: "Higher Investment" },
 ];
 
-const STATUS_LABELS: Record<PlanStatus, string> = {
-  open: "Open",
-  coming_soon: "Coming soon",
-  closed: "Closed",
-  sold_out: "Fully allocated",
-};
+function matchesAvailability(plan: InvestmentPlan, filter: Availability): boolean {
+  if (filter === "all") return true;
+  if (filter === "coming_soon") return plan.status === "coming_soon";
+  return plan.status === "open";
+}
 
 /**
  * The investment marketplace.
  *
  * Entirely driven by the `plans` prop, which comes from the `investment_plans`
  * table (falling back to the pre-launch catalogue only when the backend is
- * unconfigured). Nothing about a plan is hard-coded here — the vehicle-type and
- * status filters are *derived from the data*, so inserting a row with a new vehicle
- * type makes a new filter chip appear without touching this file.
+ * unconfigured). No plan figure, name or image path is written in this file —
+ * publishing a plan is inserting a row.
  *
- * Filtering happens client-side because the whole catalogue is small enough to send
- * at once; when it isn't, this becomes URL search params and a server query with no
+ * The filter area is deliberately one row of chips plus one row of sort chips.
+ * There are five plans; a faceted search rig would be more chrome than catalogue,
+ * and the cards are what the page is for. Search only appears once there are
+ * enough plans for scanning to be the slower option.
+ *
+ * Filtering is client-side because the whole catalogue is small enough to send at
+ * once. When it isn't, this becomes URL search params and a server query, with no
  * change to the card or the page around it.
+ *
+ * Nothing here creates, owns or activates an investment. This page lists what is
+ * *published*; `/investments` lists what the signed-in user actually holds.
  */
 export function InvestMarketplace({
   plans,
@@ -47,32 +69,20 @@ export function InvestMarketplace({
   plans: readonly InvestmentPlan[];
 }) {
   const [query, setQuery] = React.useState("");
-  const [vehicleType, setVehicleType] = React.useState<string | null>(null);
-  const [status, setStatus] = React.useState<PlanStatus | null>(null);
+  const [availability, setAvailability] = React.useState<Availability>("all");
   const [sort, setSort] = React.useState<SortKey>("featured");
-
-  // Facets derived from the data, so new plan types need no code change.
-  const vehicleTypes = React.useMemo(
-    () => [...new Set(plans.map((plan) => plan.vehicleType))].sort(),
-    [plans]
-  );
-
-  const statuses = React.useMemo(
-    () => [...new Set(plans.map((plan) => plan.status))],
-    [plans]
-  );
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
 
     const matched = plans.filter((plan) => {
-      if (vehicleType && plan.vehicleType !== vehicleType) return false;
-      if (status && plan.status !== status) return false;
+      if (!matchesAvailability(plan, availability)) return false;
       if (!needle) return true;
 
       return (
         plan.name.toLowerCase().includes(needle) ||
         plan.summary.toLowerCase().includes(needle) ||
+        plan.vehicleModel.toLowerCase().includes(needle) ||
         plan.vehicleType.toLowerCase().includes(needle)
       );
     });
@@ -85,35 +95,35 @@ export function InvestMarketplace({
       case "amount-desc":
         sorted.sort((a, b) => b.investmentAmountCents - a.investmentAmountCents);
         break;
-      case "duration-asc":
-        sorted.sort((a, b) => a.durationDays - b.durationDays);
-        break;
       default:
+        // Featured first, then by entry amount ascending — so the order reads as
+        // a ladder from the introductory plan upward rather than arbitrarily.
         sorted.sort(
-          (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured))
+          (a, b) =>
+            Number(Boolean(b.featured)) - Number(Boolean(a.featured)) ||
+            a.investmentAmountCents - b.investmentAmountCents
         );
     }
 
     return sorted;
-  }, [plans, query, vehicleType, status, sort]);
+  }, [plans, query, availability, sort]);
 
-  const hasFilters = Boolean(query || vehicleType || status) || sort !== "featured";
+  const hasFilters =
+    Boolean(query) || availability !== "all" || sort !== "featured";
 
   function clearFilters() {
     setQuery("");
-    setVehicleType(null);
-    setStatus(null);
+    setAvailability("all");
     setSort("featured");
   }
 
-  // Search and status filters only earn their space once there's a range to narrow.
-  const showSearch = plans.length > 3;
-  const showFacets = vehicleTypes.length > 1 || statuses.length > 1;
+  // Search only earns its space once scanning the grid is the slower option.
+  const showSearch = plans.length > 6;
 
   return (
-    <div className="flex flex-col gap-7">
-      {(showSearch || showFacets) && (
-        <div className="panel flex flex-col gap-5 p-5">
+    <div className="flex flex-col gap-6">
+      {plans.length > 1 && (
+        <div className="panel flex flex-col gap-4 p-4 sm:p-5">
           {showSearch && (
             <div className="relative">
               <Search
@@ -121,70 +131,39 @@ export function InvestMarketplace({
                 className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
-                type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search plans by name, summary or vehicle type"
+                placeholder="Search plans by name or vehicle"
                 aria-label="Search investment plans"
-                className="pl-10"
               />
             </div>
           )}
 
-          {showFacets && (
-            <div className="flex flex-col gap-4">
-              {vehicleTypes.length > 1 && (
-                <FilterRow label="Vehicle type">
-                  <Chip
-                    active={vehicleType === null}
-                    onClick={() => setVehicleType(null)}
-                  >
-                    All
-                  </Chip>
-                  {vehicleTypes.map((type) => (
-                    <Chip
-                      key={type}
-                      active={vehicleType === type}
-                      onClick={() =>
-                        setVehicleType(vehicleType === type ? null : type)
-                      }
-                    >
-                      {type}
-                    </Chip>
-                  ))}
-                </FilterRow>
-              )}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+            <FilterRow label="Availability">
+              {AVAILABILITY_OPTIONS.map((option) => (
+                <Chip
+                  key={option.key}
+                  active={availability === option.key}
+                  onClick={() => setAvailability(option.key)}
+                >
+                  {option.label}
+                </Chip>
+              ))}
+            </FilterRow>
 
-              {statuses.length > 1 && (
-                <FilterRow label="Availability">
-                  <Chip active={status === null} onClick={() => setStatus(null)}>
-                    All
-                  </Chip>
-                  {statuses.map((value) => (
-                    <Chip
-                      key={value}
-                      active={status === value}
-                      onClick={() => setStatus(status === value ? null : value)}
-                    >
-                      {STATUS_LABELS[value]}
-                    </Chip>
-                  ))}
-                </FilterRow>
-              )}
-
-              <FilterRow label="Sort by" icon>
-                {SORT_OPTIONS.map((option) => (
-                  <Chip
-                    key={option.key}
-                    active={sort === option.key}
-                    onClick={() => setSort(option.key)}
-                  >
-                    {option.label}
-                  </Chip>
-                ))}
-              </FilterRow>
-            </div>
-          )}
+            <FilterRow label="Sort by" icon>
+              {SORT_OPTIONS.map((option) => (
+                <Chip
+                  key={option.key}
+                  active={sort === option.key}
+                  onClick={() => setSort(option.key)}
+                >
+                  {option.label}
+                </Chip>
+              ))}
+            </FilterRow>
+          </div>
         </div>
       )}
 
@@ -231,7 +210,9 @@ export function InvestMarketplace({
           description={
             plans.length === 0
               ? "There are no investment plans available right now. New plans appear here as soon as they are published."
-              : "Nothing matches the current search and filters."
+              : availability === "available"
+                ? "No plan is open for investment yet. Every published plan is currently Coming Soon."
+                : "Nothing matches the current search and filters."
           }
           action={
             hasFilters ? (
@@ -242,13 +223,22 @@ export function InvestMarketplace({
           }
         />
       ) : (
+        /* One column on phones, two from 640px, three from 1280px. The grid uses
+           `minmax(0, 1fr)` implicitly via Tailwind's grid-cols, so a long plan
+           name wraps instead of forcing the row wider — no horizontal scroll at
+           any width. */
         <RevealGroup
-          className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3"
           stagger={0.06}
         >
-          {filtered.map((plan) => (
+          {filtered.map((plan, index) => (
             <RevealItem key={plan.id} className="flex">
-              <InvestmentPlanCard plan={plan} animate={false} className="w-full" />
+              <InvestmentPlanCard
+                plan={plan}
+                animate={false}
+                priority={index === 0}
+                className="w-full"
+              />
             </RevealItem>
           ))}
         </RevealGroup>
@@ -267,7 +257,7 @@ function FilterRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <span className="flex items-center gap-1.5 text-[0.68rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
         {icon && <SlidersHorizontal aria-hidden="true" className="size-3" />}
         {label}
@@ -292,7 +282,7 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all duration-300",
+        "rounded-full border px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-300",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         active
           ? "border-brand-border bg-brand-surface text-brand-emphasis shadow-soft"

@@ -1,13 +1,47 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
   Bell,
   LayoutDashboard,
-  Receipt,
+  Sparkles,
   TrendingUp,
   UserRound,
+  Wallet,
 } from "lucide-react";
+
+/* ------------------------------------------------------------------ Routes */
+
+/**
+ * Every in-app destination, in one place.
+ *
+ * Pages and components import from here rather than writing string literals, so
+ * a route rename is a single edit and a typo is a type error.
+ */
+export const appRoutes = {
+  dashboard: "/dashboard",
+  invest: "/invest",
+  planDetail: (slug: string) => `/invest/${slug}`,
+  investments: "/investments",
+  wallet: "/wallet",
+  walletActivity: "/wallet/activity",
+  profile: "/profile",
+  notifications: "/notifications",
+} as const;
+
+export const legalRoutes = {
+  terms: "/terms",
+  privacy: "/privacy",
+  riskDisclosure: "/risk-disclosure",
+} as const;
+
+export const authRoutes = {
+  login: "/login",
+  register: "/register",
+  forgotPassword: "/forgot-password",
+  afterLogin: appRoutes.dashboard,
+  afterLogout: "/",
+} as const;
+
+/* ---------------------------------------------------------- Marketing site */
 
 export type MarketingNavItem = {
   label: string;
@@ -25,64 +59,94 @@ export const marketingNav: readonly MarketingNavItem[] = [
   { label: "FAQ", href: "#faq", isAnchor: true },
 ] as const;
 
-export type DashboardNavItem = {
+/* ------------------------------------------------------ Application shell */
+
+export type PrimaryNavItem = {
   label: string;
+  /** Even shorter label for the bottom bar on narrow phones. */
+  shortLabel: string;
   href: string;
   icon: LucideIcon;
-  description: string;
-  /** Rendered with a "Soon" affordance and no live functionality. */
-  comingSoon?: boolean;
+  /** One line describing the area's purpose. Used in menus and aria labels. */
+  purpose: string;
 };
 
-export const dashboardNav: readonly DashboardNavItem[] = [
+/**
+ * The five primary areas of the application.
+ *
+ * This *is* the navigation — there is no sidebar and no secondary rail. Five
+ * items is the practical ceiling for a bottom bar on a phone, so anything that
+ * isn't one of these five lives inside one of them:
+ *
+ *   · Deposit / Withdraw / transaction history → Wallet
+ *   · Plan browsing and plan detail            → Invest
+ *   · Notifications, security, appearance      → Profile (and the top bar)
+ */
+export const primaryNav: readonly PrimaryNavItem[] = [
   {
-    label: "Overview",
-    href: "/dashboard",
+    label: "Dashboard",
+    shortLabel: "Home",
+    href: appRoutes.dashboard,
     icon: LayoutDashboard,
-    description: "Account summary",
+    purpose: "Your starting point — how the platform works and what to do next",
+  },
+  {
+    label: "Invest",
+    shortLabel: "Invest",
+    href: appRoutes.invest,
+    icon: Sparkles,
+    purpose: "Browse every available investment plan",
   },
   {
     label: "Investments",
-    href: "/dashboard/investments",
+    shortLabel: "Mine",
+    href: appRoutes.investments,
     icon: TrendingUp,
-    description: "Plans and active positions",
+    purpose: "Track the investments you actually hold",
   },
   {
-    label: "Transactions",
-    href: "/dashboard/transactions",
-    icon: Receipt,
-    description: "Account history",
-  },
-  {
-    label: "Notifications",
-    href: "/dashboard/notifications",
-    icon: Bell,
-    description: "Platform updates",
+    label: "Wallet",
+    shortLabel: "Wallet",
+    href: appRoutes.wallet,
+    icon: Wallet,
+    purpose: "Balance, deposits, withdrawals and account activity",
   },
   {
     label: "Profile",
-    href: "/dashboard/profile",
+    shortLabel: "Profile",
+    href: appRoutes.profile,
     icon: UserRound,
-    description: "Account and security",
+    purpose: "Account details, security and preferences",
   },
 ] as const;
 
-export const dashboardSecondaryNav: readonly DashboardNavItem[] = [
+/** Reachable from the top bar and Profile, deliberately not from the bottom bar. */
+export const utilityNav = [
   {
-    label: "Deposit",
-    href: "/dashboard/deposit",
-    icon: ArrowDownToLine,
-    description: "Fund your account",
-    comingSoon: true,
-  },
-  {
-    label: "Withdraw",
-    href: "/dashboard/withdraw",
-    icon: ArrowUpFromLine,
-    description: "Request a payout",
-    comingSoon: true,
+    label: "Notifications",
+    href: appRoutes.notifications,
+    icon: Bell,
+    purpose: "Account and platform updates",
   },
 ] as const;
+
+/**
+ * Resolves the active primary area for a pathname.
+ *
+ * `/dashboard` is matched exactly — a prefix check would light up Dashboard on
+ * every route if the dashboard ever gained children. Everything else matches on
+ * its prefix so `/invest/vehicle-investment` keeps Invest active.
+ */
+export function getActivePrimaryHref(pathname: string): string | null {
+  const match = primaryNav.find((item) =>
+    item.href === appRoutes.dashboard
+      ? pathname === item.href
+      : pathname === item.href || pathname.startsWith(`${item.href}/`)
+  );
+  return match?.href ?? null;
+}
+
+/* ------------------------------------------------------------------ Footer */
 
 export const footerNav = {
   navigation: {
@@ -97,24 +161,16 @@ export const footerNav = {
   account: {
     title: "Account",
     items: [
-      { label: "Login", href: "/login" },
-      { label: "Register", href: "/register" },
+      { label: "Login", href: authRoutes.login },
+      { label: "Register", href: authRoutes.register },
     ],
   },
   legal: {
     title: "Legal",
     items: [
-      { label: "Terms", href: "/terms" },
-      { label: "Privacy", href: "/privacy" },
-      { label: "Risk Disclosure", href: "/risk-disclosure" },
+      { label: "Terms", href: legalRoutes.terms },
+      { label: "Privacy", href: legalRoutes.privacy },
+      { label: "Risk Disclosure", href: legalRoutes.riskDisclosure },
     ],
   },
-} as const;
-
-export const authRoutes = {
-  login: "/login",
-  register: "/register",
-  forgotPassword: "/forgot-password",
-  afterLogin: "/dashboard",
-  afterLogout: "/",
 } as const;

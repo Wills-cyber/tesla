@@ -34,20 +34,20 @@ export function PlanTermsList({
       <dl className={cn("grid gap-x-8 gap-y-5 sm:grid-cols-2", className)}>
         {terms.map((term) => (
           <div key={term.label} className="flex flex-col gap-1">
-            <dt className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
+            <dt className="text-[0.7rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
               {term.label}
             </dt>
             <dd
               data-numeric
               className={cn(
-                "text-lg font-medium",
-                term.emphasis ? "text-gold-200" : "text-foreground"
+                "text-lg font-semibold",
+                term.emphasis ? "text-brand-emphasis" : "text-foreground"
               )}
             >
               {term.value}
             </dd>
             {term.hint && (
-              <p className="text-[0.7rem] leading-relaxed text-muted-foreground/70">
+              <p className="text-[0.7rem] leading-relaxed text-subtle-foreground">
                 {term.hint}
               </p>
             )}
@@ -63,14 +63,14 @@ export function PlanTermsList({
         <div
           key={term.label}
           className={cn(
-            "flex items-baseline justify-between gap-4 border-b border-white/6 py-3 last:border-b-0",
-            term.emphasis && "border-gold-500/20"
+            "flex items-baseline justify-between gap-4 border-b border-hairline py-3 last:border-b-0",
+            term.emphasis && "border-brand-border"
           )}
         >
           <dt className="flex flex-col gap-0.5 text-sm text-muted-foreground">
             <span>{term.label}</span>
             {term.hint && (
-              <span className="text-[0.7rem] text-muted-foreground/65">
+              <span className="text-[0.7rem] text-subtle-foreground">
                 {term.hint}
               </span>
             )}
@@ -78,10 +78,8 @@ export function PlanTermsList({
           <dd
             data-numeric
             className={cn(
-              "shrink-0 text-right text-sm font-medium",
-              term.emphasis
-                ? "text-base text-gold-200"
-                : "text-foreground"
+              "shrink-0 text-right text-sm font-semibold",
+              term.emphasis ? "text-base text-brand-emphasis" : "text-foreground"
             )}
           >
             {term.value}

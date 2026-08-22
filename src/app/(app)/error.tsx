@@ -5,15 +5,16 @@ import Link from "next/link";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { appRoutes } from "@/config/navigation";
 
 /**
- * Dashboard error boundary.
+ * Application error boundary.
  *
- * Scoped to the dashboard segment so a failed query keeps the sidebar and header
- * intact — the user can still navigate to another section rather than being
- * dropped onto a blank page.
+ * Scoped to the app shell, so a failed query keeps the top bar and bottom
+ * navigation intact — the user can move to another area instead of being dropped
+ * onto a blank page.
  */
-export default function DashboardError({
+export default function AppError({
   error,
   reset,
 }: {
@@ -21,17 +22,14 @@ export default function DashboardError({
   reset: () => void;
 }) {
   React.useEffect(() => {
-    console.error("[app/dashboard/error]", error);
+    console.error("[app/(app)/error]", error);
   }, [error]);
 
   return (
-    <div
-      role="alert"
-      className="flex flex-col items-start gap-6 rounded-xl border border-white/10 bg-white/[0.02] p-7"
-    >
+    <div role="alert" className="panel flex flex-col items-start gap-6 p-7">
       <span
         aria-hidden="true"
-        className="grid size-11 place-items-center rounded-lg border border-amber-400/25 bg-amber-400/8 text-amber-200"
+        className="grid size-11 place-items-center rounded-xl border border-warning/25 bg-warning-surface text-warning"
       >
         <AlertTriangle className="size-5" />
       </span>
@@ -43,7 +41,7 @@ export default function DashboardError({
           balances and history are read-only here.
         </p>
         {error.digest && (
-          <p data-numeric className="text-xs text-muted-foreground/60">
+          <p data-numeric className="text-xs text-subtle-foreground">
             Reference: {error.digest}
           </p>
         )}
@@ -54,8 +52,8 @@ export default function DashboardError({
           <RotateCcw />
           Try again
         </Button>
-        <Button asChild variant="hairline" size="md">
-          <Link href="/dashboard">Back to overview</Link>
+        <Button asChild variant="outline" size="md">
+          <Link href={appRoutes.dashboard}>Back to dashboard</Link>
         </Button>
       </div>
     </div>

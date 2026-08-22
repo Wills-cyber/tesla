@@ -10,6 +10,7 @@ import { PlanTermsList } from "@/components/investment/plan-terms-list";
 import { PlanStatusPill } from "@/components/common/status-pill";
 import { VehicleImage } from "@/components/vehicles/vehicle-image";
 import { Button } from "@/components/ui/button";
+import { appRoutes } from "@/config/navigation";
 import { planImages } from "@/config/vehicles";
 import { isPlanArithmeticConsistent } from "@/config/investment-plans";
 import {
@@ -24,10 +25,16 @@ type InvestmentPlanCardProps = {
   plan: InvestmentPlan;
   className?: string;
   /**
-   * `full` shows the complete term sheet (landing page, investments page);
-   * `compact` shows only the three headline figures (dashboard sidebars).
+   * `full` shows the complete term sheet (Invest marketplace, landing page);
+   * `compact` shows only the three headline figures (dashboard rails).
    */
   detail?: "full" | "compact";
+  /**
+   * `link` sends "View Plan" to `/invest/[slug]` — the in-app behaviour.
+   * `dialog` opens the term sheet in place, for the public landing page where the
+   * detail route is behind the auth guard.
+   */
+  action?: "link" | "dialog";
   /** Skips the entrance animation for lists that animate their own container. */
   animate?: boolean;
 };
@@ -35,10 +42,14 @@ type InvestmentPlanCardProps = {
 /**
  * The canonical presentation of an investment plan.
  *
- * Every number on this card is a *stated term* from the plan catalogue — what
- * the plan proposes if it runs as described. None of it is a record of capital
- * received, held or paid out, and the card says so in the footnote rather than
- * relying on the reader to infer it.
+ * Every field is read from the `plan` object, which comes from the
+ * `investment_plans` table (or the pre-launch catalogue when the backend is
+ * unconfigured). Nothing about the marketplace is hard-coded in the UI: adding a
+ * plan is inserting a row.
+ *
+ * Every number on this card is a *stated term* — what the plan proposes if it runs
+ * as described. None of it is a record of capital received, held or paid out, and
+ * the card says so in the footnote rather than relying on the reader to infer it.
  *
  * A plan can only be entered when `status === "open"`. Nothing is `open` in the
  * pre-launch build, so the action is a details view, never a purchase.
@@ -47,6 +58,7 @@ export function InvestmentPlanCard({
   plan,
   className,
   detail = "full",
+  action = "link",
   animate = true,
 }: InvestmentPlanCardProps) {
   const image = planImages[plan.imageKey];
@@ -57,9 +69,20 @@ export function InvestmentPlanCard({
   if (process.env.NODE_ENV !== "production" && !isPlanArithmeticConsistent(plan)) {
     console.warn(
       `[InvestmentPlanCard] Stated terms for "${plan.slug}" do not add up. ` +
-        `Check investmentPlans in src/config/investment-plans.ts.`
+        `Check the investment_plans row (or src/config/investment-plans.ts).`
     );
   }
+
+  const viewPlanButton = (
+    <Button
+      variant={isOpen ? "accent" : "outline"}
+      size="md"
+      className="group/cta w-full sm:flex-1"
+    >
+      View Plan
+      <ArrowUpRight className="transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5" />
+    </Button>
+  );
 
   return (
     <motion.article
@@ -67,23 +90,23 @@ export function InvestmentPlanCard({
       whileHover={{ y: -4 }}
       transition={transitions.fast}
       className={cn(
-        "group/plan surface relative flex flex-col overflow-hidden rounded-2xl border border-white/10",
+        "group/plan panel relative flex flex-col overflow-hidden",
         "transition-[border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-        "hover:border-gold-500/25 hover:shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)]",
+        "hover:border-brand-border hover:shadow-lift",
         className
       )}
     >
       {/* Accent hairline along the top edge, brightening on hover. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-500/40 to-transparent opacity-60 transition-opacity duration-500 group-hover/plan:opacity-100"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand to-transparent opacity-40 transition-opacity duration-500 group-hover/plan:opacity-90"
       />
 
       {image && (
-        <div className="relative border-b border-white/8 bg-ink-900/60">
+        <div className="relative border-b border-hairline bg-surface-2">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-8 bottom-2 h-16 rounded-[50%] bg-gold-500/10 blur-2xl"
+            className="pointer-events-none absolute inset-x-8 bottom-2 h-16 rounded-[50%] bg-brand/12 blur-2xl"
           />
           <VehicleImage
             source={image}
@@ -100,7 +123,7 @@ export function InvestmentPlanCard({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-col gap-1.5">
               <span className="eyebrow">{plan.vehicleType}</span>
-              <h3 className="text-xl font-medium sm:text-[1.4rem]">
+              <h3 className="text-xl font-semibold sm:text-[1.35rem]">
                 {plan.name}
               </h3>
             </div>
@@ -118,33 +141,35 @@ export function InvestmentPlanCard({
 
         <div className="mt-auto flex flex-col gap-4 pt-1">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-            <PlanDetailsDialog
-              plan={plan}
-              trigger={
-                <Button
-                  variant={isOpen ? "accent" : "hairline"}
-                  size="md"
-                  className="group/cta w-full sm:flex-1"
-                >
+            {action === "dialog" ? (
+              <PlanDetailsDialog plan={plan} trigger={viewPlanButton} />
+            ) : (
+              <Button
+                asChild
+                variant={isOpen ? "accent" : "outline"}
+                size="md"
+                className="group/cta w-full sm:flex-1"
+              >
+                <Link href={appRoutes.planDetail(plan.slug)}>
                   View Plan
                   <ArrowUpRight className="transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5" />
-                </Button>
-              }
-            />
+                </Link>
+              </Button>
+            )}
 
             {isOpen ? (
               <Button asChild variant="accent" size="md" className="w-full sm:flex-1">
-                <Link href="/dashboard/investments">Invest</Link>
+                <Link href={appRoutes.planDetail(plan.slug)}>Start Investment</Link>
               </Button>
             ) : (
-              <span className="inline-flex items-center justify-center gap-2 rounded-lg border border-dashed border-white/12 px-4 py-2.5 text-xs text-muted-foreground/80 sm:flex-1">
+              <span className="inline-flex items-center justify-center gap-2 rounded-lg border border-dashed border-hairline-strong px-4 py-2.5 text-xs text-muted-foreground sm:flex-1">
                 <Info className="size-3.5 shrink-0" />
                 Not yet available
               </span>
             )}
           </div>
 
-          <p className="text-[0.7rem] leading-relaxed text-muted-foreground/65">
+          <p className="text-[0.7rem] leading-relaxed text-subtle-foreground">
             Figures are stated plan terms, not guaranteed returns, and do not
             represent funds received or paid.
           </p>

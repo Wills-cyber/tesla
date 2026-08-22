@@ -4,11 +4,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* -------------------------------------------------------------------------
+/* =============================================================================
    TESLA Electronics — design tokens
-   A single dark, luxury theme. Deep near-black surfaces, off-white type and
-   one refined champagne-gold accent. Everything else is hairlines and space.
-   ------------------------------------------------------------------------- */
+
+   One place to restyle the entire product.
+
+   Structure:
+     1. @theme inline  — maps CSS variables onto Tailwind utility names.
+     2. :root          — the LIGHT theme. This is the default experience.
+     3. .dark          — the optional dark theme. Same token names, new values.
+     4. base/components/utilities — semantic classes built from those tokens.
+
+   Rules the palette follows:
+     · Warm ivory page, pure-white cards, soft ivory section bands.
+     · Charcoal type. Secondary text is contrast-checked to AA on every surface.
+     · ONE accent: champagne→bronze gold. Nothing else is coloured decoratively.
+     · Depth comes from soft shadows, not heavy borders.
+   ============================================================================= */
 
 @theme inline {
   --color-background: var(--background);
@@ -18,7 +30,7 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
 
-  /* Brand accent scale */
+  /* --------------------------------------------------- Brand accent scale */
   --color-gold-50: var(--gold-50);
   --color-gold-100: var(--gold-100);
   --color-gold-200: var(--gold-200);
@@ -29,32 +41,50 @@
   --color-gold-700: var(--gold-700);
   --color-gold-800: var(--gold-800);
 
-  /* Neutral surface scale */
+  /* Semantic brand roles — prefer these over the raw scale in components. */
+  --color-brand: var(--brand);
+  --color-brand-emphasis: var(--brand-emphasis);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-surface-strong: var(--brand-surface-strong);
+  --color-brand-border: var(--brand-border);
+  --color-brand-contrast: var(--brand-contrast);
+
+  /* ------------------------------------------------------------- Surfaces */
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-surface-inverse-foreground: var(--surface-inverse-foreground);
+
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-subtle-foreground: var(--subtle-foreground);
+
+  /* --------------------------------------------------- Neutral ink scale */
   --color-ink-950: var(--ink-950);
   --color-ink-900: var(--ink-900);
-  --color-ink-850: var(--ink-850);
   --color-ink-800: var(--ink-800);
   --color-ink-700: var(--ink-700);
+  --color-ink-600: var(--ink-600);
+  --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
 
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  /* ---------------------------------------------------- shadcn base roles */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-surface: var(--destructive-surface);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-surface: var(--success-surface);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-surface: var(--warning-surface);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-surface: var(--info-surface);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -67,7 +97,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
+  /* ------------------------------------------------------------- Geometry */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -76,6 +112,14 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
+  /* ------------------------------------------------------------ Elevation */
+  --shadow-soft: var(--elevation-soft);
+  --shadow-card: var(--elevation-card);
+  --shadow-lift: var(--elevation-lift);
+  --shadow-float: var(--elevation-float);
+  --shadow-inset-hairline: var(--elevation-inset-hairline);
+
+  /* --------------------------------------------------------------- Motion */
   --ease-luxe: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out-luxe: cubic-bezier(0.65, 0, 0.35, 1);
 
@@ -85,6 +129,10 @@
   --animate-shimmer: shimmer 3.2s var(--ease-in-out-luxe) infinite;
   --animate-marquee: marquee 42s linear infinite;
   --animate-pulse-ring: pulse-ring 3.6s var(--ease-in-out-luxe) infinite;
+  --animate-mark-trace: mark-trace 2.4s var(--ease-in-out-luxe) infinite;
+  --animate-mark-breathe: mark-breathe 2.4s var(--ease-in-out-luxe) infinite;
+  --animate-mark-halo: mark-halo 2.4s var(--ease-in-out-luxe) infinite;
+  --animate-orbit: orbit 1.15s linear infinite;
 
   @keyframes float {
     0%,
@@ -137,12 +185,193 @@
       transform: scale(1.08);
     }
   }
+
+  /* ---- Branded loader ---------------------------------------------------
+     The mark draws itself in, breathes once, and glows. Three cooperating
+     keyframes on the same duration so they stay locked in phase. */
+
+  @keyframes mark-trace {
+    0% {
+      stroke-dashoffset: var(--mark-dash, 48);
+      opacity: 0.25;
+    }
+    45% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+
+  @keyframes mark-breathe {
+    0% {
+      transform: scale(0.94);
+      opacity: 0.55;
+    }
+    45% {
+      transform: scale(1.015);
+      opacity: 1;
+    }
+    75% {
+      transform: scale(0.995);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.94);
+      opacity: 0.55;
+    }
+  }
+
+  @keyframes mark-halo {
+    0%,
+    100% {
+      opacity: 0.12;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 0.42;
+      transform: scale(1.14);
+    }
+  }
+
+  @keyframes orbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
+/* =============================================================================
+   LIGHT THEME — the default
+   ============================================================================= */
 :root {
+  color-scheme: light;
+
+  /* Champagne → bronze. The single accent in the product. */
+  --gold-50: oklch(0.982 0.012 88);
+  --gold-100: oklch(0.958 0.026 87);
+  --gold-200: oklch(0.918 0.045 86);
+  --gold-300: oklch(0.862 0.064 84);
+  --gold-400: oklch(0.802 0.083 82);
+  --gold-500: oklch(0.742 0.094 79);
+  --gold-600: oklch(0.632 0.096 76);
+  --gold-700: oklch(0.522 0.09 72);
+  --gold-800: oklch(0.432 0.081 68);
+
+  /* Charcoal ink, faint cool cast so it never reads brown next to the gold. */
+  --ink-950: oklch(0.165 0.008 264);
+  --ink-900: oklch(0.222 0.009 264);
+  --ink-800: oklch(0.302 0.01 264);
+  --ink-700: oklch(0.392 0.01 264);
+  --ink-600: oklch(0.485 0.009 264);
+  --ink-500: oklch(0.605 0.008 264);
+  --ink-400: oklch(0.735 0.007 264);
+
+  /* Warm ivory page, pure-white cards, soft ivory bands. */
+  --background: oklch(0.978 0.005 86);
+  --foreground: var(--ink-900);
+
+  --surface-1: oklch(1 0 0);
+  --surface-2: oklch(0.962 0.007 86);
+  --surface-3: oklch(0.938 0.009 86);
+  --surface-inverse: var(--ink-950);
+  --surface-inverse-foreground: oklch(0.97 0.004 86);
+
+  --card: var(--surface-1);
+  --card-foreground: var(--foreground);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  /* Primary action: charcoal on ivory. Reads premium, contrasts perfectly. */
+  --primary: var(--ink-900);
+  --primary-foreground: oklch(0.985 0.004 86);
+
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink-800);
+
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-600);
+  --subtle-foreground: var(--ink-500);
+
+  --accent: var(--surface-2);
+  --accent-foreground: var(--ink-900);
+
+  /* Semantic brand roles. */
+  --brand: var(--gold-600);
+  --brand-emphasis: var(--gold-800);
+  --brand-surface: color-mix(in oklch, var(--gold-500) 12%, white);
+  --brand-surface-strong: color-mix(in oklch, var(--gold-500) 22%, white);
+  --brand-border: color-mix(in oklch, var(--gold-600) 32%, transparent);
+  --brand-contrast: oklch(0.26 0.038 68);
+
+  /* Status colours, each contrast-checked against white. */
+  --destructive: oklch(0.522 0.192 26);
+  --destructive-foreground: oklch(0.99 0.004 86);
+  --destructive-surface: oklch(0.968 0.021 26);
+
+  --success: oklch(0.492 0.118 158);
+  --success-foreground: oklch(0.99 0.004 86);
+  --success-surface: oklch(0.964 0.028 158);
+
+  --warning: oklch(0.548 0.116 72);
+  --warning-foreground: oklch(0.99 0.004 86);
+  --warning-surface: oklch(0.968 0.03 78);
+
+  --info: oklch(0.512 0.098 248);
+  --info-foreground: oklch(0.99 0.004 86);
+  --info-surface: oklch(0.964 0.024 248);
+
+  /* Hairlines: very light, warm-neutral. */
+  --hairline: oklch(0.892 0.008 86);
+  --hairline-strong: oklch(0.838 0.01 86);
+  --border: var(--hairline);
+  --input: oklch(0.868 0.009 86);
+  --ring: color-mix(in oklch, var(--gold-600) 55%, transparent);
+
+  --chart-1: var(--gold-600);
+  --chart-2: var(--ink-700);
+  --chart-3: var(--ink-500);
+  --chart-4: var(--gold-400);
+  --chart-5: var(--ink-400);
+
+  /* Soft, layered, warm-tinted. Depth without weight. */
+  --elevation-soft: 0 1px 2px -1px oklch(0.222 0.009 264 / 6%);
+  --elevation-card:
+    0 1px 2px -1px oklch(0.222 0.009 264 / 5%),
+    0 6px 16px -10px oklch(0.222 0.009 264 / 10%);
+  --elevation-lift:
+    0 2px 4px -2px oklch(0.222 0.009 264 / 6%),
+    0 12px 32px -14px oklch(0.222 0.009 264 / 14%);
+  --elevation-float:
+    0 2px 6px -2px oklch(0.222 0.009 264 / 7%),
+    0 18px 44px -16px oklch(0.222 0.009 264 / 16%),
+    0 40px 80px -40px oklch(0.222 0.009 264 / 14%);
+  --elevation-inset-hairline: inset 0 0 0 1px oklch(0.222 0.009 264 / 7%);
+
+  --radius: 0.75rem;
+
+  /* Layout rhythm */
+  --header-height: 4rem;
+  --bottom-nav-height: 4.5rem;
+  /* Clearance below page content so the floating nav never covers anything. */
+  --bottom-nav-clearance: calc(
+    var(--bottom-nav-height) + 1.75rem + env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/* =============================================================================
+   DARK THEME — optional preference. Same token names, deep-graphite values.
+   Light remains the default; this must never be less readable.
+   ============================================================================= */
+.dark {
   color-scheme: dark;
 
-  /* Champagne gold — the single accent */
   --gold-50: oklch(0.97 0.014 88);
   --gold-100: oklch(0.94 0.03 88);
   --gold-200: oklch(0.9 0.045 87);
@@ -153,70 +382,91 @@
   --gold-700: oklch(0.61 0.078 80);
   --gold-800: oklch(0.48 0.062 78);
 
-  /* Near-black surfaces with a faint cool cast */
-  --ink-950: oklch(0.125 0.004 265);
-  --ink-900: oklch(0.155 0.005 265);
-  --ink-850: oklch(0.18 0.005 265);
-  --ink-800: oklch(0.215 0.006 265);
-  --ink-700: oklch(0.28 0.007 265);
+  --ink-950: oklch(0.145 0.005 264);
+  --ink-900: oklch(0.178 0.006 264);
+  --ink-800: oklch(0.228 0.007 264);
+  --ink-700: oklch(0.3 0.008 264);
+  --ink-600: oklch(0.72 0.008 264);
+  --ink-500: oklch(0.61 0.008 264);
+  --ink-400: oklch(0.5 0.007 264);
 
   --background: var(--ink-950);
-  --foreground: oklch(0.97 0.002 265);
+  --foreground: oklch(0.968 0.003 264);
 
-  --card: oklch(0.165 0.005 265);
-  --card-foreground: oklch(0.97 0.002 265);
+  --surface-1: oklch(0.195 0.006 264);
+  --surface-2: oklch(0.228 0.007 264);
+  --surface-3: oklch(0.262 0.008 264);
+  --surface-inverse: oklch(0.968 0.003 264);
+  --surface-inverse-foreground: var(--ink-950);
 
-  --popover: oklch(0.185 0.005 265);
-  --popover-foreground: oklch(0.97 0.002 265);
+  --card: var(--surface-1);
+  --card-foreground: var(--foreground);
 
-  --primary: var(--gold-500);
-  --primary-foreground: oklch(0.16 0.012 80);
+  --popover: oklch(0.215 0.007 264);
+  --popover-foreground: var(--foreground);
 
-  --secondary: oklch(0.225 0.006 265);
-  --secondary-foreground: oklch(0.96 0.002 265);
+  --primary: oklch(0.968 0.003 264);
+  --primary-foreground: var(--ink-950);
 
-  --muted: oklch(0.215 0.006 265);
-  --muted-foreground: oklch(0.68 0.008 265);
+  --secondary: var(--surface-2);
+  --secondary-foreground: oklch(0.955 0.003 264);
 
-  --accent: oklch(0.235 0.008 265);
-  --accent-foreground: oklch(0.97 0.002 265);
+  --muted: var(--surface-2);
+  --muted-foreground: oklch(0.735 0.008 264);
+  --subtle-foreground: oklch(0.615 0.008 264);
 
-  --destructive: oklch(0.66 0.19 24);
-  --success: oklch(0.74 0.14 158);
-  --warning: oklch(0.8 0.12 78);
+  --accent: var(--surface-3);
+  --accent-foreground: oklch(0.968 0.003 264);
 
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.78 0.082 84 / 55%);
+  --brand: var(--gold-500);
+  --brand-emphasis: var(--gold-200);
+  --brand-surface: color-mix(in oklch, var(--gold-500) 10%, transparent);
+  --brand-surface-strong: color-mix(in oklch, var(--gold-500) 18%, transparent);
+  --brand-border: color-mix(in oklch, var(--gold-500) 30%, transparent);
+  --brand-contrast: oklch(0.18 0.02 70);
+
+  --destructive: oklch(0.72 0.17 26);
+  --destructive-foreground: oklch(0.16 0.01 26);
+  --destructive-surface: color-mix(in oklch, oklch(0.72 0.17 26) 14%, transparent);
+
+  --success: oklch(0.78 0.13 158);
+  --success-foreground: oklch(0.16 0.02 158);
+  --success-surface: color-mix(in oklch, oklch(0.78 0.13 158) 14%, transparent);
+
+  --warning: oklch(0.83 0.12 78);
+  --warning-foreground: oklch(0.18 0.02 78);
+  --warning-surface: color-mix(in oklch, oklch(0.83 0.12 78) 14%, transparent);
+
+  --info: oklch(0.76 0.1 248);
+  --info-foreground: oklch(0.16 0.02 248);
+  --info-surface: color-mix(in oklch, oklch(0.76 0.1 248) 14%, transparent);
+
+  --hairline: oklch(1 0 0 / 10%);
+  --hairline-strong: oklch(1 0 0 / 18%);
+  --border: var(--hairline);
+  --input: oklch(1 0 0 / 15%);
+  --ring: color-mix(in oklch, var(--gold-500) 55%, transparent);
 
   --chart-1: var(--gold-500);
-  --chart-2: oklch(0.7 0.03 265);
-  --chart-3: oklch(0.55 0.02 265);
-  --chart-4: oklch(0.42 0.015 265);
-  --chart-5: oklch(0.32 0.01 265);
+  --chart-2: oklch(0.72 0.03 264);
+  --chart-3: oklch(0.56 0.02 264);
+  --chart-4: var(--gold-300);
+  --chart-5: oklch(0.4 0.015 264);
 
-  --radius: 0.5rem;
-
-  --sidebar: oklch(0.145 0.005 265);
-  --sidebar-foreground: oklch(0.9 0.003 265);
-  --sidebar-primary: var(--gold-500);
-  --sidebar-primary-foreground: oklch(0.16 0.012 80);
-  --sidebar-accent: oklch(0.215 0.006 265);
-  --sidebar-accent-foreground: oklch(0.97 0.002 265);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.78 0.082 84 / 55%);
-
-  /* Layout rhythm */
-  --header-height: 4.5rem;
-  --header-height-compact: 3.75rem;
+  --elevation-soft: 0 1px 2px -1px oklch(0 0 0 / 40%);
+  --elevation-card:
+    0 1px 2px -1px oklch(0 0 0 / 45%), 0 8px 20px -12px oklch(0 0 0 / 55%);
+  --elevation-lift:
+    0 2px 4px -2px oklch(0 0 0 / 45%), 0 16px 36px -16px oklch(0 0 0 / 65%);
+  --elevation-float:
+    0 2px 6px -2px oklch(0 0 0 / 50%), 0 20px 48px -18px oklch(0 0 0 / 70%),
+    0 44px 88px -44px oklch(0 0 0 / 60%);
+  --elevation-inset-hairline: inset 0 0 0 1px oklch(1 0 0 / 8%);
 }
 
-/* The product ships as a single dark theme; `.dark` is present on <html> so
-   shadcn's dark: variants resolve, but the tokens above are already dark. */
-.dark {
-  color-scheme: dark;
-}
-
+/* =============================================================================
+   Base
+   ============================================================================= */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -246,19 +496,19 @@
   }
 
   ::selection {
-    background: color-mix(in oklch, var(--gold-500) 32%, transparent);
+    background: color-mix(in oklch, var(--gold-500) 34%, transparent);
     color: var(--foreground);
   }
 
   :focus-visible {
-    outline: 2px solid color-mix(in oklch, var(--gold-500) 75%, transparent);
+    outline: 2px solid var(--brand);
     outline-offset: 2px;
   }
 
   /* Scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: oklch(1 0 0 / 14%) transparent;
+    scrollbar-color: var(--hairline-strong) transparent;
   }
 
   ::-webkit-scrollbar {
@@ -271,14 +521,10 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: oklch(1 0 0 / 12%);
+    background-color: var(--hairline-strong);
     border-radius: 9999px;
     border: 3px solid transparent;
     background-clip: content-box;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: oklch(1 0 0 / 22%);
   }
 
   /* Numeric data reads as data. */
@@ -288,37 +534,71 @@
   }
 }
 
+/* =============================================================================
+   Components — semantic classes shared across the app
+   ============================================================================= */
 @layer components {
-  /* Hairline: a 1px inner rule that survives on dark surfaces. */
-  .hairline {
-    @apply ring-1 ring-white/8;
+  /* A resting card. The single most-used surface in the product. */
+  .panel {
+    background-color: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--elevation-card);
   }
 
-  .hairline-t {
-    @apply border-t border-white/8;
+  /* A card that responds to the pointer. */
+  .panel-interactive {
+    transition:
+      border-color 400ms var(--ease-luxe),
+      box-shadow 400ms var(--ease-luxe),
+      transform 400ms var(--ease-luxe);
   }
 
-  /* Used sparingly — nav bar, overlays, a single hero chip. */
-  .glass {
-    background-color: color-mix(in oklch, var(--ink-900) 62%, transparent);
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
+  .panel-interactive:hover {
+    border-color: var(--hairline-strong);
+    box-shadow: var(--elevation-lift);
   }
 
-  .surface {
+  /* A soft band used to separate long pages into readable sections. */
+  .panel-sunken {
+    background-color: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-xl);
+  }
+
+  /* Faint gold wash — an accent block, used sparingly. */
+  .panel-brand {
     background-image: linear-gradient(
-      to bottom,
-      oklch(1 0 0 / 3.5%),
-      oklch(1 0 0 / 1%)
+      160deg,
+      var(--brand-surface) 0%,
+      var(--surface-1) 62%
     );
+    border: 1px solid var(--brand-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--elevation-card);
   }
 
-  .text-gold-gradient {
+  /* Charcoal block for the one moment per page that needs weight. */
+  .panel-inverse {
+    background-color: var(--surface-inverse);
+    color: var(--surface-inverse-foreground);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--elevation-lift);
+  }
+
+  /* Floating navigation and overlays only. */
+  .glass {
+    background-color: color-mix(in oklch, var(--surface-1) 82%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  .text-brand-gradient {
     background-image: linear-gradient(
       100deg,
-      var(--gold-200) 0%,
-      var(--gold-500) 42%,
-      var(--gold-300) 100%
+      var(--gold-700) 0%,
+      var(--gold-500) 46%,
+      var(--gold-700) 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
@@ -329,24 +609,24 @@
     background-image: linear-gradient(
       to right,
       transparent,
-      oklch(1 0 0 / 12%) 22%,
-      oklch(1 0 0 / 12%) 78%,
+      var(--hairline-strong) 22%,
+      var(--hairline-strong) 78%,
       transparent
     );
   }
 
-  /* Faint engineering grid used behind hero / CTA blocks. */
+  /* Faint engineering grid behind hero / CTA blocks. */
   .grid-field {
     background-image:
-      linear-gradient(to right, oklch(1 0 0 / 3.2%) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(1 0 0 / 3.2%) 1px, transparent 1px);
+      linear-gradient(to right, var(--hairline) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
     background-size: 72px 72px;
   }
 
-  .glow-gold {
+  .glow-brand {
     box-shadow:
-      0 0 0 1px color-mix(in oklch, var(--gold-500) 22%, transparent),
-      0 18px 60px -24px color-mix(in oklch, var(--gold-500) 55%, transparent);
+      0 0 0 1px var(--brand-border),
+      0 18px 50px -26px color-mix(in oklch, var(--gold-500) 60%, transparent);
   }
 
   .mask-fade-b {
@@ -372,6 +652,9 @@
   }
 }
 
+/* =============================================================================
+   Utilities
+   ============================================================================= */
 @layer utilities {
   .container-wide {
     width: 100%;
@@ -392,8 +675,31 @@
     }
   }
 
+  /* App shell reading column — narrower than marketing, easier to scan. */
+  .container-app {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 72rem;
+    padding-inline: 1.125rem;
+  }
+
+  @media (min-width: 768px) {
+    .container-app {
+      padding-inline: 2rem;
+    }
+  }
+
   .eyebrow {
-    @apply text-[0.7rem] font-medium tracking-[0.22em] text-muted-foreground uppercase;
+    @apply text-[0.7rem] font-medium tracking-[0.2em] text-muted-foreground uppercase;
+  }
+
+  /* Keeps page content clear of the floating bottom navigation. */
+  .pb-bottom-nav {
+    padding-bottom: var(--bottom-nav-clearance);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 

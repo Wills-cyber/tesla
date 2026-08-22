@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>TESLA Electronics</title>
+  <desc>Brand mark of TESLA Electronics, an independent investment platform. Not affiliated with Tesla, Inc.</desc>
+  <defs>
+    <linearGradient id="plate" x1="48" y1="32" x2="464" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#262a33"/>
+      <stop offset="1" stop-color="#0e1015"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="128" y1="96" x2="416" y2="432" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f4e0b4"/>
+      <stop offset="0.46" stop-color="#d4af6a"/>
+      <stop offset="1" stop-color="#967234"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="#faf9f6"/>
+
+  <path
+    fill="url(#plate)"
+    d="M185.6 44.8h140.8c21.3 0 41.7 8.5 56.7 23.5l83.6 83.6c15 15 23.5 35.4 23.5 56.7v140.8c0 21.3-8.5 41.7-23.5 56.7l-83.6 83.6c-15 15-35.4 23.5-56.7 23.5H185.6c-21.3 0-41.7-8.5-56.7-23.5l-83.6-83.6c-15-15-23.5-35.4-23.5-56.7V208.6c0-21.3 8.5-41.7 23.5-56.7l83.6-83.6c15-15 35.4-23.5 56.7-23.5Z"
+  />
+
+  <g stroke="url(#gold)" fill="none" stroke-linecap="square">
+    <path d="M160 180h192" stroke-width="40"/>
+    <path d="M256 180v164" stroke-width="40"/>
+  </g>
+  <!-- Circuit trace and pad: the "Electronics" half of the monogram. -->
+  <path d="M256 304h62" stroke="url(#gold)" stroke-width="28" stroke-linecap="butt" fill="none"/>
+  <circle cx="350" cy="304" r="32" fill="url(#gold)"/>
+</svg>

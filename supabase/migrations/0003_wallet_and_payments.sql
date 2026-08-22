@@ -1,0 +1,432 @@
+-- =============================================================================
+-- TESLA Electronics — wallet, crypto payments and withdrawals
+--
+-- Design rules, continued from 0001:
+--
+--   5. The set of asset/network pairs the platform accepts is DATA, not code.
+--      `payment_methods` is the source of truth and every row is disabled until
+--      a payment provider actually settles that pair. An asset does not exist on
+--      every chain, so a pair is never inferred.
+--   6. Deposit addresses, deposits and confirmations are written only by the
+--      provider webhook / server process. There is no client INSERT policy, so a
+--      browser cannot invent a deposit or mark one confirmed.
+--   7. A withdrawal is created exclusively through `request_withdrawal()`, a
+--      `security definer` function that re-validates account status, the payment
+--      pair, the destination address format, the platform minimum and the
+--      spendable balance. The client cannot bypass it, and the frontend's own
+--      checks are a courtesy, never the boundary.
+--   8. No private key, signing secret or provider credential belongs in this
+--      database or in the application. Signing happens in the provider's custody
+--      infrastructure, reached from a server-only surface.
+-- =============================================================================
+
+-- ----------------------------------------------------------------- enum types
+create type public.address_format as enum ('evm', 'tron');
+
+create type public.deposit_status as enum (
+  'awaiting_funds',
+  'pending',
+  'confirmed',
+  'credited',
+  'failed'
+);
+
+create type public.withdrawal_status as enum (
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'rejected'
+);
+
+-- ------------------------------------------------------------- payment_assets
+create table public.payment_assets (
+  symbol text primary key,
+  name text not null,
+  kind text not null default 'stablecoin',
+  decimals smallint not null,
+  display_decimals smallint not null default 2,
+  created_at timestamptz not null default now(),
+
+  constraint payment_assets_decimals_sane check (decimals between 0 and 24),
+  constraint payment_assets_display_sane check (display_decimals between 0 and 12),
+  constraint payment_assets_kind_known check (kind in ('stablecoin', 'native'))
+);
+
+-- ----------------------------------------------------------- payment_networks
+create table public.payment_networks (
+  id text primary key,
+  name text not null,
+  -- Token standard shown beside the asset, e.g. 'TRC-20'.
+  protocol text not null,
+  address_format public.address_format not null,
+  explorer_tx_url_template text,
+  required_confirmations integer,
+  created_at timestamptz not null default now(),
+
+  constraint payment_networks_confirmations_sane check (
+    required_confirmations is null or required_confirmations > 0
+  )
+);
+
+-- ------------------------------------------------------------ payment_methods
+-- One row per asset/network pair the provider can actually settle.
+create table public.payment_methods (
+  id text primary key,
+  asset_symbol text not null references public.payment_assets (symbol) on delete restrict,
+  network_id text not null references public.payment_networks (id) on delete restrict,
+  deposit_enabled boolean not null default false,
+  withdrawal_enabled boolean not null default false,
+  -- Provider-specific floor. NULL means "use the platform minimum".
+  min_withdrawal_cents bigint,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+
+  constraint payment_methods_pair_unique unique (asset_symbol, network_id),
+  constraint payment_methods_min_positive check (
+    min_withdrawal_cents is null or min_withdrawal_cents > 0
+  )
+);
+
+create index payment_methods_deposit_idx
+  on public.payment_methods (deposit_enabled, sort_order);
+create index payment_methods_withdrawal_idx
+  on public.payment_methods (withdrawal_enabled, sort_order);
+
+create trigger payment_methods_set_updated_at
+  before update on public.payment_methods
+  for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------- platform_settings
+-- Small key/value store for policy the app must not hard-code.
+create table public.platform_settings (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create trigger platform_settings_set_updated_at
+  before update on public.platform_settings
+  for each row execute function public.set_updated_at();
+
+insert into public.platform_settings (key, value) values
+  ('minimum_withdrawal_cents', '50000'::jsonb),
+  ('withdrawals_enabled', 'false'::jsonb),
+  ('deposits_enabled', 'false'::jsonb);
+
+-- ---------------------------------------------------------- deposit_addresses
+-- Issued by the provider, one per user per pair. Never generated by the app.
+create table public.deposit_addresses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  method_id text not null references public.payment_methods (id) on delete restrict,
+  address text not null,
+  memo text,
+  -- Wallet URI used to render the QR code, e.g. 'tron:T…?token=…'.
+  uri text not null,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+
+  constraint deposit_addresses_user_method_unique unique (user_id, method_id),
+  constraint deposit_addresses_address_not_blank check (length(trim(address)) > 0)
+);
+
+create index deposit_addresses_user_idx on public.deposit_addresses (user_id);
+
+-- -------------------------------------------------------------------- deposits
+create table public.deposits (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  method_id text not null references public.payment_methods (id) on delete restrict,
+  -- On-chain amount. numeric, never float.
+  asset_amount numeric(38, 18),
+  -- USD credited to the ledger, in cents. NULL until the provider settles.
+  credited_cents bigint,
+  status public.deposit_status not null default 'awaiting_funds',
+  tx_hash text,
+  confirmations integer,
+  required_confirmations integer,
+  -- The ledger row this deposit produced, once credited.
+  transaction_id uuid references public.transactions (id) on delete set null,
+  created_at timestamptz not null default now(),
+  settled_at timestamptz,
+
+  constraint deposits_amount_positive check (
+    asset_amount is null or asset_amount > 0
+  ),
+  constraint deposits_credited_positive check (
+    credited_cents is null or credited_cents > 0
+  ),
+  -- A credited deposit must say how much and when, and must cite its ledger row.
+  constraint deposits_credited_complete check (
+    status <> 'credited'
+    or (credited_cents is not null and settled_at is not null and transaction_id is not null)
+  ),
+  constraint deposits_tx_hash_unique unique (tx_hash)
+);
+
+create index deposits_user_idx on public.deposits (user_id, created_at desc);
+create index deposits_status_idx on public.deposits (status);
+
+-- ------------------------------------------------------- withdrawal_requests
+create table public.withdrawal_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  method_id text not null references public.payment_methods (id) on delete restrict,
+  destination_address text not null,
+  -- Debited from the USD ledger, in cents.
+  amount_cents bigint not null,
+  -- The provider quote captured at submission. numeric, never float.
+  quoted_asset_amount numeric(38, 18),
+  quoted_network_fee numeric(38, 18),
+  quote_provider text,
+  quoted_at timestamptz,
+  status public.withdrawal_status not null default 'pending',
+  tx_hash text,
+  failure_reason text,
+  -- The ledger row that reserves the funds.
+  transaction_id uuid references public.transactions (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  settled_at timestamptz,
+
+  constraint withdrawals_amount_positive check (amount_cents > 0),
+  constraint withdrawals_quote_amounts_non_negative check (
+    (quoted_asset_amount is null or quoted_asset_amount >= 0)
+    and (quoted_network_fee is null or quoted_network_fee >= 0)
+  ),
+  -- A completed withdrawal must carry a settlement time.
+  constraint withdrawals_completed_has_settled check (
+    (status = 'completed') = (settled_at is not null)
+  ),
+  -- A failed or rejected withdrawal must say why.
+  constraint withdrawals_failure_has_reason check (
+    status not in ('failed', 'rejected') or failure_reason is not null
+  )
+);
+
+create index withdrawal_requests_user_idx
+  on public.withdrawal_requests (user_id, created_at desc);
+create index withdrawal_requests_status_idx
+  on public.withdrawal_requests (status);
+
+create trigger withdrawal_requests_set_updated_at
+  before update on public.withdrawal_requests
+  for each row execute function public.set_updated_at();
+
+-- =============================================================================
+-- Withdrawal submission
+--
+-- The single write path for a withdrawal. Everything the request is checked
+-- against is read here, inside the database, from rows the client cannot alter:
+--
+--   · the caller is authenticated                 (auth.uid())
+--   · the account is active                       (profiles.account_status)
+--   · withdrawals are switched on                 (platform_settings)
+--   · the asset/network pair exists AND is enabled for withdrawal
+--   · the destination address matches the chain's format
+--   · the amount clears the platform and provider minimum
+--   · the amount is covered by the *spendable* balance
+--     (available minus already-pending withdrawals)
+--
+-- It creates a `pending` withdrawal_request plus the negative ledger row that
+-- reserves the funds, in one transaction. It does NOT move crypto: signing and
+-- broadcast happen in the provider's custody infrastructure, driven by a
+-- server-side worker that reads `pending` rows.
+-- =============================================================================
+create or replace function public.request_withdrawal(
+  p_method_id text,
+  p_amount_cents bigint,
+  p_destination_address text,
+  p_quoted_asset_amount numeric default null,
+  p_quoted_network_fee numeric default null,
+  p_quote_provider text default null,
+  p_quoted_at timestamptz default null
+)
+returns public.withdrawal_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_method public.payment_methods;
+  v_network public.payment_networks;
+  v_status public.account_status;
+  v_enabled boolean;
+  v_platform_min bigint;
+  v_effective_min bigint;
+  v_available bigint;
+  v_pending bigint;
+  v_address text := trim(p_destination_address);
+  v_transaction_id uuid;
+  v_request public.withdrawal_requests;
+begin
+  if v_user is null then
+    raise exception 'Not authenticated' using errcode = '28000';
+  end if;
+
+  select account_status into v_status from public.profiles where id = v_user;
+  if v_status is null then
+    raise exception 'No profile for this account' using errcode = 'P0002';
+  end if;
+  if v_status <> 'active' then
+    raise exception 'Account is not active (%). Withdrawals require an active account.', v_status
+      using errcode = 'P0001';
+  end if;
+
+  select coalesce((value)::text::boolean, false) into v_enabled
+  from public.platform_settings where key = 'withdrawals_enabled';
+  if not coalesce(v_enabled, false) then
+    raise exception 'Withdrawals are not enabled on this platform yet'
+      using errcode = 'P0001';
+  end if;
+
+  select * into v_method from public.payment_methods where id = p_method_id;
+  if v_method.id is null then
+    raise exception 'Unknown payment method: %', p_method_id using errcode = 'P0002';
+  end if;
+  if not v_method.withdrawal_enabled then
+    raise exception 'Withdrawals are not supported for % yet', p_method_id
+      using errcode = 'P0001';
+  end if;
+
+  select * into v_network from public.payment_networks where id = v_method.network_id;
+
+  -- Wrong-network paste is the most common way funds are lost. Reject on format.
+  if v_network.address_format = 'evm' and v_address !~ '^0x[a-fA-F0-9]{40}$' then
+    raise exception 'Destination address is not a valid % address', v_network.name
+      using errcode = '22023';
+  end if;
+  if v_network.address_format = 'tron' and v_address !~ '^T[1-9A-HJ-NP-Za-km-z]{33}$' then
+    raise exception 'Destination address is not a valid % address', v_network.name
+      using errcode = '22023';
+  end if;
+
+  select coalesce((value)::text::bigint, 50000) into v_platform_min
+  from public.platform_settings where key = 'minimum_withdrawal_cents';
+
+  v_effective_min := greatest(
+    coalesce(v_platform_min, 50000),
+    coalesce(v_method.min_withdrawal_cents, 0)
+  );
+
+  if p_amount_cents < v_effective_min then
+    raise exception 'Minimum withdrawal is % cents', v_effective_min
+      using errcode = '22023';
+  end if;
+
+  select available_cents, pending_withdrawal_cents
+    into v_available, v_pending
+  from public.user_balances where user_id = v_user;
+
+  -- Funds already reserved by a pending request are not spendable again.
+  if coalesce(v_available, 0) - coalesce(v_pending, 0) < p_amount_cents then
+    raise exception 'Insufficient available balance' using errcode = 'P0001';
+  end if;
+
+  -- The negative ledger row. `pending` keeps it out of available_cents while
+  -- counting toward pending_withdrawal_cents (see the trigger in 0001).
+  insert into public.transactions (user_id, type, status, amount_cents, description)
+  values (
+    v_user,
+    'withdrawal',
+    'pending',
+    -p_amount_cents,
+    format('Withdrawal to %s (%s)', v_method.asset_symbol, v_network.protocol)
+  )
+  returning id into v_transaction_id;
+
+  insert into public.withdrawal_requests (
+    user_id, method_id, destination_address, amount_cents,
+    quoted_asset_amount, quoted_network_fee, quote_provider, quoted_at,
+    status, transaction_id
+  )
+  values (
+    v_user, p_method_id, v_address, p_amount_cents,
+    p_quoted_asset_amount, p_quoted_network_fee, p_quote_provider, p_quoted_at,
+    'pending', v_transaction_id
+  )
+  returning * into v_request;
+
+  return v_request;
+end;
+$$;
+
+revoke all on function public.request_withdrawal(
+  text, bigint, text, numeric, numeric, text, timestamptz
+) from public;
+
+grant execute on function public.request_withdrawal(
+  text, bigint, text, numeric, numeric, text, timestamptz
+) to authenticated;
+
+-- =============================================================================
+-- Row Level Security
+--
+-- Payment configuration is public read (the UI has to render the selector).
+-- Everything user-scoped is own-row SELECT only: there is no client INSERT or
+-- UPDATE policy on deposit_addresses, deposits or withdrawal_requests, so a
+-- browser cannot fabricate a deposit, a confirmation or a payout. Withdrawals
+-- are created solely through `request_withdrawal()` above.
+-- =============================================================================
+alter table public.payment_assets enable row level security;
+alter table public.payment_networks enable row level security;
+alter table public.payment_methods enable row level security;
+alter table public.platform_settings enable row level security;
+alter table public.deposit_addresses enable row level security;
+alter table public.deposits enable row level security;
+alter table public.withdrawal_requests enable row level security;
+
+create policy "Payment assets are publicly readable"
+  on public.payment_assets for select to anon, authenticated using (true);
+
+create policy "Payment networks are publicly readable"
+  on public.payment_networks for select to anon, authenticated using (true);
+
+create policy "Payment methods are publicly readable"
+  on public.payment_methods for select to anon, authenticated using (true);
+
+create policy "Platform settings are publicly readable"
+  on public.platform_settings for select to anon, authenticated using (true);
+
+create policy "Deposit addresses are readable by their owner"
+  on public.deposit_addresses for select to authenticated
+  using (auth.uid() = user_id);
+
+create policy "Deposits are readable by their owner"
+  on public.deposits for select to authenticated
+  using (auth.uid() = user_id);
+
+create policy "Withdrawal requests are readable by their owner"
+  on public.withdrawal_requests for select to authenticated
+  using (auth.uid() = user_id);
+
+-- =============================================================================
+-- Seed: the designed catalogue, every pair DISABLED.
+--
+-- Mirrors `src/config/crypto.ts`. Enable a pair only when the connected provider
+-- genuinely settles it — an asset does not exist on every chain, and a wrong
+-- assumption here costs a user their funds. Note the absences: USDC on Tron and
+-- USDC on BNB Smart Chain are not listed, because provider support for them
+-- varies and must be confirmed rather than presumed.
+-- =============================================================================
+insert into public.payment_assets (symbol, name, kind, decimals, display_decimals) values
+  ('USDT', 'Tether USD', 'stablecoin', 6, 2),
+  ('USDC', 'USD Coin',   'stablecoin', 6, 2),
+  ('TRX',  'Tron',       'native',     6, 4);
+
+insert into public.payment_networks
+  (id, name, protocol, address_format, explorer_tx_url_template) values
+  ('ethereum', 'Ethereum',        'ERC-20', 'evm',  'https://etherscan.io/tx/{hash}'),
+  ('tron',     'Tron',            'TRC-20', 'tron', 'https://tronscan.org/#/transaction/{hash}'),
+  ('bsc',      'BNB Smart Chain', 'BEP-20', 'evm',  'https://bscscan.com/tx/{hash}');
+
+insert into public.payment_methods
+  (id, asset_symbol, network_id, deposit_enabled, withdrawal_enabled, sort_order) values
+  ('usdt-tron',     'USDT', 'tron',     false, false, 10),
+  ('usdt-ethereum', 'USDT', 'ethereum', false, false, 20),
+  ('usdt-bsc',      'USDT', 'bsc',      false, false, 30),
+  ('usdc-ethereum', 'USDC', 'ethereum', false, false, 40),
+  ('trx-tron',      'TRX',  'tron',     false, false, 50);

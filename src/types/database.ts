@@ -57,6 +57,22 @@ export type NotificationCategoryEnum =
   | "security"
   | "platform";
 
+export type AddressFormatEnum = "evm" | "tron";
+
+export type DepositStatusEnum =
+  | "awaiting_funds"
+  | "pending"
+  | "confirmed"
+  | "credited"
+  | "failed";
+
+export type WithdrawalStatusEnum =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "rejected";
+
 type ProfileRow = {
   id: string;
   email: string;
@@ -152,6 +168,92 @@ type UserBalanceRow = {
   total_profit_cents: number;
   pending_withdrawal_cents: number;
   updated_at: string;
+};
+
+/* ------------------------------------ wallet & crypto payments (migration 3) */
+
+type PaymentAssetRow = {
+  symbol: string;
+  name: string;
+  kind: string;
+  decimals: number;
+  display_decimals: number;
+  created_at: string;
+};
+
+type PaymentNetworkRow = {
+  id: string;
+  name: string;
+  protocol: string;
+  address_format: AddressFormatEnum;
+  explorer_tx_url_template: string | null;
+  required_confirmations: number | null;
+  created_at: string;
+};
+
+type PaymentMethodRow = {
+  id: string;
+  asset_symbol: string;
+  network_id: string;
+  deposit_enabled: boolean;
+  withdrawal_enabled: boolean;
+  min_withdrawal_cents: number | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type PlatformSettingRow = {
+  key: string;
+  value: Json;
+  updated_at: string;
+};
+
+type DepositAddressRow = {
+  id: string;
+  user_id: string;
+  method_id: string;
+  address: string;
+  memo: string | null;
+  uri: string;
+  expires_at: string | null;
+  created_at: string;
+};
+
+type DepositRow = {
+  id: string;
+  user_id: string;
+  method_id: string;
+  /** numeric(38,18) — PostgREST returns it as a string to preserve precision. */
+  asset_amount: string | null;
+  credited_cents: number | null;
+  status: DepositStatusEnum;
+  tx_hash: string | null;
+  confirmations: number | null;
+  required_confirmations: number | null;
+  transaction_id: string | null;
+  created_at: string;
+  settled_at: string | null;
+};
+
+type WithdrawalRequestRow = {
+  id: string;
+  user_id: string;
+  method_id: string;
+  destination_address: string;
+  amount_cents: number;
+  /** numeric(38,18) — returned as a string. Never parsed into a float. */
+  quoted_asset_amount: string | null;
+  quoted_network_fee: string | null;
+  quote_provider: string | null;
+  quoted_at: string | null;
+  status: WithdrawalStatusEnum;
+  tx_hash: string | null;
+  failure_reason: string | null;
+  transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+  settled_at: string | null;
 };
 
 /**
@@ -288,9 +390,129 @@ export type Database = {
           >,
         ];
       };
+      payment_assets: {
+        Row: PaymentAssetRow;
+        Insert: Partial<PaymentAssetRow> &
+          Pick<PaymentAssetRow, "symbol" | "name" | "decimals">;
+        Update: Partial<PaymentAssetRow>;
+        Relationships: [];
+      };
+      payment_networks: {
+        Row: PaymentNetworkRow;
+        Insert: Partial<PaymentNetworkRow> &
+          Pick<
+            PaymentNetworkRow,
+            "id" | "name" | "protocol" | "address_format"
+          >;
+        Update: Partial<PaymentNetworkRow>;
+        Relationships: [];
+      };
+      payment_methods: {
+        Row: PaymentMethodRow;
+        Insert: Partial<PaymentMethodRow> &
+          Pick<PaymentMethodRow, "id" | "asset_symbol" | "network_id">;
+        Update: Partial<PaymentMethodRow>;
+        Relationships: [
+          Relationship<
+            "payment_methods_asset_symbol_fkey",
+            ["asset_symbol"],
+            "payment_assets",
+            ["symbol"]
+          >,
+          Relationship<
+            "payment_methods_network_id_fkey",
+            ["network_id"],
+            "payment_networks",
+            ["id"]
+          >,
+        ];
+      };
+      platform_settings: {
+        Row: PlatformSettingRow;
+        Insert: Partial<PlatformSettingRow> &
+          Pick<PlatformSettingRow, "key" | "value">;
+        Update: Partial<PlatformSettingRow>;
+        Relationships: [];
+      };
+      deposit_addresses: {
+        Row: DepositAddressRow;
+        Insert: Partial<DepositAddressRow> &
+          Pick<DepositAddressRow, "user_id" | "method_id" | "address" | "uri">;
+        Update: Partial<DepositAddressRow>;
+        Relationships: [
+          Relationship<
+            "deposit_addresses_user_id_fkey",
+            ["user_id"],
+            "profiles",
+            ["id"]
+          >,
+          Relationship<
+            "deposit_addresses_method_id_fkey",
+            ["method_id"],
+            "payment_methods",
+            ["id"]
+          >,
+        ];
+      };
+      deposits: {
+        Row: DepositRow;
+        Insert: Partial<DepositRow> & Pick<DepositRow, "user_id" | "method_id">;
+        Update: Partial<DepositRow>;
+        Relationships: [
+          Relationship<"deposits_user_id_fkey", ["user_id"], "profiles", ["id"]>,
+          Relationship<
+            "deposits_method_id_fkey",
+            ["method_id"],
+            "payment_methods",
+            ["id"]
+          >,
+        ];
+      };
+      withdrawal_requests: {
+        Row: WithdrawalRequestRow;
+        Insert: Partial<WithdrawalRequestRow> &
+          Pick<
+            WithdrawalRequestRow,
+            "user_id" | "method_id" | "destination_address" | "amount_cents"
+          >;
+        Update: Partial<WithdrawalRequestRow>;
+        Relationships: [
+          Relationship<
+            "withdrawal_requests_user_id_fkey",
+            ["user_id"],
+            "profiles",
+            ["id"]
+          >,
+          Relationship<
+            "withdrawal_requests_method_id_fkey",
+            ["method_id"],
+            "payment_methods",
+            ["id"]
+          >,
+        ];
+      };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    /**
+     * `request_withdrawal` is the only write path for a withdrawal. It performs
+     * every server-side check (account status, enabled pair, address format,
+     * platform minimum, spendable balance) inside the database — see
+     * `supabase/migrations/0003_wallet_and_payments.sql`.
+     */
+    Functions: {
+      request_withdrawal: {
+        Args: {
+          p_method_id: string;
+          p_amount_cents: number;
+          p_destination_address: string;
+          p_quoted_asset_amount?: string | null;
+          p_quoted_network_fee?: string | null;
+          p_quote_provider?: string | null;
+          p_quoted_at?: string | null;
+        };
+        Returns: WithdrawalRequestRow;
+      };
+    };
     Enums: {
       account_status: AccountStatusEnum;
       plan_status: PlanStatusEnum;
@@ -299,6 +521,9 @@ export type Database = {
       transaction_type: TransactionTypeEnum;
       transaction_status: TransactionStatusEnum;
       notification_category: NotificationCategoryEnum;
+      address_format: AddressFormatEnum;
+      deposit_status: DepositStatusEnum;
+      withdrawal_status: WithdrawalStatusEnum;
     };
     CompositeTypes: Record<never, never>;
   };

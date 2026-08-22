@@ -1,0 +1,44 @@
+{
+  "name": "TESLA Electronics",
+  "short_name": "TESLA Elec",
+  "description": "Explore fixed-term investment plans built around electric vehicles, mobility and innovative technology. An independent platform, not affiliated with Tesla, Inc.",
+  "id": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#faf9f6",
+  "theme_color": "#faf9f6",
+  "categories": ["finance"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/brand/tesla-electronics-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Invest", "url": "/invest" },
+    { "name": "Wallet", "url": "/wallet" },
+    { "name": "My Investments", "url": "/investments" }
+  ]
+}

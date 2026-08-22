@@ -20,7 +20,18 @@ import { updateSupabaseSession } from "@/lib/supabase/proxy";
  * stays reachable as a clearly-labelled UI preview.
  */
 
-const PROTECTED_PREFIXES = ["/dashboard"] as const;
+/**
+ * Every authenticated area of the application. The shell used to live entirely
+ * under `/dashboard`; it is now five top-level areas, so each one is listed.
+ */
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/invest",
+  "/investments",
+  "/wallet",
+  "/profile",
+  "/notifications",
+] as const;
 const AUTH_ONLY_PATHS = [
   authRoutes.login,
   authRoutes.register,

@@ -1,24 +1,31 @@
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 
+import { LogoMark } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 type EmptyStateProps = {
-  icon: LucideIcon;
+  /** Falls back to the brand mark, which is the right choice for app-level voids. */
+  icon?: LucideIcon;
   title: string;
   description: React.ReactNode;
   /** Optional short line explaining *why* it's empty, e.g. pre-launch status. */
   note?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 };
 
 /**
- * The dashboard's honest zero state.
+ * The app's honest zero state.
  *
- * Used wherever a real account would show data. It exists so the app never has
- * to invent a placeholder transaction or a sample balance to fill a panel.
+ * Used wherever a real account would show data. It exists so the product never
+ * has to invent a placeholder transaction or a sample balance to fill a panel —
+ * an empty panel with an explanation and a next step is more useful than a
+ * fabricated one.
+ *
+ * With no `icon`, the brand mark stands in: an empty screen is still the product,
+ * and the mark makes it feel deliberate rather than broken.
  */
 export function EmptyState({
   icon: Icon,
@@ -29,35 +36,55 @@ export function EmptyState({
   className,
   size = "md",
 }: EmptyStateProps) {
+  const padding = {
+    sm: "gap-3 px-5 py-9",
+    md: "gap-4 px-6 py-14",
+    lg: "gap-5 px-6 py-20",
+  }[size];
+
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-dashed border-white/12 bg-white/[0.015] text-center",
-        size === "md" ? "gap-4 px-6 py-16" : "gap-3 px-5 py-10",
+        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-hairline-strong bg-surface-2/60 text-center",
+        padding,
         className
       )}
     >
       <span
         aria-hidden="true"
-        className="grid size-12 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-muted-foreground"
+        className={cn(
+          "grid place-items-center rounded-2xl border border-hairline bg-surface-1 text-muted-foreground shadow-soft",
+          size === "sm" ? "size-11" : "size-14"
+        )}
       >
-        <Icon className="size-5" />
+        {Icon ? (
+          <Icon className={size === "sm" ? "size-4.5" : "size-5"} />
+        ) : (
+          <LogoMark className={size === "sm" ? "size-6" : "size-7"} />
+        )}
       </span>
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-base font-medium text-foreground">{title}</p>
+        <p
+          className={cn(
+            "font-medium text-foreground",
+            size === "sm" ? "text-sm" : "text-base"
+          )}
+        >
+          {title}
+        </p>
         <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground text-pretty">
           {description}
         </p>
       </div>
 
       {note && (
-        <p className="max-w-md text-xs leading-relaxed text-muted-foreground/70">
+        <p className="max-w-md text-xs leading-relaxed text-subtle-foreground">
           {note}
         </p>
       )}
 
-      {action && <div className="pt-1">{action}</div>}
+      {action && <div className="flex flex-wrap justify-center gap-2.5 pt-1">{action}</div>}
     </div>
   );
 }

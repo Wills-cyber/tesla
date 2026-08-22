@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ActiveInvestmentPanel } from "@/components/investment/active-investment-panel";
 import { EmptyState } from "@/components/common/empty-state";
+import { RevealGroup, RevealItem } from "@/components/common/reveal";
 import { StatusPill } from "@/components/common/status-pill";
 import { InvestmentPlanCard } from "@/components/investment/investment-plan-card";
 import { Button } from "@/components/ui/button";
@@ -93,41 +94,48 @@ export default async function DashboardOverviewPage() {
           Account figures
         </h2>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Available Balance"
-            value={formatCurrency(balance.availableCents)}
-            icon={Wallet}
-            note="Deposits are not yet enabled."
-            emphasis
-            index={0}
-          />
-          <StatCard
-            label="Total Invested"
-            value={formatCurrency(balance.totalInvestedCents)}
-            icon={TrendingUp}
-            note="No capital has been committed."
-            index={1}
-          />
-          <StatCard
-            label="Total Profit"
-            value={formatCurrency(balance.totalProfitCents)}
-            icon={Banknote}
-            note="Credited profit only — never projected."
-            index={2}
-          />
-          <StatCard
-            label="Active Investment"
-            value={activeInvestment ? "1" : "None"}
-            icon={Receipt}
-            note={
-              activeInvestment
-                ? "One position in progress."
-                : "No active investment."
-            }
-            index={3}
-          />
-        </div>
+        <RevealGroup
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+          stagger={0.07}
+        >
+          <RevealItem className="flex">
+            <StatCard
+              label="Available Balance"
+              value={formatCurrency(balance.availableCents)}
+              icon={Wallet}
+              note="Deposits are not yet enabled."
+              emphasis
+            />
+          </RevealItem>
+          <RevealItem className="flex">
+            <StatCard
+              label="Total Invested"
+              value={formatCurrency(balance.totalInvestedCents)}
+              icon={TrendingUp}
+              note="No capital has been committed."
+            />
+          </RevealItem>
+          <RevealItem className="flex">
+            <StatCard
+              label="Total Profit"
+              value={formatCurrency(balance.totalProfitCents)}
+              icon={Banknote}
+              note="Credited profit only — never projected."
+            />
+          </RevealItem>
+          <RevealItem className="flex">
+            <StatCard
+              label="Active Investment"
+              value={activeInvestment ? "1" : "None"}
+              icon={Receipt}
+              note={
+                activeInvestment
+                  ? "One position in progress."
+                  : "No active investment."
+              }
+            />
+          </RevealItem>
+        </RevealGroup>
 
         <p className="text-xs leading-relaxed text-muted-foreground/70">
           Balances are derived server-side from settled transactions. They are

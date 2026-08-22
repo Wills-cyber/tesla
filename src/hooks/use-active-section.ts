@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
  * actually looking at rather than whatever is technically topmost.
  *
  * Returns `null` when no observed section is in view (e.g. at the very top).
+ * The `enabled` case is derived on the way out rather than written into state, so
+ * the effect only ever sets state from the observer callback.
  */
 export function useActiveSection(
   ids: readonly string[],
@@ -18,10 +20,7 @@ export function useActiveSection(
   const [active, setActive] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || ids.length === 0) {
-      setActive(null);
-      return;
-    }
+    if (!enabled || ids.length === 0) return;
 
     const elements = ids
       .map((id) => document.getElementById(id))
@@ -50,5 +49,6 @@ export function useActiveSection(
     return () => observer.disconnect();
   }, [ids, enabled]);
 
-  return active;
+  // Off-page (or nothing to observe) means there is no active section.
+  return enabled ? active : null;
 }

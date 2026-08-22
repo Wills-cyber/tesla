@@ -45,11 +45,11 @@ export function FormField({
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <div className="flex items-baseline justify-between gap-3">
-        <Label htmlFor={name} className="text-sm font-medium text-foreground/90">
+        <Label htmlFor={name} className="text-sm font-medium text-foreground">
           {label}
         </Label>
         {optional && (
-          <span className="text-[0.7rem] tracking-wide text-muted-foreground/70">
+          <span className="text-[0.7rem] tracking-wide text-subtle-foreground">
             Optional
           </span>
         )}
@@ -60,12 +60,12 @@ export function FormField({
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className="h-11 rounded-lg border-white/12 bg-white/[0.02] px-3.5 text-[0.95rem] transition-colors placeholder:text-muted-foreground/50 hover:border-white/20 focus-visible:border-gold-500/50 focus-visible:ring-gold-500/20 dark:bg-white/[0.02]"
+        className="text-[0.95rem]"
         {...inputProps}
       />
 
       {hint && !error && (
-        <p id={hintId} className="text-xs leading-relaxed text-muted-foreground/70">
+        <p id={hintId} className="text-xs leading-relaxed text-subtle-foreground">
           {hint}
         </p>
       )}
@@ -112,7 +112,7 @@ export function PasswordField({
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <Label htmlFor={name} className="text-sm font-medium text-foreground/90">
+      <Label htmlFor={name} className="text-sm font-medium text-foreground">
         {label}
       </Label>
 
@@ -123,7 +123,7 @@ export function PasswordField({
           type={visible ? "text" : "password"}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className="h-11 rounded-lg border-white/12 bg-white/[0.02] px-3.5 pr-11 text-[0.95rem] transition-colors placeholder:text-muted-foreground/50 hover:border-white/20 focus-visible:border-gold-500/50 focus-visible:ring-gold-500/20 dark:bg-white/[0.02]"
+          className="pr-11 text-[0.95rem]"
           {...inputProps}
         />
 
@@ -132,7 +132,7 @@ export function PasswordField({
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500/70"
+          className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           {visible ? (
             <EyeOff aria-hidden="true" className="size-4" />
@@ -143,7 +143,7 @@ export function PasswordField({
       </div>
 
       {hint && !error && (
-        <p id={hintId} className="text-xs leading-relaxed text-muted-foreground/70">
+        <p id={hintId} className="text-xs leading-relaxed text-subtle-foreground">
           {hint}
         </p>
       )}

@@ -11,21 +11,21 @@ import type { AuthFormState } from "@/hooks/use-auth-form";
 const toneConfig = {
   error: {
     icon: AlertCircle,
-    container: "border-destructive/25 bg-destructive/[0.06] text-red-100",
+    container: "border-destructive/25 bg-destructive-surface text-foreground",
     iconClass: "text-destructive",
     /** Errors interrupt; notices don't. */
     live: "assertive" as const,
   },
   notice: {
     icon: Info,
-    container: "border-gold-500/25 bg-gold-500/[0.05] text-gold-100/90",
-    iconClass: "text-gold-300",
+    container: "border-brand-border bg-brand-surface text-foreground",
+    iconClass: "text-brand",
     live: "polite" as const,
   },
   success: {
     icon: CheckCircle2,
-    container: "border-emerald-400/25 bg-emerald-400/[0.06] text-emerald-100",
-    iconClass: "text-emerald-300",
+    container: "border-success/25 bg-success-surface text-foreground",
+    iconClass: "text-success",
     live: "polite" as const,
   },
 } as const;

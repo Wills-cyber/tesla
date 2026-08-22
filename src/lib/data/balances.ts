@@ -16,6 +16,8 @@ function mapBalanceRow(row: Tables<"user_balances">): UserBalance {
     userId: row.user_id,
     currency: "USD",
     availableCents: row.available_cents,
+    totalDepositedCents: row.total_deposited_cents,
+    totalWithdrawnCents: row.total_withdrawn_cents,
     totalInvestedCents: row.total_invested_cents,
     totalProfitCents: row.total_profit_cents,
     pendingWithdrawalCents: row.pending_withdrawal_cents,

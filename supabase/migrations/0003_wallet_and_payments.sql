@@ -430,3 +430,70 @@ insert into public.payment_methods
   ('usdt-bsc',      'USDT', 'bsc',      false, false, 30),
   ('usdc-ethereum', 'USDC', 'ethereum', false, false, 40),
   ('trx-tron',      'TRX',  'tron',     false, false, 50);
+
+-- =============================================================================
+-- Balance: deposited and withdrawn totals
+--
+-- The Wallet header shows lifetime deposited and withdrawn alongside the
+-- available balance. Both are added to the derived `user_balances` row and
+-- recomputed from the ledger by the same function as everything else, so the app
+-- still never calculates a balance itself and the five figures cannot disagree.
+-- =============================================================================
+alter table public.user_balances
+  add column total_deposited_cents bigint not null default 0,
+  add column total_withdrawn_cents bigint not null default 0;
+
+alter table public.user_balances
+  add constraint balances_deposited_non_negative check (total_deposited_cents >= 0),
+  add constraint balances_withdrawn_non_negative check (total_withdrawn_cents >= 0);
+
+create or replace function public.recalculate_user_balance(target_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  insert into public.user_balances as balances (
+    user_id,
+    available_cents,
+    total_invested_cents,
+    total_profit_cents,
+    pending_withdrawal_cents,
+    total_deposited_cents,
+    total_withdrawn_cents,
+    updated_at
+  )
+  select
+    target_user,
+    coalesce(sum(amount_cents) filter (where status = 'completed'), 0),
+    coalesce(-sum(amount_cents) filter (
+      where status = 'completed' and type = 'investment'
+    ), 0),
+    coalesce(sum(amount_cents) filter (
+      where status = 'completed'
+        and type in ('profit_payment', 'referral_bonus')
+    ), 0),
+    coalesce(-sum(amount_cents) filter (
+      where status in ('pending', 'processing') and type = 'withdrawal'
+    ), 0),
+    coalesce(sum(amount_cents) filter (
+      where status = 'completed' and type = 'deposit'
+    ), 0),
+    -- Withdrawals are stored negative; report the lifetime total as positive.
+    coalesce(-sum(amount_cents) filter (
+      where status = 'completed' and type = 'withdrawal'
+    ), 0),
+    now()
+  from public.transactions
+  where user_id = target_user
+  on conflict (user_id) do update
+    set available_cents = excluded.available_cents,
+        total_invested_cents = excluded.total_invested_cents,
+        total_profit_cents = excluded.total_profit_cents,
+        pending_withdrawal_cents = excluded.pending_withdrawal_cents,
+        total_deposited_cents = excluded.total_deposited_cents,
+        total_withdrawn_cents = excluded.total_withdrawn_cents,
+        updated_at = excluded.updated_at;
+end;
+$$;

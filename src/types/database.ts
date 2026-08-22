@@ -167,6 +167,8 @@ type UserBalanceRow = {
   total_invested_cents: number;
   total_profit_cents: number;
   pending_withdrawal_cents: number;
+  total_deposited_cents: number;
+  total_withdrawn_cents: number;
   updated_at: string;
 };
 

@@ -22,8 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addressHints, isValidAddressForMethod } from "@/config/crypto";
-import { formatCurrency } from "@/lib/format";
-import { formatAssetAmount } from "@/lib/quotes/rate-provider";
+import { formatAssetAmount, formatCurrency } from "@/lib/format";
 import { usdStringToCents } from "@/lib/validations/wallet";
 import { quoteWithdrawalAction, submitWithdrawalAction } from "@/lib/wallet/actions";
 import { cn } from "@/lib/utils";

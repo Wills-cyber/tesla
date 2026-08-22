@@ -30,7 +30,7 @@ export default function GlobalError({
     <div className="flex min-h-dvh flex-col items-center justify-center gap-8 px-5 py-20 text-center">
       <span
         aria-hidden="true"
-        className="grid size-14 place-items-center rounded-full border border-amber-400/25 bg-amber-400/8 text-amber-200"
+        className="grid size-14 place-items-center rounded-full border border-warning/25 bg-warning-surface text-warning"
       >
         <AlertTriangle className="size-6" />
       </span>
@@ -44,7 +44,7 @@ export default function GlobalError({
         {error.digest && (
           <p
             data-numeric
-            className="text-xs text-muted-foreground/60"
+            className="text-xs text-subtle-foreground"
           >
             Reference: {error.digest}
           </p>

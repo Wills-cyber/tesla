@@ -12,10 +12,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type {
-  Notification,
-  NotificationCategory,
-} from "@/types/notification";
+import type { Notification, NotificationCategory } from "@/types/notification";
 
 const categoryIcons: Record<NotificationCategory, LucideIcon> = {
   account: BadgeCheck,
@@ -28,9 +25,10 @@ const categoryIcons: Record<NotificationCategory, LucideIcon> = {
 /**
  * Notification feed.
  *
- * Unread items are marked with both a dot and a `Unread` label — colour alone
- * would exclude anyone who can't perceive it. The whole row is a link only when
- * the notification actually has a destination.
+ * Unread items carry both a tinted icon and an "Unread" label — colour alone would
+ * exclude anyone who can't perceive it. The whole row is a link only when the
+ * notification actually has a destination, so there are no clickable rows that go
+ * nowhere.
  */
 export function NotificationList({
   notifications,
@@ -38,7 +36,7 @@ export function NotificationList({
   notifications: readonly Notification[];
 }) {
   return (
-    <ul className="flex flex-col divide-y divide-white/6 overflow-hidden rounded-xl border border-white/10">
+    <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline shadow-card">
       {notifications.map((notification) => {
         const Icon = categoryIcons[notification.category] ?? Bell;
         const unread = notification.readAt === null;
@@ -48,10 +46,10 @@ export function NotificationList({
             <span
               aria-hidden="true"
               className={cn(
-                "grid size-9 shrink-0 place-items-center rounded-lg border",
+                "grid size-10 shrink-0 place-items-center rounded-xl border",
                 unread
-                  ? "border-gold-500/25 bg-gold-500/8 text-gold-300"
-                  : "border-white/10 bg-white/[0.03] text-muted-foreground"
+                  ? "border-brand-border bg-brand-surface text-brand"
+                  : "border-hairline bg-surface-2 text-muted-foreground"
               )}
             >
               <Icon className="size-4" />
@@ -61,14 +59,16 @@ export function NotificationList({
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p
                   className={cn(
-                    "text-sm font-medium",
-                    unread ? "text-foreground" : "text-foreground/80"
+                    "text-sm",
+                    unread
+                      ? "font-semibold text-foreground"
+                      : "font-medium text-foreground"
                   )}
                 >
                   {notification.title}
                 </p>
                 {unread && (
-                  <span className="text-[0.65rem] tracking-[0.12em] text-gold-300 uppercase">
+                  <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-brand-emphasis uppercase">
                     Unread
                   </span>
                 )}
@@ -80,7 +80,7 @@ export function NotificationList({
 
               <time
                 dateTime={notification.createdAt}
-                className="text-xs text-muted-foreground/70"
+                className="text-xs text-subtle-foreground"
               >
                 {formatRelativeTime(notification.createdAt)}
               </time>
@@ -89,11 +89,11 @@ export function NotificationList({
         );
 
         return (
-          <li key={notification.id}>
+          <li key={notification.id} className="bg-surface-1">
             {notification.href ? (
               <Link
                 href={notification.href}
-                className="block px-4 py-4 transition-colors duration-300 hover:bg-white/[0.025] sm:px-5"
+                className="block px-4 py-4 transition-colors duration-300 hover:bg-surface-2 sm:px-5"
               >
                 {body}
               </Link>

@@ -29,9 +29,9 @@ export function ProfileAvatar({
 }: ProfileAvatarProps) {
   return (
     <div className="flex flex-wrap items-center gap-5">
-      <Avatar className="size-16 border border-white/10">
+      <Avatar className="size-16 border border-hairline">
         {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
-        <AvatarFallback className="bg-gold-500/12 text-lg font-medium text-gold-200">
+        <AvatarFallback className="bg-brand-surface-strong text-lg font-medium text-brand-emphasis">
           {fullName ? getInitials(fullName) : "—"}
         </AvatarFallback>
       </Avatar>
@@ -44,7 +44,7 @@ export function ProfileAvatar({
           <ImagePlus />
           {editable ? "Upload photo — coming soon" : "Upload unavailable"}
         </Button>
-        <p className="text-[0.7rem] leading-relaxed text-muted-foreground/70">
+        <p className="text-[0.7rem] leading-relaxed text-subtle-foreground">
           Avatar uploads need a Supabase Storage bucket, which isn&apos;t
           connected yet.
         </p>

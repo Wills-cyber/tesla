@@ -120,7 +120,7 @@ export function RegisterForm() {
         )}
       </Button>
 
-      <p className="text-[0.7rem] leading-relaxed text-muted-foreground/70">
+      <p className="text-[0.7rem] leading-relaxed text-subtle-foreground">
         By creating an account you agree to our Terms and Privacy Policy.
         Creating an account does not commit you to any investment, and no payment
         details are collected.

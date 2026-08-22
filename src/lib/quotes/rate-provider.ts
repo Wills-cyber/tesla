@@ -78,21 +78,3 @@ export function getRateProvider(): RateProvider {
 export function isQuotingAvailable(): boolean {
   return getRateProvider().isConfigured;
 }
-
-/* -------------------------------------------------------------- Presentation */
-
-/**
- * Formats an asset amount for display.
- *
- * Takes a decimal string and truncates — never rounds up — to the asset's display
- * precision, so a shown amount is never larger than the amount that exists.
- */
-export function formatAssetAmount(
-  amount: string,
-  displayDecimals: number
-): string {
-  const [whole, fraction = ""] = amount.split(".");
-  if (displayDecimals === 0) return whole;
-  const padded = fraction.padEnd(displayDecimals, "0").slice(0, displayDecimals);
-  return `${whole}.${padded}`;
-}

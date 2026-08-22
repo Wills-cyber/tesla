@@ -3,8 +3,7 @@ import { ArrowDownToLine, ExternalLink } from "lucide-react";
 
 import { StatusPill, type PillTone } from "@/components/common/status-pill";
 import { buildExplorerUrl } from "@/config/crypto";
-import { formatCurrency, formatDateTime } from "@/lib/format";
-import { formatAssetAmount } from "@/lib/quotes/rate-provider";
+import { formatAssetAmount, formatCurrency, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
   DepositRecord,

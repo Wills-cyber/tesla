@@ -28,7 +28,7 @@ export function InvestmentPlansSection({ plans }: InvestmentPlansSectionProps) {
               title={<span id="investment-plans-heading">Investment Plans</span>}
               description="Explore available fixed-term vehicle investment opportunities."
             >
-              <StatusPill tone="gold" dot className="mt-1 self-start">
+              <StatusPill tone="brand" dot className="mt-1 self-start">
                 Pre-launch — no plan is currently accepting capital
               </StatusPill>
             </SectionHeading>
@@ -44,7 +44,7 @@ export function InvestmentPlansSection({ plans }: InvestmentPlansSectionProps) {
 
             {/* Balances the grid and sets the expectation for what follows. */}
             <RevealItem className="flex">
-              <div className="flex flex-1 flex-col justify-center gap-4 rounded-2xl border border-dashed border-white/12 bg-white/[0.012] p-7 text-center sm:text-left">
+              <div className="flex flex-1 flex-col justify-center gap-4 rounded-2xl border border-dashed border-hairline bg-surface-2 p-7 text-center sm:text-left">
                 <span className="eyebrow">More plans</span>
                 <p className="text-lg font-medium text-foreground/90">
                   Additional plans in preparation

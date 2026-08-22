@@ -154,3 +154,28 @@ export function getInitials(name: string | null | undefined): string {
 export function shortReference(reference: string, length = 8): string {
   return reference.replace(/-/g, "").slice(0, length).toUpperCase();
 }
+
+/**
+ * Formats a crypto amount for display.
+ *
+ * Takes the decimal *string* the provider returned — never a number, so no rate ever
+ * passes through a float — and truncates rather than rounds to the asset's display
+ * precision. Truncating means a shown amount is never larger than the amount that
+ * exists, which is the safe direction to be wrong in.
+ */
+export function formatAssetAmount(
+  amount: string,
+  displayDecimals: number
+): string {
+  const [whole, fraction = ""] = amount.split(".");
+  if (displayDecimals === 0) return whole;
+  const padded = fraction.padEnd(displayDecimals, "0").slice(0, displayDecimals);
+  return `${whole}.${padded}`;
+}
+
+/** `T9yD…KcbLSE` — enough to compare against a wallet without a wall of text. */
+export function shortenHash(value: string, lead = 6, tail = 6): string {
+  if (value.length <= lead + tail + 1) return value;
+  return `${value.slice(0, lead)}…${value.slice(-tail)}`;
+}
+

@@ -13,18 +13,18 @@ export function FinalCtaSection() {
     <Section spacing="md" divided aria-labelledby="final-cta-heading">
       <Container>
         <Reveal>
-          <div className="relative isolate overflow-hidden rounded-3xl border border-white/10">
+          <div className="relative isolate overflow-hidden rounded-3xl border border-hairline">
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
               <div className="grid-field absolute inset-0 opacity-50" />
-              <div className="absolute -top-32 left-1/2 h-80 w-[52rem] -translate-x-1/2 rounded-full bg-gold-500/12 blur-3xl" />
-              <div className="absolute inset-0 bg-gradient-to-b from-ink-900/40 to-ink-950/90" />
+              <div className="absolute -top-32 left-1/2 h-80 w-[52rem] -translate-x-1/2 rounded-full bg-brand-surface-strong blur-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-b from-surface-2/60 to-surface-3/80" />
             </div>
 
             <div className="flex flex-col items-center gap-7 px-6 py-16 text-center sm:px-12 sm:py-20 lg:py-24">
               <span className="inline-flex items-center gap-2.5">
                 <span
                   aria-hidden="true"
-                  className="size-1.5 rounded-full bg-gold-500 shadow-[0_0_12px_2px_var(--gold-600)]"
+                  className="size-1.5 rounded-full bg-brand shadow-[0_0_12px_2px_var(--gold-600)]"
                 />
                 <span className="eyebrow">Get started</span>
               </span>
@@ -64,7 +64,7 @@ export function FinalCtaSection() {
                 </Button>
               </div>
 
-              <p className="max-w-lg text-xs leading-relaxed text-muted-foreground/65">
+              <p className="max-w-lg text-xs leading-relaxed text-subtle-foreground">
                 Creating an account does not commit you to anything. Deposits,
                 withdrawals and live investment activity are not yet available,
                 and published plan figures are stated terms rather than

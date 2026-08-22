@@ -28,17 +28,17 @@ export function FeaturesSection() {
               <RevealItem
                 key={feature.title}
                 as="li"
-                className="group/feature surface relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-white/10 p-6 transition-[border-color,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-gold-500/25 lg:p-7"
+                className="group/feature bg-surface-1 shadow-card relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-hairline p-6 transition-[border-color,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-brand-border lg:p-7"
               >
                 {/* Corner glow, revealed on hover only. */}
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -top-16 -right-16 size-32 rounded-full bg-gold-500/10 opacity-0 blur-2xl transition-opacity duration-700 group-hover/feature:opacity-100"
+                  className="pointer-events-none absolute -top-16 -right-16 size-32 rounded-full bg-brand-surface opacity-0 blur-2xl transition-opacity duration-700 group-hover/feature:opacity-100"
                 />
 
                 <span
                   aria-hidden="true"
-                  className="relative grid size-11 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-gold-300 transition-colors duration-500 group-hover/feature:border-gold-500/25 group-hover/feature:bg-gold-500/8"
+                  className="relative grid size-11 place-items-center rounded-lg border border-hairline bg-surface-2 text-brand transition-colors duration-500 group-hover/feature:border-brand-border group-hover/feature:bg-brand-surface"
                 >
                   <feature.icon className="size-5" />
                 </span>

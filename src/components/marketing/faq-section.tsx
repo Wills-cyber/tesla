@@ -34,7 +34,7 @@ export function FaqSection() {
                 Still unclear on something? Read the{" "}
                 <Link
                   href="/risk-disclosure"
-                  className="text-gold-200 underline decoration-gold-500/40 underline-offset-4 transition-colors hover:decoration-gold-400"
+                  className="text-brand-emphasis underline decoration-brand/45 underline-offset-4 transition-colors hover:decoration-brand"
                 >
                   Risk Disclosure
                 </Link>
@@ -47,13 +47,13 @@ export function FaqSection() {
             <Accordion
               type="single"
               collapsible
-              className="flex flex-col overflow-hidden rounded-2xl border border-white/10"
+              className="flex flex-col overflow-hidden rounded-2xl border border-hairline"
             >
               {faqs.map((faq) => (
                 <AccordionItem
                   key={faq.id}
                   value={faq.id}
-                  className="border-b border-white/8 px-5 last:border-b-0 sm:px-6"
+                  className="border-b border-hairline px-5 last:border-b-0 sm:px-6"
                 >
                   <AccordionTrigger className="py-5 text-left text-base font-medium hover:no-underline sm:text-[1.05rem] [&>svg]:text-muted-foreground">
                     {faq.question}

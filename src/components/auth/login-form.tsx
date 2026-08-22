@@ -75,7 +75,7 @@ export function LoginForm() {
               })
             }
             disabled={submitting}
-            className="border-white/20 data-[state=checked]:border-gold-500 data-[state=checked]:bg-gold-500 data-[state=checked]:text-primary-foreground"
+            className="border-hairline-strong data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           />
           <Label
             htmlFor="rememberMe"
@@ -87,7 +87,7 @@ export function LoginForm() {
 
         <Link
           href={authRoutes.forgotPassword}
-          className="text-sm text-gold-200 underline decoration-gold-500/40 underline-offset-4 transition-colors hover:decoration-gold-400"
+          className="text-sm text-brand-emphasis underline decoration-brand/45 underline-offset-4 transition-colors hover:decoration-brand"
         >
           Forgot password?
         </Link>

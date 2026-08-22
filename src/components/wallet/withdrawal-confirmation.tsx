@@ -7,8 +7,7 @@ import { BrandedSpinner } from "@/components/brand/branded-loader";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/lib/format";
-import { formatAssetAmount } from "@/lib/quotes/rate-provider";
+import { formatAssetAmount, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ExchangeQuote, PaymentMethod } from "@/types/crypto";
 

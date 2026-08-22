@@ -33,20 +33,20 @@ export function StatisticsSection() {
 
         <RevealGroup
           as="dl"
-          className="grid gap-px overflow-hidden rounded-2xl border border-white/8 bg-white/6 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4"
           stagger={0.08}
         >
           {platformStats.map((stat) => (
             <RevealItem
               key={stat.label}
-              className="flex flex-col gap-2.5 bg-ink-950 p-7 transition-colors duration-500 hover:bg-ink-900/60 lg:p-8"
+              className="flex flex-col gap-2.5 bg-surface-1 p-7 transition-colors duration-500 hover:bg-surface-2 lg:p-8"
             >
               <dt className="order-2 text-sm font-medium text-foreground/90">
                 {stat.label}
               </dt>
               <dd
                 data-numeric
-                className="order-1 text-3xl leading-none font-medium tracking-tight text-gold-gradient lg:text-[2.5rem]"
+                className="order-1 text-3xl leading-none font-medium tracking-tight text-brand-gradient lg:text-[2.5rem]"
               >
                 {stat.value}
               </dd>
@@ -57,7 +57,7 @@ export function StatisticsSection() {
           ))}
         </RevealGroup>
 
-        <p className="mt-8 max-w-3xl text-xs leading-relaxed text-muted-foreground/70">
+        <p className="mt-8 max-w-3xl text-xs leading-relaxed text-subtle-foreground">
           These figures describe the product itself. We publish no investor
           counts, capital totals or return histories, because the platform is
           pre-launch and has none to report.

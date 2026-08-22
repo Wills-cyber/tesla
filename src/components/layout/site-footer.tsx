@@ -17,7 +17,7 @@ export function SiteFooter() {
   const columns = [footerNav.navigation, footerNav.account, footerNav.legal];
 
   return (
-    <footer className="relative mt-auto border-t border-white/8">
+    <footer className="relative mt-auto border-t border-hairline">
       {/* One faint wash to lift the footer off the page floor. */}
       <div
         aria-hidden="true"
@@ -31,7 +31,7 @@ export function SiteFooter() {
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground text-pretty">
               {siteConfig.description}
             </p>
-            <p className="max-w-sm text-xs leading-relaxed text-muted-foreground/65">
+            <p className="max-w-sm text-xs leading-relaxed text-subtle-foreground">
               {siteConfig.prelaunchNotice}
             </p>
           </div>
@@ -57,11 +57,11 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col gap-6 border-t border-white/8 pt-8">
-          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground/65">
+        <div className="mt-14 flex flex-col gap-6 border-t border-hairline pt-8">
+          <p className="max-w-4xl text-xs leading-relaxed text-subtle-foreground">
             {siteConfig.affiliationDisclaimer}
           </p>
-          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground/65">
+          <p className="max-w-4xl text-xs leading-relaxed text-subtle-foreground">
             Figures shown for any investment plan are stated plan terms, not
             guaranteed returns, and are not a record of funds received or paid.
             Investing involves risk, including possible loss of capital. Nothing
@@ -69,7 +69,7 @@ export function SiteFooter() {
           </p>
 
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-xs text-subtle-foreground">
               {siteConfig.copyright}
             </p>
             <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -77,7 +77,7 @@ export function SiteFooter() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+                    className="text-xs text-subtle-foreground transition-colors hover:text-foreground"
                   >
                     {item.label}
                   </Link>

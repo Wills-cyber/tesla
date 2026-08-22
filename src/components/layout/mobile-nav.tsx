@@ -56,9 +56,9 @@ export function MobileNav({ activeSection }: MobileNavProps) {
       <SheetContent
         side="right"
         showCloseButton
-        className="flex w-[min(88vw,23rem)] flex-col gap-0 border-l border-white/10 bg-ink-950/95 p-0 backdrop-blur-2xl sm:max-w-none"
+        className="flex w-[min(88vw,23rem)] flex-col gap-0 border-l border-hairline bg-popover/95 p-0 backdrop-blur-2xl sm:max-w-none"
       >
-        <SheetHeader className="border-b border-white/8 px-6 py-5 text-left">
+        <SheetHeader className="border-b border-hairline px-6 py-5 text-left">
           <SheetTitle asChild>
             <div>
               <Logo size="sm" asLink={false} />
@@ -90,8 +90,8 @@ export function MobileNav({ activeSection }: MobileNavProps) {
                     variant="mobile"
                     active={active}
                     className={cn(
-                      "border-b border-white/6 last:border-b-0",
-                      active && "text-gold-200"
+                      "border-b border-hairline last:border-b-0",
+                      active && "text-brand-emphasis"
                     )}
                     onNavigate={() => setOpen(false)}
                   />
@@ -101,7 +101,7 @@ export function MobileNav({ activeSection }: MobileNavProps) {
           })}
         </motion.nav>
 
-        <div className="flex flex-col gap-3 border-t border-white/8 px-6 py-6">
+        <div className="flex flex-col gap-3 border-t border-hairline px-6 py-6">
           <Button asChild variant="hairline" size="md" className="w-full">
             <Link href={authRoutes.login} onClick={() => setOpen(false)}>
               Login
@@ -113,7 +113,7 @@ export function MobileNav({ activeSection }: MobileNavProps) {
               <ArrowRight />
             </Link>
           </Button>
-          <p className="pt-1 text-[0.7rem] leading-relaxed text-muted-foreground/70">
+          <p className="pt-1 text-[0.7rem] leading-relaxed text-subtle-foreground">
             {siteConfig.prelaunchNotice}
           </p>
         </div>

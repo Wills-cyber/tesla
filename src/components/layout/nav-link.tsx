@@ -91,7 +91,7 @@ function ActiveUnderline({ active }: { active: boolean }) {
     <span
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute -bottom-0.5 left-0 h-px w-full origin-left bg-gold-500 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "pointer-events-none absolute -bottom-0.5 left-0 h-px w-full origin-left bg-brand transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
         active ? "scale-x-100" : "scale-x-0"
       )}
     />

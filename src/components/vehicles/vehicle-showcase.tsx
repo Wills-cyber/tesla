@@ -28,14 +28,14 @@ export function VehicleShowcase() {
     <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:items-center lg:gap-14">
       {/* ------------------------------------------------------- Category list */}
       <ul
-        className="flex flex-col overflow-hidden rounded-2xl border border-white/8"
+        className="flex flex-col overflow-hidden rounded-2xl border border-hairline"
         aria-label="Vehicle categories"
       >
         {vehicleShowcase.map((item) => {
           const isActive = item.id === active.id;
 
           return (
-            <li key={item.id} className="border-b border-white/6 last:border-b-0">
+            <li key={item.id} className="border-b border-hairline last:border-b-0">
               <button
                 type="button"
                 onClick={() => setActiveId(item.id)}
@@ -44,15 +44,15 @@ export function VehicleShowcase() {
                 className={cn(
                   "group/vehicle relative flex w-full items-center gap-4 px-5 py-5 text-left transition-colors duration-400",
                   isActive
-                    ? "bg-white/[0.035]"
-                    : "hover:bg-white/[0.02] focus-visible:bg-white/[0.02]"
+                    ? "bg-surface-2"
+                    : "hover:bg-surface-2 focus-visible:bg-surface-2"
                 )}
               >
                 {/* Active rail */}
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "absolute inset-y-0 left-0 w-px origin-center bg-gold-500 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    "absolute inset-y-0 left-0 w-px origin-center bg-brand transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
                     isActive ? "scale-y-100" : "scale-y-0"
                   )}
                 />
@@ -78,8 +78,8 @@ export function VehicleShowcase() {
                   className={cn(
                     "size-1.5 shrink-0 rounded-full transition-all duration-400",
                     isActive
-                      ? "bg-gold-400 shadow-[0_0_10px_2px_var(--gold-700)]"
-                      : "bg-white/15"
+                      ? "bg-brand shadow-[0_0_10px_2px_var(--gold-700)]"
+                      : "bg-hairline-strong"
                   )}
                 />
               </button>
@@ -92,11 +92,11 @@ export function VehicleShowcase() {
       <div
         id="vehicle-showcase-preview"
         aria-live="polite"
-        className="surface relative overflow-hidden rounded-2xl border border-white/10"
+        className="bg-surface-1 shadow-card relative overflow-hidden rounded-2xl border border-hairline"
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-[12%] top-[38%] h-40 rounded-[50%] bg-gold-500/10 blur-3xl"
+          className="pointer-events-none absolute inset-x-[12%] top-[38%] h-40 rounded-[50%] bg-brand-surface blur-3xl"
         />
 
         <motion.div
@@ -128,7 +128,7 @@ export function VehicleShowcase() {
               {active.highlights.map((highlight) => (
                 <li
                   key={highlight}
-                  className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[0.7rem] tracking-[0.06em] text-muted-foreground"
+                  className="rounded-full border border-hairline bg-surface-2 px-3 py-1.5 text-[0.7rem] tracking-[0.06em] text-muted-foreground"
                 >
                   {highlight}
                 </li>
@@ -153,7 +153,7 @@ export function VehicleShowcaseGrid() {
           viewport={revealViewport}
           transition={{ ...transitions.base, delay: index * 0.07 }}
           whileHover={{ y: -4 }}
-          className="surface group/card flex flex-col gap-4 rounded-2xl border border-white/10 p-5 transition-colors duration-500 hover:border-gold-500/25"
+          className="bg-surface-1 shadow-card group/card flex flex-col gap-4 rounded-2xl border border-hairline p-5 transition-colors duration-500 hover:border-brand-border"
         >
           <VehicleImage
             source={item.image}

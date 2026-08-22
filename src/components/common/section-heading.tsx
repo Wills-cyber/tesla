@@ -48,7 +48,7 @@ export function SectionHeading({
         <span className="inline-flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="size-1.5 rounded-full bg-gold-500 shadow-[0_0_12px_2px_var(--gold-600)]"
+            className="size-1.5 rounded-full bg-brand shadow-[0_0_12px_2px_var(--gold-600)]"
           />
           <span className="eyebrow">{eyebrow}</span>
         </span>

@@ -32,7 +32,7 @@ export function Section({
       className={cn(
         "relative scroll-mt-24",
         spacingClasses[spacing],
-        divided && "border-t border-white/8",
+        divided && "border-t border-hairline",
         className
       )}
       {...props}

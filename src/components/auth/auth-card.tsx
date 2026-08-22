@@ -47,19 +47,19 @@ export function AuthCard({
       </div>
 
       {notice && (
-        <div className="flex gap-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.045] p-4">
+        <div className="flex gap-3 rounded-xl border border-brand-border bg-brand-surface p-4">
           <Info
             aria-hidden="true"
-            className="mt-0.5 size-4 shrink-0 text-gold-300"
+            className="mt-0.5 size-4 shrink-0 text-brand"
           />
-          <p className="text-xs leading-relaxed text-gold-100/85">{notice}</p>
+          <p className="text-xs leading-relaxed text-foreground">{notice}</p>
         </div>
       )}
 
       {children}
 
       {footer && (
-        <div className="border-t border-white/8 pt-6 text-sm text-muted-foreground">
+        <div className="border-t border-hairline pt-6 text-sm text-muted-foreground">
           {footer}
         </div>
       )}
@@ -82,7 +82,7 @@ export function AuthSwitchLink({
       {prompt}{" "}
       <Link
         href={href}
-        className="font-medium text-gold-200 underline decoration-gold-500/40 underline-offset-4 transition-colors hover:decoration-gold-400"
+        className="font-medium text-brand-emphasis underline decoration-brand/45 underline-offset-4 transition-colors hover:decoration-brand"
       >
         {label}
       </Link>

@@ -39,11 +39,11 @@ export function AboutSection() {
                 <RevealItem
                   key={principle.title}
                   as="li"
-                  className="surface flex gap-4 rounded-xl border border-white/10 p-5 sm:p-6"
+                  className="bg-surface-1 shadow-card flex gap-4 rounded-xl border border-hairline p-5 sm:p-6"
                 >
                   <span
                     aria-hidden="true"
-                    className="grid size-10 shrink-0 place-items-center rounded-lg border border-gold-500/20 bg-gold-500/8 text-gold-300"
+                    className="grid size-10 shrink-0 place-items-center rounded-lg border border-brand-border bg-brand-surface text-brand"
                   >
                     <principle.icon className="size-4.5" />
                   </span>

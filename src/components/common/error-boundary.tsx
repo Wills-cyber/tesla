@@ -53,11 +53,11 @@ export class ErrorBoundary extends React.Component<
     return (
       <div
         role="alert"
-        className="flex flex-col items-start gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-6"
+        className="flex flex-col items-start gap-4 rounded-xl border border-hairline bg-surface-2 p-6"
       >
         <span
           aria-hidden="true"
-          className="grid size-10 place-items-center rounded-lg border border-amber-400/25 bg-amber-400/8 text-amber-200"
+          className="grid size-10 place-items-center rounded-lg border border-warning/25 bg-warning-surface text-warning"
         >
           <AlertTriangle className="size-4.5" />
         </span>

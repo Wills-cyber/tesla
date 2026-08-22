@@ -13,13 +13,13 @@ export default function NotFound() {
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       >
         <div className="grid-field mask-fade-b absolute inset-0 opacity-50" />
-        <div className="absolute -top-32 left-1/2 h-96 w-[40rem] -translate-x-1/2 rounded-full bg-gold-500/8 blur-3xl" />
+        <div className="absolute -top-32 left-1/2 h-96 w-[40rem] -translate-x-1/2 rounded-full bg-brand-surface blur-3xl" />
       </div>
 
       <Logo size="md" />
 
       <div className="flex max-w-lg flex-col gap-4">
-        <p data-numeric className="text-5xl font-medium text-gold-gradient">
+        <p data-numeric className="text-5xl font-medium text-brand-gradient">
           404
         </p>
         <h1 className="text-2xl font-medium sm:text-3xl">Page not found</h1>

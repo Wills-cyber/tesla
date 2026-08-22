@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 const SEGMENTS = 4;
 
 const segmentColours = [
-  "bg-destructive/70",
-  "bg-amber-500/80",
-  "bg-amber-400/90",
-  "bg-emerald-400/90",
+  "bg-destructive",
+  "bg-warning",
+  "bg-warning",
+  "bg-success",
 ] as const;
 
 /**
@@ -47,13 +47,13 @@ export function PasswordStrengthMeter({
             key={index}
             className={cn(
               "h-1 flex-1 rounded-full transition-colors duration-400",
-              index < score ? segmentColours[score - 1] : "bg-white/10"
+              index < score ? segmentColours[score - 1] : "bg-surface-3"
             )}
           />
         ))}
       </div>
 
-      <p aria-live="polite" className="text-[0.7rem] text-muted-foreground/80">
+      <p aria-live="polite" className="text-[0.7rem] text-muted-foreground">
         {label}
       </p>
     </div>

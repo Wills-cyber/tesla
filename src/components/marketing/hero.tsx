@@ -70,7 +70,7 @@ export function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...transitions.base, delay: 0.1 }}
             >
-              <StatusPill tone="gold" dot>
+              <StatusPill tone="brand" dot>
                 Pre-launch · Deposits Coming Soon
               </StatusPill>
             </motion.div>
@@ -91,7 +91,7 @@ export function Hero() {
                       variants={headlineWord}
                       className={
                         index >= 3
-                          ? "inline-block text-gold-gradient"
+                          ? "inline-block text-brand-gradient"
                           : "inline-block"
                       }
                     >
@@ -145,7 +145,7 @@ export function Hero() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ ...transitions.base, delay: 1 }}
-              className="max-w-md text-xs leading-relaxed text-muted-foreground/65"
+              className="max-w-md text-xs leading-relaxed text-subtle-foreground"
             >
               Account creation is open. Deposits, withdrawals and live investment
               activity are not yet available — plan figures shown are stated
@@ -164,7 +164,7 @@ export function Hero() {
             <div className="relative">
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-[8%] top-1/2 h-[62%] -translate-y-1/2 rounded-[50%] bg-gold-500/12 blur-3xl"
+                className="pointer-events-none absolute inset-x-[8%] top-1/2 h-[62%] -translate-y-1/2 rounded-[50%] bg-brand-surface-strong blur-3xl"
               />
 
               <div className="motion-safe:animate-float-slow">
@@ -190,7 +190,7 @@ export function Hero() {
                   className={`absolute hidden sm:block ${chip.className}`}
                 >
                   <div
-                    className="glass flex flex-col gap-1 rounded-lg border border-white/10 px-3.5 py-2.5 motion-safe:animate-float"
+                    className="glass flex flex-col gap-1 rounded-lg border border-hairline px-3.5 py-2.5 motion-safe:animate-float"
                     style={{ animationDelay: `${chip.delay}s` }}
                   >
                     <span className="text-[0.6rem] tracking-[0.18em] text-muted-foreground uppercase">
@@ -215,7 +215,7 @@ export function Hero() {
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4, duration: 0.6 }}
           onClick={() => scrollToAnchor("#investment-plans")}
-          className="mx-auto mt-16 hidden items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-xs tracking-[0.16em] text-muted-foreground uppercase transition-colors hover:border-white/25 hover:text-foreground lg:flex"
+          className="mx-auto mt-16 hidden items-center gap-2 rounded-full border border-hairline px-4 py-2 text-xs tracking-[0.16em] text-muted-foreground uppercase transition-colors hover:border-hairline-strong hover:text-foreground lg:flex"
         >
           <Gauge className="size-3.5" />
           Scroll to explore
@@ -235,7 +235,7 @@ function HeroBackdrop({ glowY }: { glowY: MotionValue<number> }) {
       {/* Primary gold wash */}
       <motion.div
         style={{ y: glowY }}
-        className="absolute -top-40 left-1/2 h-[46rem] w-[76rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--gold-500)_18%,transparent),transparent)] blur-2xl motion-safe:animate-drift"
+        className="absolute -top-40 left-1/2 h-[46rem] w-[76rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--gold-500)_14%,transparent),transparent)] blur-2xl motion-safe:animate-drift"
       />
 
       {/* Cool counter-light so the gold doesn't read as a single flat tint */}

@@ -57,10 +57,10 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       </div>
 
       {/* ------------------------------------------------------ Brand column */}
-      <aside className="relative hidden overflow-hidden border-l border-hairline lg:block">
+      <aside className="relative hidden overflow-hidden border-l border-hairline bg-surface-2 lg:block">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <div className="grid-field absolute inset-0 opacity-60" />
-          <div className="absolute top-1/4 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-brand-surface blur-3xl motion-safe:animate-drift" />
+          <div className="grid-field absolute inset-0 opacity-70" />
+          <div className="absolute top-1/4 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-brand-surface-strong blur-3xl motion-safe:animate-drift" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-3/70" />
         </div>
 

@@ -39,7 +39,15 @@ export function InvestmentPlansSection({ plans }: InvestmentPlansSectionProps) {
             stagger={0.1}
           >
             {plans.map((plan) => (
-              <InvestmentPlanCard key={plan.id} plan={plan} animate />
+              // `dialog`, not `link`: `/invest/[slug]` sits behind the auth guard,
+              // and a visitor should be able to read the full terms before they
+              // create an account.
+              <InvestmentPlanCard
+                key={plan.id}
+                plan={plan}
+                action="dialog"
+                animate
+              />
             ))}
 
             {/* Balances the grid and sets the expectation for what follows. */}

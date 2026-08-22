@@ -154,25 +154,79 @@ type UserBalanceRow = {
   updated_at: string;
 };
 
+/**
+ * Relationship metadata.
+ *
+ * `postgrest-js` requires a `Relationships` entry on every table — it is what
+ * lets `.select("*, plan:investment_plans(*)")` be type-checked. The hand-written
+ * types below declare the foreign keys the schema actually has, so embedded
+ * selects resolve correctly; `supabase gen types` will produce the same shape.
+ */
+type Relationship<
+  TName extends string,
+  TColumns extends readonly string[],
+  TReferencedRelation extends string,
+  TReferencedColumns extends readonly string[],
+  TIsOneToOne extends boolean = false,
+> = {
+  foreignKeyName: TName;
+  columns: TColumns;
+  isOneToOne: TIsOneToOne;
+  referencedRelation: TReferencedRelation;
+  referencedColumns: TReferencedColumns;
+};
+
 export type Database = {
+  /**
+   * Reported by the PostgREST instance. Regenerating this file will set the
+   * real value; the version below matches Supabase's current default.
+   */
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3";
+  };
   public: {
     Tables: {
       profiles: {
         Row: ProfileRow;
         Insert: Partial<ProfileRow> & Pick<ProfileRow, "id" | "email">;
         Update: Partial<ProfileRow>;
+        Relationships: [
+          Relationship<
+            "profiles_id_fkey",
+            ["id"],
+            "users",
+            ["id"],
+            true
+          >,
+          Relationship<
+            "profiles_referred_by_fkey",
+            ["referred_by"],
+            "profiles",
+            ["id"]
+          >,
+        ];
       };
       investment_plans: {
         Row: InvestmentPlanRow;
         Insert: Partial<InvestmentPlanRow> &
           Pick<InvestmentPlanRow, "slug" | "name">;
         Update: Partial<InvestmentPlanRow>;
+        Relationships: [];
       };
       investments: {
         Row: InvestmentRow;
         Insert: Partial<InvestmentRow> &
           Pick<InvestmentRow, "user_id" | "plan_id" | "principal_cents">;
         Update: Partial<InvestmentRow>;
+        Relationships: [
+          Relationship<"investments_user_id_fkey", ["user_id"], "profiles", ["id"]>,
+          Relationship<
+            "investments_plan_id_fkey",
+            ["plan_id"],
+            "investment_plans",
+            ["id"]
+          >,
+        ];
       };
       investment_payments: {
         Row: InvestmentPaymentRow;
@@ -182,23 +236,57 @@ export type Database = {
             "investment_id" | "period_index" | "amount_cents" | "due_at"
           >;
         Update: Partial<InvestmentPaymentRow>;
+        Relationships: [
+          Relationship<
+            "investment_payments_investment_id_fkey",
+            ["investment_id"],
+            "investments",
+            ["id"]
+          >,
+        ];
       };
       transactions: {
         Row: TransactionRow;
         Insert: Partial<TransactionRow> &
           Pick<TransactionRow, "user_id" | "type" | "amount_cents">;
         Update: Partial<TransactionRow>;
+        Relationships: [
+          Relationship<"transactions_user_id_fkey", ["user_id"], "profiles", ["id"]>,
+          Relationship<
+            "transactions_investment_id_fkey",
+            ["investment_id"],
+            "investments",
+            ["id"]
+          >,
+        ];
       };
       notifications: {
         Row: NotificationRow;
         Insert: Partial<NotificationRow> &
           Pick<NotificationRow, "user_id" | "title" | "body">;
         Update: Partial<NotificationRow>;
+        Relationships: [
+          Relationship<
+            "notifications_user_id_fkey",
+            ["user_id"],
+            "profiles",
+            ["id"]
+          >,
+        ];
       };
       user_balances: {
         Row: UserBalanceRow;
         Insert: Partial<UserBalanceRow> & Pick<UserBalanceRow, "user_id">;
         Update: Partial<UserBalanceRow>;
+        Relationships: [
+          Relationship<
+            "user_balances_user_id_fkey",
+            ["user_id"],
+            "profiles",
+            ["id"],
+            true
+          >,
+        ];
       };
     };
     Views: Record<never, never>;

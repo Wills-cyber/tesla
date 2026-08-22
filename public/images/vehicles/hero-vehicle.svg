@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 900" width="1800" height="900" role="img" aria-label="Illustration of a premium electric vehicle in side profile">
+  <title>Premium electric vehicle — placeholder illustration</title>
+  <desc>Line-art side profile of a low, long electric sedan. Replace with licensed photography; see src/config/vehicles.ts.</desc>
+
+  <defs>
+    <linearGradient id="hero-body" x1="180" y1="380" x2="1650" y2="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F0E4C8" stop-opacity="0.92"/>
+      <stop offset="0.42" stop-color="#CBA96A" stop-opacity="0.95"/>
+      <stop offset="0.72" stop-color="#8E7746" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#D8C69B" stop-opacity="0.55"/>
+    </linearGradient>
+
+    <linearGradient id="hero-glass" x1="700" y1="330" x2="1250" y2="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#CBA96A" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.04"/>
+    </linearGradient>
+
+    <linearGradient id="hero-detail" x1="200" y1="500" x2="1600" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.30"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.26"/>
+    </linearGradient>
+
+    <radialGradient id="hero-halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#CBA96A" stop-opacity="0.26"/>
+      <stop offset="0.55" stop-color="#CBA96A" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#CBA96A" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="hero-contact" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="hero-ground" x1="200" y1="0" x2="1600" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient halo -->
+  <ellipse cx="900" cy="470" rx="760" ry="330" fill="url(#hero-halo)"/>
+
+  <!-- Contact shadow -->
+  <ellipse cx="900" cy="760" rx="640" ry="46" fill="url(#hero-contact)"/>
+
+  <!-- Body -->
+  <path
+    d="M232 668
+       C 228 596 250 540 318 514
+       L 604 480
+       C 690 472 748 438 806 396
+       C 856 358 928 334 1022 332
+       L 1244 334
+       C 1360 340 1454 390 1522 466
+       C 1568 518 1590 578 1590 634
+       C 1590 658 1576 670 1548 670
+       L 1404 670
+       A 118 118 0 0 0 1168 670
+       L 700 670
+       A 118 118 0 0 0 464 670
+       L 232 668 Z"
+    fill="none" stroke="url(#hero-body)" stroke-width="3.4" stroke-linejoin="round"/>
+
+  <!-- Greenhouse glass -->
+  <path
+    d="M812 452
+       C 862 400 928 372 1024 370
+       L 1240 372
+       C 1344 378 1428 416 1486 462 Z"
+    fill="url(#hero-glass)" stroke="url(#hero-detail)" stroke-width="2.2" stroke-linejoin="round"/>
+
+  <!-- B-pillar -->
+  <path d="M1108 371 L1108 452" stroke="url(#hero-detail)" stroke-width="2"/>
+
+  <!-- Belt line -->
+  <path d="M760 470 C 1020 452 1300 456 1520 476" fill="none" stroke="url(#hero-detail)" stroke-width="2"/>
+
+  <!-- Shoulder crease -->
+  <path d="M330 574 C 720 556 1160 560 1548 582" fill="none" stroke="url(#hero-detail)" stroke-width="1.8"/>
+
+  <!-- Door cuts -->
+  <path d="M812 452 L 812 668" stroke="url(#hero-detail)" stroke-width="1.8"/>
+  <path d="M1108 456 L 1108 668" stroke="url(#hero-detail)" stroke-width="1.8"/>
+
+  <!-- Door handles -->
+  <rect x="946" y="504" width="52" height="9" rx="4.5" fill="#CBA96A" fill-opacity="0.5"/>
+  <rect x="1234" y="506" width="52" height="9" rx="4.5" fill="#CBA96A" fill-opacity="0.5"/>
+
+  <!-- Headlight -->
+  <path d="M250 536 L 330 520 L 342 552 L 258 566 Z" fill="#CBA96A" fill-opacity="0.55"/>
+  <!-- Tail light -->
+  <path d="M1512 548 L 1584 560 L 1580 596 L 1508 584 Z" fill="#CBA96A" fill-opacity="0.35"/>
+
+  <!-- Charge port -->
+  <circle cx="1462" cy="520" r="11" fill="none" stroke="#CBA96A" stroke-opacity="0.6" stroke-width="2"/>
+  <path d="M1457 520 h10 M1462 515 v10" stroke="#CBA96A" stroke-opacity="0.6" stroke-width="1.6"/>
+
+  <!-- Front wheel -->
+  <g>
+    <circle cx="582" cy="670" r="98" fill="none" stroke="url(#hero-body)" stroke-width="3.2"/>
+    <circle cx="582" cy="670" r="56" fill="none" stroke="url(#hero-detail)" stroke-width="2"/>
+    <circle cx="582" cy="670" r="16" fill="#CBA96A" fill-opacity="0.35"/>
+    <g stroke="url(#hero-detail)" stroke-width="1.6">
+      <path d="M582 614 L582 640"/><path d="M582 700 L582 726"/>
+      <path d="M526 670 L552 670"/><path d="M612 670 L638 670"/>
+      <path d="M542 630 L562 650"/><path d="M602 690 L622 710"/>
+      <path d="M622 630 L602 650"/><path d="M562 690 L542 710"/>
+    </g>
+  </g>
+
+  <!-- Rear wheel -->
+  <g>
+    <circle cx="1286" cy="670" r="98" fill="none" stroke="url(#hero-body)" stroke-width="3.2"/>
+    <circle cx="1286" cy="670" r="56" fill="none" stroke="url(#hero-detail)" stroke-width="2"/>
+    <circle cx="1286" cy="670" r="16" fill="#CBA96A" fill-opacity="0.35"/>
+    <g stroke="url(#hero-detail)" stroke-width="1.6">
+      <path d="M1286 614 L1286 640"/><path d="M1286 700 L1286 726"/>
+      <path d="M1230 670 L1256 670"/><path d="M1316 670 L1342 670"/>
+      <path d="M1246 630 L1266 650"/><path d="M1306 690 L1326 710"/>
+      <path d="M1326 630 L1306 650"/><path d="M1266 690 L1246 710"/>
+    </g>
+  </g>
+
+  <!-- Ground rule -->
+  <rect x="200" y="768" width="1400" height="1.6" fill="url(#hero-ground)"/>
+</svg>

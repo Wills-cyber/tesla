@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Illustration of a compact electric sedan in side profile">
+  <title>Compact electric sedan — placeholder illustration</title>
+  <desc>Line-art side profile of a compact electric sedan. Replace with licensed photography; see src/config/vehicles.ts.</desc>
+
+  <defs>
+    <linearGradient id="cs-body" x1="200" y1="380" x2="1450" y2="680" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EFE3C6" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#CBA96A" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#8E7746" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="cs-detail" x1="200" y1="500" x2="1450" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.14"/>
+    </linearGradient>
+    <linearGradient id="cs-glass" x1="640" y1="330" x2="1180" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#CBA96A" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.04"/>
+    </linearGradient>
+    <radialGradient id="cs-contact" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse cx="800" cy="748" rx="560" ry="40" fill="url(#cs-contact)"/>
+
+  <path
+    d="M226 646
+       C 222 584 244 534 306 512
+       L 566 486
+       C 646 480 700 450 752 412
+       C 798 378 864 356 950 354
+       L 1130 356
+       C 1236 362 1322 408 1382 476
+       C 1424 524 1444 574 1444 618
+       C 1444 640 1432 650 1406 650
+       L 1276 650
+       A 108 108 0 0 0 1060 650
+       L 610 650
+       A 108 108 0 0 0 394 650
+       L 226 646 Z"
+    fill="none" stroke="url(#cs-body)" stroke-width="3.2" stroke-linejoin="round"/>
+
+  <path
+    d="M756 462
+       C 806 410 866 382 952 380
+       L 1126 382
+       C 1222 388 1300 424 1352 470 Z"
+    fill="url(#cs-glass)" stroke="url(#cs-detail)" stroke-width="2" stroke-linejoin="round"/>
+
+  <path d="M1020 381 L1020 462" stroke="url(#cs-detail)" stroke-width="1.8"/>
+  <path d="M712 478 C 960 462 1210 466 1394 484" fill="none" stroke="url(#cs-detail)" stroke-width="1.8"/>
+  <path d="M318 566 C 680 552 1070 556 1408 574" fill="none" stroke="url(#cs-detail)" stroke-width="1.6"/>
+  <path d="M756 462 L 756 650" stroke="url(#cs-detail)" stroke-width="1.6"/>
+  <path d="M1020 466 L 1020 650" stroke="url(#cs-detail)" stroke-width="1.6"/>
+
+  <rect x="872" y="508" width="46" height="8" rx="4" fill="#CBA96A" fill-opacity="0.45"/>
+  <rect x="1132" y="510" width="46" height="8" rx="4" fill="#CBA96A" fill-opacity="0.45"/>
+
+  <path d="M244 528 L 316 514 L 328 544 L 252 556 Z" fill="#CBA96A" fill-opacity="0.5"/>
+  <path d="M1374 540 L 1438 552 L 1434 584 L 1370 572 Z" fill="#CBA96A" fill-opacity="0.32"/>
+
+  <g>
+    <circle cx="502" cy="650" r="90" fill="none" stroke="url(#cs-body)" stroke-width="3"/>
+    <circle cx="502" cy="650" r="50" fill="none" stroke="url(#cs-detail)" stroke-width="1.8"/>
+    <circle cx="502" cy="650" r="14" fill="#CBA96A" fill-opacity="0.3"/>
+    <g stroke="url(#cs-detail)" stroke-width="1.5">
+      <path d="M502 600 L502 622"/><path d="M502 678 L502 700"/>
+      <path d="M452 650 L474 650"/><path d="M530 650 L552 650"/>
+      <path d="M467 615 L484 632"/><path d="M520 668 L537 685"/>
+      <path d="M537 615 L520 632"/><path d="M484 668 L467 685"/>
+    </g>
+  </g>
+
+  <g>
+    <circle cx="1168" cy="650" r="90" fill="none" stroke="url(#cs-body)" stroke-width="3"/>
+    <circle cx="1168" cy="650" r="50" fill="none" stroke="url(#cs-detail)" stroke-width="1.8"/>
+    <circle cx="1168" cy="650" r="14" fill="#CBA96A" fill-opacity="0.3"/>
+    <g stroke="url(#cs-detail)" stroke-width="1.5">
+      <path d="M1168 600 L1168 622"/><path d="M1168 678 L1168 700"/>
+      <path d="M1118 650 L1140 650"/><path d="M1196 650 L1218 650"/>
+      <path d="M1133 615 L1150 632"/><path d="M1186 668 L1203 685"/>
+      <path d="M1203 615 L1186 632"/><path d="M1150 668 L1133 685"/>
+    </g>
+  </g>
+</svg>

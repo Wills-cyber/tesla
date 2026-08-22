@@ -23,9 +23,10 @@ type InvestmentCardProps = {
  * One of the user's actual investments.
  *
  * Every figure is read from the `investments` row and its `investment_payments`
- * rows. Three things are computed, and only from real dates and real payment
- * records: days remaining (from `matures_at`), payments received (rows with
- * status `paid`) and progress (paid periods ÷ scheduled periods).
+ * rows. Two things are computed here, and only from real payment records: payments
+ * received (rows with status `paid`) and progress (paid ÷ scheduled). Days
+ * remaining is stamped by the data layer from `matures_at`, against one clock
+ * reading per request.
  *
  * Profit credited comes from `paid_profit_cents` — money the ledger says was
  * actually paid — never from the plan's stated total.
@@ -45,14 +46,9 @@ export function InvestmentCard({
   const remainingPeriods = Math.max(0, totalPeriods - paid);
   const progress = totalPeriods > 0 ? (paid / totalPeriods) * 100 : 0;
 
-  const daysRemaining = investment.maturesAt
-    ? Math.max(
-        0,
-        Math.ceil(
-          (new Date(investment.maturesAt).getTime() - Date.now()) / 86_400_000
-        )
-      )
-    : null;
+  // Stamped by the data layer against a single clock reading for the request —
+  // reading the clock here would make the render impure.
+  const { daysRemaining } = investment;
 
   return (
     <article className={cn("panel flex flex-col gap-7 p-6 sm:p-7", className)}>

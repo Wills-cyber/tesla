@@ -118,7 +118,25 @@ export async function getInvestmentPayments(
 
 export type InvestmentWithPayments = Investment & {
   payments: InvestmentPayment[];
+  /**
+   * Whole days from now until maturity, or `null` when no maturity date is
+   * recorded.
+   *
+   * Stamped here rather than in the card: reading the clock during a React render
+   * is impure, and a value that changes between renders of the same data is a bug
+   * waiting to happen. This is the request's single reference point.
+   */
+  daysRemaining: number | null;
 };
+
+const MS_PER_DAY = 86_400_000;
+
+function daysUntil(maturesAt: string | null, now: number): number | null {
+  if (!maturesAt) return null;
+  const target = new Date(maturesAt).getTime();
+  if (Number.isNaN(target)) return null;
+  return Math.max(0, Math.ceil((target - now) / MS_PER_DAY));
+}
 
 /**
  * Every position the user holds, each with its real payment schedule.
@@ -170,10 +188,14 @@ export async function getUserInvestmentsWithPayments(): Promise<
     else byInvestment.set(payment.investmentId, [payment]);
   }
 
+  // One clock reading for the whole response, so every card agrees.
+  const now = Date.now();
+
   return ready(
     investments.map((investment) => ({
       ...investment,
       payments: byInvestment.get(investment.id) ?? [],
+      daysRemaining: daysUntil(investment.maturesAt, now),
     }))
   );
 }

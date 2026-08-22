@@ -39,6 +39,18 @@ type WithdrawModalProps = {
 type Step = "form" | "confirm";
 
 /**
+ * A quote, tagged with the exact request it answers.
+ *
+ * `key` is `${methodId}:${amountCents}`. Storing it alongside the result means a
+ * stale reply is structurally unusable rather than merely unlikely to be shown.
+ */
+type QuoteState = {
+  key: string;
+  quote: ExchangeQuote | null;
+  reason: string | null;
+};
+
+/**
  * Crypto withdrawal flow.
  *
  * Two steps by design: enter the details, then review them on a dedicated
@@ -72,9 +84,7 @@ export function WithdrawModal({
   const [destinationAddress, setDestinationAddress] = React.useState("");
   const [confirmed, setConfirmed] = React.useState(false);
 
-  const [quote, setQuote] = React.useState<ExchangeQuote | null>(null);
-  const [quoteNotice, setQuoteNotice] = React.useState<string | null>(null);
-  const [quoting, setQuoting] = React.useState(false);
+  const [quoteState, setQuoteState] = React.useState<QuoteState | null>(null);
 
   const [submitting, setSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -101,40 +111,56 @@ export function WithdrawModal({
   );
 
   /**
-   * Quote the amount whenever the pair or amount settles.
+   * The request a quote would be for, or `null` when there's nothing to quote.
    *
-   * Debounced, and every response is checked against a token so a slow earlier
-   * request can't overwrite a newer quote.
+   * Keying the stored quote by this string is what keeps the displayed amount
+   * honest: a quote for a different pair or a different amount simply doesn't
+   * match, so it can never be shown against the current input — and a slow reply
+   * from an earlier keystroke can't overwrite a newer one.
+   */
+  const quoteKey =
+    selected && amountCents !== null && amountCents >= effectiveMinimum
+      ? `${selected.id}:${amountCents}`
+      : null;
+
+  const activeQuote = quoteState?.key === quoteKey ? quoteState : null;
+  const quote = activeQuote?.quote ?? null;
+  const quoteNotice = activeQuote?.reason ?? null;
+  // Covers the debounce window and the request itself, derived rather than stored.
+  const quoting = quoteKey !== null && activeQuote === null;
+
+  /**
+   * Fetch the quote once the pair and amount settle.
+   *
+   * Debounced. Every `setState` happens inside the async callback, and the guard
+   * simply declines to start — nothing is reset synchronously, because the values
+   * above are derived from `quoteKey` and are already correct.
    */
   React.useEffect(() => {
-    if (!selected || amountCents === null || amountCents < effectiveMinimum) {
-      setQuote(null);
-      setQuoteNotice(null);
-      return;
-    }
+    if (!quoteKey || !selected) return;
 
     let current = true;
-    setQuoting(true);
+    const amount = amountUsd.trim();
+    const methodIdForQuote = selected.id;
 
     const timer = window.setTimeout(async () => {
       try {
-        const result = await quoteWithdrawalAction(selected.id, amountUsd.trim());
+        const result = await quoteWithdrawalAction(methodIdForQuote, amount);
         if (!current) return;
 
-        if (result.status === "ready") {
-          setQuote(result.quote);
-          setQuoteNotice(null);
-        } else {
-          setQuote(null);
-          setQuoteNotice(result.reason);
-        }
+        setQuoteState(
+          result.status === "ready"
+            ? { key: quoteKey, quote: result.quote, reason: null }
+            : { key: quoteKey, quote: null, reason: result.reason }
+        );
       } catch (error) {
         if (!current) return;
         console.error("[WithdrawModal] quote failed", error);
-        setQuote(null);
-        setQuoteNotice("We couldn't reach the rate service. Try again shortly.");
-      } finally {
-        if (current) setQuoting(false);
+        setQuoteState({
+          key: quoteKey,
+          quote: null,
+          reason: "We couldn't reach the rate service. Try again shortly.",
+        });
       }
     }, 400);
 
@@ -142,7 +168,7 @@ export function WithdrawModal({
       current = false;
       window.clearTimeout(timer);
     };
-  }, [selected, amountCents, amountUsd, effectiveMinimum]);
+  }, [quoteKey, selected, amountUsd]);
 
   function reset() {
     setStep("form");

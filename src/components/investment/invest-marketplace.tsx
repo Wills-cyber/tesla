@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/common/empty-state";
 import { InvestmentPlanCard } from "@/components/investment/investment-plan-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RevealGroup, RevealItem } from "@/components/common/reveal";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { InvestmentPlan } from "@/types/investment";
@@ -226,22 +225,36 @@ export function InvestMarketplace({
         /* One column on phones, two from 640px, three from 1280px. The grid uses
            `minmax(0, 1fr)` implicitly via Tailwind's grid-cols, so a long plan
            name wraps instead of forcing the row wider — no horizontal scroll at
-           any width. */
-        <RevealGroup
-          className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3"
-          stagger={0.06}
-        >
+           any width.
+
+           Deliberately NOT wrapped in `RevealGroup`. These cards are the entire
+           point of the page and they are on screen the moment it opens, so their
+           visibility must not depend on a scroll observer firing, on hydration
+           completing, or on Motion running at all. The entrance below is pure CSS:
+           it starts on its own, and if the stylesheet never applied the cards
+           would simply be visible with no animation. A JS-driven `opacity: 0`
+           start state can fail in the other direction — invisible content — which
+           is what a percentage-threshold scroll reveal did to this grid before. */
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
           {filtered.map((plan, index) => (
-            <RevealItem key={plan.id} className="flex">
+            <div
+              key={plan.id}
+              className="flex animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out"
+              style={{
+                // A short stagger, capped so no card waits long enough to read as
+                // missing. `animate-in` holds the start state during the delay.
+                animationDelay: `${Math.min(index, 5) * 50}ms`,
+              }}
+            >
               <InvestmentPlanCard
                 plan={plan}
                 animate={false}
                 priority={index === 0}
                 className="w-full"
               />
-            </RevealItem>
+            </div>
           ))}
-        </RevealGroup>
+        </div>
       )}
     </div>
   );

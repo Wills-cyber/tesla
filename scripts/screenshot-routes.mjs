@@ -40,7 +40,9 @@ const ROUTES = [
   { path: "/register", name: "register", viewports: ["mobile", "desktop"] },
   { path: "/dashboard", name: "dashboard" },
   { path: "/invest", name: "invest" },
-  { path: "/invest/vehicle-investment", name: "invest-plan" },
+  // `model-3-starter` is the featured plan. The old `vehicle-investment` slug was
+  // retired by migration 0005, so shooting it only ever captured the 404 page.
+  { path: "/invest/model-3-starter", name: "invest-plan" },
   { path: "/investments", name: "investments" },
   { path: "/wallet", name: "wallet" },
   { path: "/wallet/activity", name: "wallet-activity" },

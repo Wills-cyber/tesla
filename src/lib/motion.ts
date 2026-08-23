@@ -19,8 +19,29 @@ export const transitions = {
   spring: { type: "spring", stiffness: 220, damping: 28, mass: 0.9 },
 } satisfies Record<string, Transition>;
 
-/** Viewport config for scroll reveals: fire once, slightly before full entry. */
-export const revealViewport = { once: true, amount: 0.25, margin: "0px 0px -80px 0px" };
+/**
+ * Viewport config for scroll reveals: fire once, as soon as any part enters.
+ *
+ * `amount` MUST stay at `"some"`. It used to be `0.25`, which meant a quarter of
+ * the element had to be inside the viewport before the entrance fired — and for
+ * any container taller than four viewports that threshold can never be met. The
+ * intersection ratio of a 3000px grid in a 700px viewport peaks at ~23%, so the
+ * reveal never triggered and its children stayed at `opacity: 0` permanently, at
+ * every scroll position. That is exactly what happened to the five-card plan grid
+ * on a phone: content present in the DOM, invisible forever.
+ *
+ * A percentage threshold is only ever safe on elements shorter than the viewport,
+ * which is not a property a shared default can guarantee. `"some"` cannot deadlock
+ * at any element height, so tall lists stay safe by construction.
+ *
+ * For content that is above the fold on arrival, do not gate on scroll at all —
+ * pass `immediate` to `Reveal`/`RevealGroup`, or use a CSS entrance.
+ */
+export const revealViewport = {
+  once: true,
+  amount: "some",
+  margin: "0px 0px -80px 0px",
+} as const;
 
 export const fadeUp: Variants = {
   hidden: { opacity: 0, y: 18 },

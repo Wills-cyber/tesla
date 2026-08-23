@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
 
+import { featureFlags } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,6 +43,7 @@ export function PlanImage({
   className,
   imageClassName,
   ratio = "16/9",
+  showPlaceholderLabel,
 }: {
   src: string;
   /** Names the vehicle. Empty string marks the image decorative. */
@@ -51,6 +53,12 @@ export function PlanImage({
   className?: string;
   imageClassName?: string;
   ratio?: "16/9" | "4/3" | "3/2";
+  /**
+   * Overrides the placeholder caption. Defaults to the feature flag, so callers
+   * normally say nothing; pass `false` where the caption would crowd a small
+   * frame.
+   */
+  showPlaceholderLabel?: boolean;
 }) {
   /**
    * The src that failed, rather than a boolean.
@@ -62,6 +70,9 @@ export function PlanImage({
    */
   const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
   const failed = failedSrc === src;
+
+  const showPlaceholderCaption =
+    showPlaceholderLabel ?? featureFlags.planArtworkIsPlaceholder;
 
   const ratioClass =
     ratio === "4/3"
@@ -99,16 +110,42 @@ export function PlanImage({
           </span>
         </div>
       ) : (
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes={sizes}
-          priority={priority}
-          loading={priority ? undefined : "lazy"}
-          onError={() => setFailedSrc(src)}
-          className={cn("object-cover", imageClassName)}
-        />
+        <>
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            sizes={sizes}
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
+            onError={() => setFailedSrc(src)}
+            className={cn("object-cover", imageClassName)}
+          />
+
+          {/* Caption over the placeholder wash.
+
+              The shipped placeholders are an opaque gradient with no lettering, so
+              an uncaptioned frame is a large blank rectangle at the top of every
+              card — indistinguishable from a broken image. Naming the vehicle over
+              it makes the frame legible as a deliberate placeholder.
+
+              Gated on `planArtworkIsPlaceholder` rather than drawn always, because
+              once real photography lands this text would be graffiti on top of it.
+              Turning the flag off is the whole handover. */}
+          {showPlaceholderCaption && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-4 text-center"
+            >
+              <span className="rounded-full border border-brand-border bg-surface-1/85 px-3 py-1 text-[0.7rem] font-semibold tracking-[0.08em] text-brand-emphasis uppercase shadow-soft backdrop-blur-[2px]">
+                {alt || "Vehicle"}
+              </span>
+              <span className="text-[0.62rem] font-medium tracking-[0.1em] text-muted-foreground uppercase">
+                Artwork coming soon
+              </span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -30,6 +30,17 @@ export const featureFlags = {
   withdrawalsEnabled: false,
   investmentActivationEnabled: false,
   liveMarketData: false,
+  /**
+   * The files in `public/images/investments/` are still generated placeholders —
+   * a soft gradient wash with no vehicle in it and no lettering.
+   *
+   * While this is `true`, `PlanImage` captions the frame with the vehicle name, so
+   * a plan card reads as "artwork pending for the Model 3" instead of as an empty
+   * panel. Set it to `false` the moment real photography is dropped in and the
+   * captions disappear — the image paths do not change, so that flag is the only
+   * edit required.
+   */
+  planArtworkIsPlaceholder: true,
 } as const;
 
 export type SiteConfig = typeof siteConfig;

@@ -13,14 +13,27 @@ type RevealProps = {
   delay?: number;
   variants?: Variants;
   as?: "div" | "section" | "li" | "article" | "span";
+  /**
+   * Animates on mount instead of on scroll.
+   *
+   * Use for anything already on screen when the route opens. A scroll-triggered
+   * entrance on above-the-fold content is a bet that the observer fires, and if it
+   * doesn't the content is simply invisible — a far worse failure than a missing
+   * animation.
+   */
+  immediate?: boolean;
 };
 
 /**
  * Scroll-triggered entrance.
  *
- * Fires once when a quarter of the element is visible, so content is already
+ * Fires once as soon as any part of the element enters the viewport, so content is
  * settled by the time the reader reaches it. Reduced-motion users get the final
  * state immediately, handled globally by `MotionConfig reducedMotion="user"`.
+ *
+ * Pass `immediate` for content that is on screen on arrival — see the note on
+ * `revealViewport` about why a scroll gate must never decide whether primary
+ * content is visible at all.
  */
 export function Reveal({
   children,
@@ -28,14 +41,16 @@ export function Reveal({
   delay = 0,
   variants = fadeUp,
   as = "div",
+  immediate = false,
 }: RevealProps) {
   const Component = motion[as];
 
   return (
     <Component
       initial="hidden"
-      whileInView="visible"
-      viewport={revealViewport}
+      {...(immediate
+        ? { animate: "visible" as const }
+        : { whileInView: "visible" as const, viewport: revealViewport })}
       variants={variants}
       transition={delay ? { delay } : undefined}
       className={cn(className)}
@@ -52,6 +67,8 @@ type RevealGroupProps = {
   stagger?: number;
   delayChildren?: number;
   as?: "div" | "ul" | "ol" | "dl";
+  /** Animates on mount instead of on scroll. See `Reveal`. */
+  immediate?: boolean;
 };
 
 /**
@@ -64,14 +81,16 @@ export function RevealGroup({
   stagger = 0.08,
   delayChildren = 0.05,
   as = "div",
+  immediate = false,
 }: RevealGroupProps) {
   const Component = motion[as];
 
   return (
     <Component
       initial="hidden"
-      whileInView="visible"
-      viewport={revealViewport}
+      {...(immediate
+        ? { animate: "visible" as const }
+        : { whileInView: "visible" as const, viewport: revealViewport })}
       variants={staggerContainer(stagger, delayChildren)}
       className={cn(className)}
     >

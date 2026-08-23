@@ -6,16 +6,23 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { InvestmentPlan, VehicleCategory } from "@/types/investment";
 import type { Tables } from "@/types/database";
 
-import { describeError, failed, ready, type DataResult } from "./query-context";
+import { describeError, ready, type DataResult } from "./query-context";
 
 /**
  * Investment plan catalogue access.
  *
  * Plans are public marketing content, so this is the one repository that has a
  * meaningful fallback: with no backend — or with a backend whose schema predates
- * the current catalogue — it serves the static catalogue from
- * `src/config/investment-plans.ts`. That is safe because plan terms are
- * *statements of intent*, not records of activity.
+ * the current catalogue, whose table is still unseeded, or whose query outright
+ * fails — it serves the static catalogue from `src/config/investment-plans.ts`.
+ * That is safe because plan terms are *statements of intent*, not records of
+ * activity, and the catalogue is a complete copy of the rows the seed inserts.
+ *
+ * The consequence worth stating plainly: `getInvestmentPlans` never returns an
+ * error and never returns an empty list. An empty Invest page would claim the
+ * platform publishes no plans, which is false in every one of those cases.
+ * User-scoped repositories do the opposite and surface their errors, because a
+ * balance or a position has no honest local substitute.
  */
 
 /**
@@ -68,6 +75,33 @@ function warnStaleSchema(context: string): void {
   );
 }
 
+/**
+ * Reports a failed plan query without letting it empty the marketplace.
+ *
+ * Plan terms are published marketing content, and the catalogue in
+ * `src/config/investment-plans.ts` is a complete copy of exactly the rows the seed
+ * inserts. So when the query fails there is a correct answer available locally,
+ * and serving it is strictly better than the alternative: an empty Invest page
+ * reads as "this platform has no plans", which is both wrong and the single worst
+ * thing this screen can say.
+ *
+ * This is only safe *because* the data is a specification. A user-scoped query
+ * must never do this — a balance or a position has no local equivalent, and
+ * substituting one would be inventing an account record. Those keep returning
+ * `failed()`.
+ *
+ * The error is still logged with full detail server-side by `describeError`, so
+ * the failure is visible to whoever is looking at the logs rather than swallowed.
+ */
+function fallbackToCatalogue(error: unknown, context: string): void {
+  describeError(error, context);
+  console.warn(
+    `[data:${context}] investment_plans query failed — serving the built-in ` +
+      `catalogue so the marketplace still renders. The plans shown are the same ` +
+      `figures the seed migration inserts.`
+  );
+}
+
 export async function getInvestmentPlans(): Promise<
   DataResult<InvestmentPlan[]>
 > {
@@ -84,7 +118,8 @@ export async function getInvestmentPlans(): Promise<
     .order("sort_order", { ascending: true });
 
   if (error) {
-    return failed(describeError(error, "getInvestmentPlans"));
+    fallbackToCatalogue(error, "getInvestmentPlans");
+    return ready([...investmentPlans]);
   }
 
   const mapped = data.map(mapPlanRow).filter((plan): plan is InvestmentPlan =>
@@ -95,6 +130,13 @@ export async function getInvestmentPlans(): Promise<
   // exist, and a marketplace missing three of its five plans is worse than one
   // served from the catalogue the seed was written from.
   if (mapped.length !== data.length) {
+    warnStaleSchema("getInvestmentPlans");
+    return ready([...investmentPlans]);
+  }
+
+  // An empty table is not a published state — it means the seed has not been
+  // applied yet. Showing the catalogue keeps Invest populated until it has.
+  if (mapped.length === 0) {
     warnStaleSchema("getInvestmentPlans");
     return ready([...investmentPlans]);
   }
@@ -120,7 +162,8 @@ export async function getInvestmentPlanBySlug(
     .maybeSingle();
 
   if (error) {
-    return failed(describeError(error, "getInvestmentPlanBySlug"));
+    fallbackToCatalogue(error, "getInvestmentPlanBySlug");
+    return ready(fromCatalogue());
   }
 
   if (!data) return ready(fromCatalogue());

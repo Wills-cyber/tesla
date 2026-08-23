@@ -42,16 +42,17 @@ export const featureFlags = {
   investmentActivationEnabled: true,
   liveMarketData: false,
   /**
-   * The files in `public/images/investments/` are still generated placeholders —
-   * a soft gradient wash with no vehicle in it and no lettering.
+   * Whether `public/images/investments/` still holds generated placeholders.
    *
-   * While this is `true`, `PlanImage` captions the frame with the vehicle name, so
-   * a plan card reads as "artwork pending for the Model 3" instead of as an empty
-   * panel. Set it to `false` the moment real photography is dropped in and the
-   * captions disappear — the image paths do not change, so that flag is the only
-   * edit required.
+   * `false` since the real PNG artwork landed. While it was `true`, `PlanImage`
+   * captioned every frame with the vehicle name and "Artwork coming soon" so an
+   * empty gradient did not read as a broken image — that caption would now be
+   * graffiti across real artwork, which is why this flag exists and why it is off.
+   *
+   * Set it back to `true` only if the files are ever removed or reverted to
+   * placeholders.
    */
-  planArtworkIsPlaceholder: true,
+  planArtworkIsPlaceholder: false,
 } as const;
 
 export type SiteConfig = typeof siteConfig;

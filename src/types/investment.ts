@@ -66,7 +66,7 @@ export type InvestmentPlan = {
    * Public path to the plan's vehicle image.
    *
    * Mirrors the `image_url` column. Real files live at
-   * `public/images/investments/<slug>.webp` and can be replaced in place — the
+   * `public/images/investments/<slug>.png` and can be replaced in place — the
    * path is the whole contract, so no component changes when artwork lands.
    */
   imageUrl: string;

@@ -109,7 +109,7 @@ export const heroVehicleImage = {
  * Investment-plan artwork is NOT configured here.
  *
  * Plans carry their own `imageUrl` (see `src/config/investment-plans.ts`), which
- * points straight at `public/images/investments/<slug>.webp`. That removed the
+ * points straight at `public/images/investments/<slug>.png`. That removed the
  * lookup table that used to live here: a key had to be resolved by the
  * application, so changing a plan's artwork needed a deploy. A path does not.
  *

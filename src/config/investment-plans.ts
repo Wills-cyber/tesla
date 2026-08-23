@@ -99,7 +99,7 @@ function definePlan(index: number, spec: PlanSpec): InvestmentPlan {
     principalCents,
     completionAmountCents,
     status: spec.status,
-    imageUrl: `${IMAGE_BASE}/${spec.slug}.webp`,
+    imageUrl: `${IMAGE_BASE}/${spec.slug}.png`,
     featured: spec.featured,
   };
 }

@@ -14,18 +14,18 @@ import { cn } from "@/lib/utils";
  * The path is the contract
  * ---------------------------------------------------------------------------
  * `src` comes straight from `plan.imageUrl`, which resolves to
- * `public/images/investments/<slug>.webp`. Real photography replaces those files
+ * `public/images/investments/<slug>.png`. Real photography replaces those files
  * in place and this component needs no change — which is the whole point of not
  * routing plan artwork through a lookup table.
  *
  * ---------------------------------------------------------------------------
  * Why the fallback exists
  * ---------------------------------------------------------------------------
- * The files shipped today are generated placeholders. If one is ever missing,
- * truncated, or mid-replacement, `next/image` fails and would otherwise leave a
- * blank hole with no indication whether the layout is broken or the asset is
- * simply absent. The fallback answers that: a branded frame naming the vehicle,
- * which reads as "no image yet" rather than "this page is broken".
+ * If a file is ever missing, truncated, or mid-replacement, `next/image` fails and
+ * would otherwise leave a blank hole with no indication whether the layout is
+ * broken or the asset is simply absent. The fallback answers that: a branded frame
+ * naming the vehicle, which reads as "no image yet" rather than "this page is
+ * broken".
  *
  * ---------------------------------------------------------------------------
  * Aspect ratio

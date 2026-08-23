@@ -76,9 +76,11 @@ export default async function InvestPage() {
       <div className="flex gap-3 rounded-2xl border border-hairline bg-surface-2 p-4 sm:p-5">
         <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
         <p className="text-xs leading-relaxed text-muted-foreground">
-          No plan can be funded at the moment. Activation requires an available
-          wallet balance, and deposits will open only once payment processing,
-          account verification and the required compliance review are complete.
+          Every plan here is available to activate. Activation debits your
+          available wallet balance immediately and creates an investment on your
+          account — you&rsquo;ll review the full terms and confirm before anything
+          is created. Weekly profit is credited only when a payment is actually
+          made, never in advance.
         </p>
       </div>
 

@@ -1,6 +1,10 @@
 import * as React from "react";
 
 import { TransactionItem } from "@/components/wallet/transaction-item";
+import {
+  TransactionReceipt,
+  type ReceiptWithdrawal,
+} from "@/components/wallet/transaction-receipt";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
@@ -12,14 +16,21 @@ import type { Transaction } from "@/types/transaction";
  * `transactions` table and separating them by type would hide the running story of
  * the account.
  *
+ * Every row opens its receipt. `withdrawalsByTransactionId` supplies the asset,
+ * network, destination and hash for withdrawal rows, keyed by the ledger row that
+ * reserved the funds; rows with no entry render a receipt without those lines
+ * rather than with invented ones.
+ *
  * Renders nothing when the list is empty: the caller shows the appropriate
  * `EmptyState`, which can explain *why* it's empty and offer a next step.
  */
 export function TransactionList({
   transactions,
+  withdrawalsByTransactionId,
   className,
 }: {
   transactions: readonly Transaction[];
+  withdrawalsByTransactionId?: Readonly<Record<string, ReceiptWithdrawal>>;
   className?: string;
 }) {
   if (transactions.length === 0) return null;
@@ -33,7 +44,13 @@ export function TransactionList({
       )}
     >
       {transactions.map((transaction) => (
-        <TransactionItem key={transaction.id} transaction={transaction} />
+        <li key={transaction.id}>
+          <TransactionReceipt
+            transaction={transaction}
+            withdrawal={withdrawalsByTransactionId?.[transaction.id] ?? null}
+            trigger={<TransactionItem transaction={transaction} as="div" />}
+          />
+        </li>
       ))}
     </ul>
   );

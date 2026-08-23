@@ -90,7 +90,7 @@ export default async function WithdrawalDetailPage({
           icon={FileQuestion}
           title="No withdrawal to show"
           description="No backend is connected, so there are no withdrawal records to look up."
-          note="This is not an error. Withdrawals are not enabled yet — no payout provider is connected, so no request has ever been created and nothing has been sent on-chain."
+          note="This is not an error. With no backend connected there are no withdrawal records to look up."
           action={
             <Button asChild variant="hairline" size="md">
               <Link href={appRoutes.wallet}>Return to Wallet</Link>

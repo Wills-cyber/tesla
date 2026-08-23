@@ -88,6 +88,26 @@ export function formatDate(
   }).format(date);
 }
 
+/**
+ * `DD/MM/YYYY`.
+ *
+ * Used on receipts, where the date is a record rather than prose and a fixed,
+ * unambiguous, zero-padded form is what a reader forwarding the document to
+ * support expects. Built from the parts rather than a locale `dateStyle` so it is
+ * this format on every machine — `en-US` would render `08/23/2026`.
+ */
+export function formatDateNumeric(
+  value: string | Date | null | undefined
+): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "—";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getFullYear()}`;
+}
+
 export function formatDateTime(
   value: string | Date | null | undefined,
   locale = "en-US"
@@ -162,12 +182,25 @@ export function shortReference(reference: string, length = 8): string {
  * passes through a float — and truncates rather than rounds to the asset's display
  * precision. Truncating means a shown amount is never larger than the amount that
  * exists, which is the safe direction to be wrong in.
+ *
+ * Tolerant of a `number` at runtime despite the declared type. Postgres `numeric`
+ * columns arrive from PostgREST as JSON numbers, and a display helper is the wrong
+ * place to discover that: throwing here takes down the whole list it was rendering.
+ * The mapping layer normalises with `toDecimalString`; this coerces defensively so
+ * a missed spot degrades to a dash instead of an error boundary.
  */
 export function formatAssetAmount(
-  amount: string,
+  amount: string | number | null | undefined,
   displayDecimals: number
 ): string {
-  const [whole, fraction = ""] = amount.split(".");
+  if (amount === null || amount === undefined) return "—";
+
+  const text = typeof amount === "string" ? amount : String(amount);
+  // Exponential notation has no whole/fraction split to take, so it is not a
+  // string this function can format honestly.
+  if (!/^-?\d+(\.\d+)?$/.test(text.trim())) return "—";
+
+  const [whole, fraction = ""] = text.trim().split(".");
   if (displayDecimals === 0) return whole;
   const padded = fraction.padEnd(displayDecimals, "0").slice(0, displayDecimals);
   return `${whole}.${padded}`;

@@ -1,5 +1,6 @@
 import { AppTopBar } from "@/components/navigation/app-top-bar";
 import { BottomNavigation } from "@/components/navigation/bottom-navigation";
+import { RealtimeRefresh } from "@/components/providers/realtime-refresh";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
 import { getUnreadNotificationCount, resolveOrEmpty } from "@/lib/data";
 
@@ -40,6 +41,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       >
         {children}
       </main>
+
+      {/* Keeps notification and withdrawal state current without a manual reload.
+          Only mounted for a real signed-in account — there is nothing to subscribe
+          to in preview mode. */}
+      {user ? <RealtimeRefresh userId={user.id} /> : null}
 
       <BottomNavigation />
     </div>

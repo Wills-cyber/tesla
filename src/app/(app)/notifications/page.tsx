@@ -4,6 +4,7 @@ import { BellOff } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+import { MarkAllReadButton } from "@/components/dashboard/mark-all-read-button";
 import { NotificationList } from "@/components/dashboard/notification-list";
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,9 @@ export default async function NotificationsPage() {
     []
   );
 
+  // Counted from the rows already fetched rather than a second round trip.
+  const unreadCount = notifications.filter((n) => n.readAt === null).length;
+
   return (
     <>
       <PageHeader
@@ -48,9 +52,12 @@ export default async function NotificationsPage() {
           ) : null
         }
         actions={
-          <Button asChild variant="ghost" size="md">
-            <Link href={`${appRoutes.profile}#notifications`}>Preferences</Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <MarkAllReadButton unreadCount={unreadCount} />
+            <Button asChild variant="ghost" size="md">
+              <Link href={`${appRoutes.profile}#notifications`}>Preferences</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -75,7 +82,7 @@ export default async function NotificationsPage() {
           }
         />
       ) : (
-        <NotificationList notifications={notifications} />
+        <NotificationList notifications={notifications} showMarkRead />
       )}
     </>
   );

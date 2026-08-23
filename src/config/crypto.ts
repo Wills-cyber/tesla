@@ -114,10 +114,16 @@ function method(
   return {
     id: `${asset.symbol}-${network.id}`.toLowerCase(),
     asset,
-    network,
-    // Off until a provider is connected. Do not flip these here.
+    // Deposits stay off: no provider is connected to confirm incoming funds, so a
+    // deposit address would be one nothing is watching.
     depositEnabled: false,
-    withdrawalEnabled: false,
+    // Withdrawal *requests* are open on every designed pair. This mirrors
+    // `payment_methods.withdrawal_enabled`, which migration 0007 sets — and the
+    // database row is what actually decides. This value only applies when Supabase
+    // is unconfigured, so leaving it false would make the picker look broken in
+    // preview while working in the real app.
+    withdrawalEnabled: true,
+    network,
     minWithdrawalCents: null,
     ...overrides,
   };

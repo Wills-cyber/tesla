@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  CalendarClock,
-  Clock,
-  Info,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
+import { ArrowLeft, CalendarClock } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
+import { InvestmentActivationPanel } from "@/components/investment/investment-activation-panel";
 import { InvestmentProgress } from "@/components/investment/investment-progress";
 import { PlanImage } from "@/components/investment/plan-image";
 import { PlanRiskNotice } from "@/components/investment/plan-details-dialog";
@@ -78,12 +72,13 @@ export default async function InvestmentPlanPage({
 
   const isOpen = plan.status === "open";
   const activationEnabled = featureFlags.investmentActivationEnabled;
-  const fundsAvailable = balance.availableCents >= plan.investmentAmountCents;
-  const canActivate = isOpen && activationEnabled && fundsAvailable;
 
-  const shortfallCents = Math.max(
+  // Funds a pending withdrawal has reserved are not spendable. The same dollar
+  // must not be able to back both a payout request and an investment — the
+  // database enforces this too, in `activate_investment`.
+  const spendableCents = Math.max(
     0,
-    plan.investmentAmountCents - balance.availableCents
+    balance.availableCents - balance.pendingWithdrawalCents
   );
 
   return (
@@ -180,83 +175,20 @@ export default async function InvestmentPlanPage({
                 emphasis
               />
               <SummaryRow
-                label="Your wallet balance"
-                value={formatCurrency(balance.availableCents)}
+                label="Available to invest"
+                value={formatCurrency(spendableCents)}
               />
             </dl>
 
-            {canActivate ? (
-              // Unreachable in the current build: `investmentActivationEnabled` is
-              // false and no plan is `open`. When activation ships, this button
-              // becomes the real Server Action — the surrounding gate (open plan +
-              // flag + funded wallet) is already the condition it will need, so
-              // flipping a plan to `open` is all that changes here.
-              <Button asChild variant="accent" size="md" className="w-full">
-                <Link href={appRoutes.wallet}>
-                  <TrendingUp />
-                  Start Investment
-                </Link>
-              </Button>
-            ) : !isOpen ? (
-              /* Coming Soon. The primary action is deliberately *not* a disabled
-                 "Start Investment" — a dead button invites repeated clicking and
-                 explains nothing. It states the plan's real status and offers the
-                 one thing that is actually useful now. */
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col items-center gap-2.5 rounded-xl border border-brand-border bg-surface-1 p-5 text-center">
-                  <span
-                    aria-hidden="true"
-                    className="grid size-10 place-items-center rounded-xl border border-hairline bg-surface-2 text-brand"
-                  >
-                    <Clock className="size-4" />
-                  </span>
-                  <p className="text-sm font-semibold">Coming Soon</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    This plan is published but not open for investment. Nothing is
-                    committed by viewing it, and no investment exists on your
-                    account until a plan is opened and you activate it yourself.
-                  </p>
-                </div>
-
-                <Button asChild variant="hairline" size="md" className="w-full">
-                  <Link href={appRoutes.invest}>Browse other plans</Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <Button asChild variant="accent" size="md" className="w-full">
-                  <Link href={appRoutes.wallet}>
-                    <Wallet />
-                    Fund Your Wallet
-                  </Link>
-                </Button>
-
-                <div className="flex gap-2.5 rounded-xl border border-hairline bg-surface-1 p-3.5">
-                  <Info
-                    aria-hidden="true"
-                    className="mt-0.5 size-3.5 shrink-0 text-brand"
-                  />
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    {!activationEnabled ? (
-                      <>
-                        Investment activation is not enabled yet. It requires
-                        payment processing and the ledger to be connected, and
-                        clicking here will never create an investment before then.
-                      </>
-                    ) : (
-                      <>
-                        An investment can only be activated after the required funds
-                        are available in your wallet. You need a further{" "}
-                        <strong className="font-semibold text-foreground">
-                          {formatCurrency(shortfallCents)}
-                        </strong>{" "}
-                        to enter this plan.
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
+            {/* The single action on this page. Everything it may do — and every
+                check that decides whether it may — lives in the panel's action and
+                in `activate_investment`; this page only supplies the plan and the
+                spendable balance. */}
+            <InvestmentActivationPanel
+              plan={plan}
+              spendableCents={spendableCents}
+              activationEnabled={isOpen && activationEnabled}
+            />
           </section>
 
           <section

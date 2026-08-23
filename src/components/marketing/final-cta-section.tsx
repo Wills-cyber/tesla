@@ -65,9 +65,9 @@ export function FinalCtaSection() {
               </div>
 
               <p className="max-w-lg text-xs leading-relaxed text-subtle-foreground">
-                Creating an account does not commit you to anything. Deposits,
-                withdrawals and live investment activity are not yet available,
-                and published plan figures are stated terms.
+                Creating an account does not commit you to anything. Deposits are not yet
+                available, withdrawals are settled manually, and published plan
+                figures are stated terms.
               </p>
             </div>
           </div>

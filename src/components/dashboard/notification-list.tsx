@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { MarkReadButton } from "@/components/dashboard/mark-read-button";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Notification, NotificationCategory } from "@/types/notification";
@@ -32,8 +33,15 @@ const categoryIcons: Record<NotificationCategory, LucideIcon> = {
  */
 export function NotificationList({
   notifications,
+  showMarkRead = false,
 }: {
   notifications: readonly Notification[];
+  /**
+   * Shows a per-row "Mark read" control. Off by default so the compact dashboard
+   * rail stays a read-only summary — marking things read belongs on the page you
+   * went to in order to read them.
+   */
+  showMarkRead?: boolean;
 }) {
   return (
     <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline shadow-card">
@@ -71,6 +79,9 @@ export function NotificationList({
                   <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-brand-emphasis uppercase">
                     Unread
                   </span>
+                )}
+                {unread && showMarkRead && (
+                  <MarkReadButton notificationId={notification.id} />
                 )}
               </div>
 

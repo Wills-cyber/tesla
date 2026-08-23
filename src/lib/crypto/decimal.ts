@@ -119,6 +119,89 @@ export function decimalProductToCents(
 }
 
 /**
+ * Normalises a value from a Postgres `numeric` column into a decimal string.
+ *
+ * PostgREST serialises `numeric` as a JSON *number*, not a string — so a column
+ * typed `string | null` in the generated types arrives as a `number` at runtime.
+ * That mismatch is invisible until something calls a string method on it, at which
+ * point the render throws and takes the whole page down.
+ *
+ * So every `numeric` column is passed through here at the mapping boundary,
+ * once, rather than each consumer guessing. Callers downstream can then rely on
+ * having a string, which is what the "decimal strings, never floats" rule in this
+ * module assumes.
+ *
+ * Exponential notation is rejected rather than expanded: `1e-7` is a shape no
+ * amount in this system legitimately takes, and quietly reinterpreting it would be
+ * a guess about a money figure. `null` means "no usable value", and callers render
+ * an unavailable state.
+ *
+ * Note the precision caveat this cannot fix: by the time a `numeric(38,18)` has
+ * been through JSON as a double, digits beyond ~15 significant figures are already
+ * gone. Preserving them requires asking Postgres for text in the first place —
+ * `select=col::text` — which is why the withdrawal queries do exactly that. This
+ * function is the safety net for anything that doesn't.
+ */
+export function toDecimalString(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return DECIMAL_PATTERN.test(trimmed) ? trimmed : null;
+  }
+
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    const asString = String(value);
+    // `String(1e-7)` is `"1e-7"`, which is not a plain decimal.
+    return DECIMAL_PATTERN.test(asString) ? asString : null;
+  }
+
+  // bigint, boolean, object — nothing that should reach a numeric column.
+  return null;
+}
+
+/**
+ * `usdCents` worth of an asset priced at `usdPerUnit`, to `decimals` places.
+ *
+ * The inverse of `decimalProductToCents`, and the direction a withdrawal needs:
+ * "how much USDT is $500". Formed as one exact `BigInt` division so the rate never
+ * touches a float —
+ *
+ *     units = usdCents · 10^rateScale · 10^decimals / (100 · rateUnits)
+ *
+ * Truncated rather than rounded, deliberately. This figure is shown as what the
+ * user *receives*, and rounding up would promise a fraction more than the amount
+ * paid for. Truncation can only ever under-state by one unit at the asset's
+ * smallest denomination.
+ *
+ * `null` for a rate of zero, a malformed decimal, or a result too large to be safe
+ * — callers must render "unavailable" rather than substitute a guess.
+ */
+export function centsToAssetUnits(
+  usdCents: number,
+  usdPerUnit: string,
+  decimals: number
+): string | null {
+  if (!Number.isInteger(usdCents) || usdCents < 0) return null;
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) return null;
+
+  const rate = parseDecimal(usdPerUnit);
+  if (!rate || rate.units <= 0n) return null;
+
+  const numerator =
+    BigInt(usdCents) * 10n ** BigInt(rate.scale) * 10n ** BigInt(decimals);
+  const denominator = 100n * rate.units;
+
+  const units = numerator / denominator;
+  if (units > BigInt(Number.MAX_SAFE_INTEGER) * 10n ** BigInt(decimals)) {
+    return null;
+  }
+
+  return formatUnits(units, decimals);
+}
+
+/**
  * `a - b` as a decimal string, keeping the wider of the two scales.
  *
  * Used to take a network fee off a gross asset amount. Clamped at zero: a fee

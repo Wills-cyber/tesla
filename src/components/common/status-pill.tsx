@@ -55,7 +55,12 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.68rem] font-semibold tracking-[0.09em] whitespace-nowrap uppercase",
+        // No `whitespace-nowrap`. A capsule that refuses to wrap is a latent
+        // horizontal-overflow bug: it holds its full width whatever the viewport,
+        // and a long label then pushes the document wider than the screen. Short
+        // labels — which is nearly all of them — sit on one line regardless, so
+        // allowing the wrap costs nothing and removes the failure mode.
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.68rem] font-semibold tracking-[0.09em] uppercase text-pretty",
         toneClasses[tone],
         className
       )}
@@ -75,7 +80,7 @@ export function StatusPill({
 
 const planStatusCopy: Record<PlanStatus, { label: string; tone: PillTone }> = {
   coming_soon: { label: "Coming Soon", tone: "brand" },
-  open: { label: "Open", tone: "success" },
+  open: { label: "Available", tone: "success" },
   closed: { label: "Closed", tone: "neutral" },
   sold_out: { label: "Fully Allocated", tone: "neutral" },
 };

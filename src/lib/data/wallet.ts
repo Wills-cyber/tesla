@@ -6,6 +6,7 @@ import type {
   SavedAddress,
   WithdrawalRequest,
 } from "@/types/crypto";
+import { toDecimalString } from "@/lib/crypto/decimal";
 import type { Tables } from "@/types/database";
 
 import {
@@ -44,7 +45,7 @@ function mapDeposit(row: Tables<"deposits">): DepositRecord {
     methodId: row.method_id,
     assetSymbol: assetSymbol.toUpperCase(),
     networkId,
-    assetAmount: row.asset_amount,
+    assetAmount: toDecimalString(row.asset_amount),
     creditedCents: row.credited_cents,
     status: row.status,
     txHash: row.tx_hash,
@@ -65,9 +66,12 @@ function mapWithdrawal(row: Tables<"withdrawal_requests">): WithdrawalRequest {
     networkId,
     destinationAddress: row.destination_address,
     amountCents: row.amount_cents,
-    quotedAssetAmount: row.quoted_asset_amount,
-    quotedNetworkFee: row.quoted_network_fee,
-    quotedUsdPerUnit: row.quoted_usd_per_unit,
+    // Normalised because PostgREST delivers `numeric` as a JSON number while
+    // the generated types say `string`. Left unconverted, the first component to
+    // call a string method on one of these throws mid-render.
+    quotedAssetAmount: toDecimalString(row.quoted_asset_amount),
+    quotedNetworkFee: toDecimalString(row.quoted_network_fee),
+    quotedUsdPerUnit: toDecimalString(row.quoted_usd_per_unit),
     quoteProvider: row.quote_provider,
     quotedAt: row.quoted_at,
     serviceFeeCents: row.service_fee_cents ?? 0,
@@ -75,6 +79,7 @@ function mapWithdrawal(row: Tables<"withdrawal_requests">): WithdrawalRequest {
     status: row.status,
     txHash: row.tx_hash,
     failureReason: row.failure_reason,
+    transactionId: row.transaction_id,
     createdAt: row.created_at,
     settledAt: row.settled_at,
   };

@@ -9,7 +9,8 @@ import { TransactionList } from "@/components/wallet/transaction-list";
 import { Button } from "@/components/ui/button";
 import { appRoutes } from "@/config/navigation";
 import { getAccountMode, isPreviewMode } from "@/lib/auth/session";
-import { getUserTransactions, resolveOrEmpty } from "@/lib/data";
+import { getUserTransactions, getUserWithdrawals, resolveOrEmpty } from "@/lib/data";
+import { indexWithdrawalsByTransaction } from "@/lib/wallet/receipts";
 
 export const metadata: Metadata = {
   title: "Wallet Activity",
@@ -29,10 +30,15 @@ export default async function WalletActivityPage() {
   const account = await getAccountMode();
   const preview = isPreviewMode(account);
 
-  const { data: transactions, error } = resolveOrEmpty(
-    await getUserTransactions({ limit: 100 }),
-    []
-  );
+  const [transactionsResult, withdrawalsResult] = await Promise.all([
+    getUserTransactions({ limit: 100 }),
+    // Only to enrich receipts with asset, network, destination and hash — the feed
+    // itself is the ledger, not this list.
+    getUserWithdrawals(100),
+  ]);
+
+  const { data: transactions, error } = resolveOrEmpty(transactionsResult, []);
+  const { data: withdrawals } = resolveOrEmpty(withdrawalsResult, []);
 
   return (
     <>
@@ -84,7 +90,10 @@ export default async function WalletActivityPage() {
           }
         />
       ) : (
-        <TransactionList transactions={transactions} />
+        <TransactionList
+          transactions={transactions}
+          withdrawalsByTransactionId={indexWithdrawalsByTransaction(withdrawals)}
+        />
       )}
     </>
   );

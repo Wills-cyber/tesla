@@ -231,8 +231,12 @@ type DepositRow = {
   id: string;
   user_id: string;
   method_id: string;
-  /** numeric(38,18) — PostgREST returns it as a string to preserve precision. */
-  asset_amount: string | null;
+  /**
+   * Postgres `numeric`. PostgREST serialises it as a JSON *number*, so this is
+   * typed as both — pass it through `toDecimalString` at the mapping boundary
+   * rather than assuming a string. See `src/lib/crypto/decimal.ts`.
+   */
+  asset_amount: string | number | null;
   credited_cents: number | null;
   status: DepositStatusEnum;
   tx_hash: string | null;
@@ -249,11 +253,24 @@ type WithdrawalRequestRow = {
   method_id: string;
   destination_address: string;
   amount_cents: number;
-  /** numeric(38,18) — returned as a string. Never parsed into a float. */
-  quoted_asset_amount: string | null;
-  quoted_network_fee: string | null;
-  /** USD price of one asset unit at quote time. numeric, so a string. */
-  quoted_usd_per_unit: string | null;
+  /**
+   * Postgres `numeric`. PostgREST serialises it as a JSON *number*, so this is
+   * typed as both — pass it through `toDecimalString` at the mapping boundary
+   * rather than assuming a string. See `src/lib/crypto/decimal.ts`.
+   */
+  quoted_asset_amount: string | number | null;
+  /**
+   * Postgres `numeric`. PostgREST serialises it as a JSON *number*, so this is
+   * typed as both — pass it through `toDecimalString` at the mapping boundary
+   * rather than assuming a string. See `src/lib/crypto/decimal.ts`.
+   */
+  quoted_network_fee: string | number | null;
+  /**
+   * Postgres `numeric`. PostgREST serialises it as a JSON *number*, so this is
+   * typed as both — pass it through `toDecimalString` at the mapping boundary
+   * rather than assuming a string. See `src/lib/crypto/decimal.ts`.
+   */
+  quoted_usd_per_unit: string | number | null;
   quote_provider: string | null;
   quoted_at: string | null;
   /** Platform fee in USD cents. `0` when none is configured. */
@@ -573,6 +590,34 @@ export type Database = {
       cancel_withdrawal: {
         Args: { p_withdrawal_id: string };
         Returns: WithdrawalRequestRow;
+      };
+      /**
+       * Activates a plan for `auth.uid()`.
+       *
+       * Takes only the plan id: the amount, duration, schedule and owner are all
+       * derived server-side, so there is no argument through which a caller could
+       * name its own terms. Returns one row — `setof` on the Postgres side, hence
+       * the array.
+       */
+      activate_investment: {
+        Args: { p_plan_id: string };
+        Returns: { investment_id: string; reference: string }[];
+      };
+      /** Records a "Successful Login" notice for `auth.uid()`. */
+      record_successful_login: {
+        Args: { p_device?: string | null };
+        Returns: undefined;
+      };
+      /**
+       * Records a "Failed Login Attempt" notice for the account with this email.
+       *
+       * Returns nothing whether or not the email matched, so it cannot be used to
+       * probe which addresses have accounts. Throttled to one per account per 15
+       * minutes server-side.
+       */
+      record_failed_login: {
+        Args: { p_email: string; p_device?: string | null };
+        Returns: undefined;
       };
     };
     Enums: {

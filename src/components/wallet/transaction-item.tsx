@@ -38,16 +38,22 @@ const typeConfig: Record<
  */
 export function TransactionItem({
   transaction,
+  as: Element = "li",
   className,
 }: {
   transaction: Transaction;
+  /**
+   * `li` for a bare list; `div` when the row is wrapped in something else — a
+   * receipt trigger button, for instance, which may not contain a list item.
+   */
+  as?: "li" | "div";
   className?: string;
 }) {
   const type = typeConfig[transaction.type];
   const isCredit = transaction.amountCents > 0;
 
   return (
-    <li
+    <Element
       className={cn(
         "flex items-center gap-4 bg-surface-1 px-4 py-4 transition-colors duration-300 hover:bg-surface-2 sm:px-5",
         className
@@ -98,6 +104,6 @@ export function TransactionItem({
           signed: true,
         })}
       </span>
-    </li>
+    </Element>
   );
 }

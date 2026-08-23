@@ -28,8 +28,8 @@ export function InvestmentPlansSection({ plans }: InvestmentPlansSectionProps) {
               title={<span id="investment-plans-heading">Investment Plans</span>}
               description="Explore available fixed-term vehicle investment opportunities."
             >
-              <StatusPill tone="brand" dot className="mt-1 self-start">
-                Pre-launch — no plan is currently accepting capital
+              <StatusPill tone="success" dot className="mt-1 self-start">
+                All plans available
               </StatusPill>
             </SectionHeading>
           </Reveal>

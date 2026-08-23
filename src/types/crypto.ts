@@ -138,6 +138,14 @@ export type WithdrawalRequest = {
   status: WithdrawalStatus;
   txHash: string | null;
   failureReason: string | null;
+  /**
+   * The ledger row that reserves the funds for this request.
+   *
+   * The join key between a withdrawal and its entry in the transaction history, so
+   * a receipt opened from the activity feed can show the asset, network,
+   * destination and — once one exists — the transaction hash.
+   */
+  transactionId: string | null;
   createdAt: string;
   settledAt: string | null;
 };

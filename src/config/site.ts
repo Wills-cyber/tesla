@@ -18,17 +18,28 @@ export const siteConfig = {
   affiliationDisclaimer:
     "TESLA Electronics is an independent platform and is not affiliated with, endorsed by, or sponsored by Tesla, Inc. Vehicle model names are referenced only to describe electric vehicle categories.",
   prelaunchNotice:
-    "TESLA Electronics is a pre-launch product. Deposits, withdrawals and live investment activity are not yet available.",
+    "Investment activation and withdrawal requests are live. Deposits are not yet available, and withdrawals are settled manually within 3–4 working days.",
 } as const;
 
 /**
- * Product stage flags. Everything money-related stays off until the backend,
- * payment provider and compliance review are actually in place.
+ * Product stage flags.
+ *
+ * Investment activation and withdrawal *requests* are live. Deposits are not:
+ * crediting a balance requires a payment provider to confirm funds arrived, and
+ * none is connected, so `depositsEnabled` stays false rather than showing an
+ * address nothing watches.
+ *
+ * `withdrawalsEnabled` means a user may submit a request that is recorded as
+ * `pending`. It does not mean the platform can send crypto — see
+ * `supabase/migrations/0006_go_live_investments_and_withdrawals.sql`. The
+ * authoritative switch is the `withdrawals_enabled` row in `platform_settings`,
+ * which `request_withdrawal` reads inside Postgres; this flag only decides what
+ * the UI offers.
  */
 export const featureFlags = {
   depositsEnabled: false,
-  withdrawalsEnabled: false,
-  investmentActivationEnabled: false,
+  withdrawalsEnabled: true,
+  investmentActivationEnabled: true,
   liveMarketData: false,
   /**
    * The files in `public/images/investments/` are still generated placeholders —

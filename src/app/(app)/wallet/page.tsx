@@ -9,6 +9,7 @@ import { StatusPill } from "@/components/common/status-pill";
 import { DepositList } from "@/components/wallet/deposit-list";
 import { DepositModal } from "@/components/wallet/deposit-modal";
 import { TransactionList } from "@/components/wallet/transaction-list";
+import { indexWithdrawalsByTransaction } from "@/lib/wallet/receipts";
 import { WalletCard } from "@/components/wallet/wallet-card";
 import { WithdrawalList } from "@/components/wallet/withdrawal-list";
 import { Button } from "@/components/ui/button";
@@ -175,7 +176,7 @@ export default async function WalletPage() {
             icon={ArrowUpFromLine}
             title="No withdrawals yet"
             description={`Withdrawals of ${formatCurrency(policy.minimumCents)} or more will appear here, with their status and transaction hash.`}
-            note="Withdrawals are not enabled yet — no payout provider is connected, so no request has ever been created and nothing has been sent on-chain. Every row that appears here in future will correspond to a real request."
+            note="Withdrawal requests are open. A request is recorded as pending and settled manually within 3–4 working days — nothing is sent on-chain until a payout provider confirms it, and a transaction hash appears here only once one exists."
             action={
               <Button asChild variant="hairline" size="md">
                 <Link href={appRoutes.withdraw}>Open the withdrawal flow</Link>
@@ -232,7 +233,7 @@ export default async function WalletPage() {
             icon={Receipt}
             title="No transactions yet"
             description="Your transaction history will appear here."
-            note="This is not an error. Deposits and withdrawals are not enabled yet, so no value has moved on the platform. Every entry that appears here in future will correspond to a real, settled event."
+            note="This is not an error — it means nothing has moved on your account yet. Every entry that appears here corresponds to a real recorded event: an investment, a withdrawal request, a deposit or a credited payment."
             action={
               <Button asChild variant="hairline" size="md">
                 <Link href={appRoutes.invest}>Explore Investment Plans</Link>
@@ -240,7 +241,10 @@ export default async function WalletPage() {
             }
           />
         ) : (
-          <TransactionList transactions={transactions} />
+          <TransactionList
+            transactions={transactions}
+            withdrawalsByTransactionId={indexWithdrawalsByTransaction(withdrawals)}
+          />
         )}
       </section>
 

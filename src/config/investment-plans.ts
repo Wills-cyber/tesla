@@ -150,7 +150,7 @@ export const investmentPlans: readonly InvestmentPlan[] = [
     durationDays: 30,
     statedWeeklyProfitCents: 40_000, // $400
     paymentPeriods: 4,
-    status: "coming_soon",
+    status: "open",
     // Lowest entry amount, so this is the plan newcomers are pointed at.
     featured: true,
     expect: {
@@ -170,7 +170,7 @@ export const investmentPlans: readonly InvestmentPlan[] = [
     durationDays: 30,
     statedWeeklyProfitCents: 90_000, // $900
     paymentPeriods: 4,
-    status: "coming_soon",
+    status: "open",
     expect: {
       statedTotalProfitCents: 360_000, // $3,600
       completionAmountCents: 610_000, // $6,100
@@ -188,7 +188,7 @@ export const investmentPlans: readonly InvestmentPlan[] = [
     durationDays: 30,
     statedWeeklyProfitCents: 180_000, // $1,800
     paymentPeriods: 4,
-    status: "coming_soon",
+    status: "open",
     expect: {
       statedTotalProfitCents: 720_000, // $7,200
       completionAmountCents: 1_220_000, // $12,200
@@ -206,7 +206,7 @@ export const investmentPlans: readonly InvestmentPlan[] = [
     durationDays: 30,
     statedWeeklyProfitCents: 350_000, // $3,500
     paymentPeriods: 4,
-    status: "coming_soon",
+    status: "open",
     expect: {
       statedTotalProfitCents: 1_400_000, // $14,000
       completionAmountCents: 2_400_000, // $24,000
@@ -224,7 +224,7 @@ export const investmentPlans: readonly InvestmentPlan[] = [
     durationDays: 30,
     statedWeeklyProfitCents: 800_000, // $8,000
     paymentPeriods: 4,
-    status: "coming_soon",
+    status: "open",
     expect: {
       statedTotalProfitCents: 3_200_000, // $32,000
       completionAmountCents: 5_700_000, // $57,000

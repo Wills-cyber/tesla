@@ -147,9 +147,8 @@ export function Hero() {
               transition={{ ...transitions.base, delay: 1 }}
               className="max-w-md text-xs leading-relaxed text-subtle-foreground"
             >
-              Account creation is open. Deposits, withdrawals and live investment
-              activity are not yet available — plan figures shown are stated
-              terms.
+              Account creation, investment activation and withdrawal requests are open.
+              Deposits are not yet available — plan figures shown are stated terms.
             </motion.p>
           </div>
 

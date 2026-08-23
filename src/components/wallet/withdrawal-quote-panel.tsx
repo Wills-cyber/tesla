@@ -9,7 +9,15 @@ import { StatusPill } from "@/components/common/status-pill";
 import { useEpochSeconds } from "@/hooks/use-epoch-seconds";
 import { useMounted } from "@/hooks/use-mounted";
 import { formatAssetAmount, formatCurrency } from "@/lib/format";
+import { RATES_AS_OF } from "@/config/exchange-rates";
+import { formatDateNumeric } from "@/lib/format";
 import { quoteSecondsRemaining } from "@/lib/wallet/costs";
+
+/**
+ * Mirrors the fixed provider's `name`. Compared as a literal so this client
+ * component does not import the server-only rate module.
+ */
+const FIXED_PROVIDER_ID = "fixed-table";
 import { cn } from "@/lib/utils";
 import type { ExchangeQuote, PaymentMethod } from "@/types/crypto";
 
@@ -110,10 +118,30 @@ export function WithdrawalQuotePanel({
               </dd>
             </div>
             <div className="flex gap-1.5">
-              <dt>Provider</dt>
-              <dd className="font-semibold text-foreground">{quote.provider}</dd>
+              <dt>Rate source</dt>
+              <dd className="font-semibold text-foreground">
+                {quote.provider === FIXED_PROVIDER_ID
+                  ? "Platform fixed rate"
+                  : quote.provider}
+              </dd>
             </div>
           </dl>
+
+          {/* Said plainly, because the alternative is letting a hand-maintained
+              number read as a live market rate. The platform settles manually, so
+              an indicative figure now and an exact figure at payout is the true
+              description of what happens — and the date makes a rate that has not
+              been reviewed in months visible rather than silently wrong. */}
+          {quote.provider === FIXED_PROVIDER_ID && (
+            <p className="rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-[0.68rem] leading-relaxed text-muted-foreground">
+              Indicative rate, fixed by the platform and last set{" "}
+              <strong className="font-semibold text-foreground">
+                {formatDateNumeric(RATES_AS_OF)}
+              </strong>
+              . It is not a live market rate. The exact crypto amount is confirmed
+              when your withdrawal is settled.
+            </p>
+          )}
 
           {expired && onRefresh && (
             <Button
@@ -136,7 +164,7 @@ export function WithdrawalQuotePanel({
           />
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium text-foreground">
-              Live conversion temporarily unavailable.
+              Conversion unavailable.
             </p>
             <p className="text-xs leading-relaxed text-muted-foreground">
               {notice ??

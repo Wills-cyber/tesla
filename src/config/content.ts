@@ -47,10 +47,8 @@ export const processSteps: readonly ProcessStep[] = [
     number: "03",
     title: "Activate Your Investment",
     description:
-      "Funding is not yet available. Deposits will open once payment processing and compliance review are complete.",
+      "Choose a plan, review its full stated terms and confirm. Activation debits your available balance and creates the investment immediately.",
     icon: Wallet,
-    pending: true,
-    pendingLabel: "Deposits Coming Soon",
   },
   {
     number: "04",
@@ -128,9 +126,9 @@ export const platformStats: readonly PlatformStat[] = [
     detail: "Your account and plan terms are available at any time.",
   },
   {
-    value: "Coming Soon",
-    label: "Deposits & Withdrawals",
-    detail: "Funding and payouts are not yet enabled on the platform.",
+    value: "3–4 Days",
+    label: "Withdrawal Settlement",
+    detail: "Withdrawal requests are reviewed and settled manually.",
   },
 ] as const;
 

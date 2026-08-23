@@ -50,10 +50,11 @@ const statusPresentation: Record<
     label: "Pending",
     tone: "warning",
     icon: Clock,
-    heading: "Withdrawal Submitted",
+    heading: "Withdrawal Request Submitted",
     message:
-      "Your withdrawal request has been submitted and is being processed. The " +
-      "requested amount is reserved against your balance until it settles.",
+      "Your withdrawal request has been submitted and is now pending processing. " +
+      "Funds are expected to arrive within 3–4 working days. The requested amount " +
+      "is reserved against your balance until it settles.",
   },
   processing: {
     label: "Processing",

@@ -1,5 +1,6 @@
 import { AppTopBar } from "@/components/navigation/app-top-bar";
 import { BottomNavigation } from "@/components/navigation/bottom-navigation";
+import { PageEnter } from "@/components/common/page-enter";
 import { RealtimeRefresh } from "@/components/providers/realtime-refresh";
 import { AppVehicleBackdrop } from "@/components/vehicles/app-vehicle-backdrop";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
@@ -52,12 +53,16 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
       <AppTopBar user={user} preview={preview} unreadCount={unreadCount} />
 
-      <main
+      {/* `PageEnter` renders the `<main>` itself so the shell's layout is
+          unchanged, and re-keys it per route so each page's sections animate in
+          on every navigation rather than only on first paint. */}
+      <PageEnter
+        as="main"
         id="main-content"
         className="container-app pb-bottom-nav relative z-10 flex flex-1 flex-col gap-8 pt-7 md:gap-10 md:pt-9"
       >
         {children}
-      </main>
+      </PageEnter>
 
       {/* Keeps notification and withdrawal state current without a manual reload.
           Only mounted for a real signed-in account — there is nothing to subscribe

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import type { StatTone } from "@/components/dashboard/stat-card";
 import { cn } from "@/lib/utils";
 
 type FeatureCardProps = {
@@ -16,7 +17,23 @@ type FeatureCardProps = {
   linkLabel?: string;
   /** Uses the gold accent treatment. Reserve it for one card per group. */
   accent?: boolean;
+  /**
+   * Colours the icon chip and the bullet dots.
+   *
+   * Deliberately the *chip* only, not the card: a grid of eight fully tinted
+   * cards stops reading as a hierarchy and starts reading as a swatch sheet. The
+   * card stays white and the hue identifies the destination.
+   */
+  tone?: StatTone;
   className?: string;
+};
+
+const TONE_CLASS: Record<StatTone, string> = {
+  neutral: "",
+  brand: "tint-brand",
+  success: "tint-success",
+  info: "tint-info",
+  warning: "tint-warning",
 };
 
 /**
@@ -35,17 +52,21 @@ export function FeatureCard({
   href,
   linkLabel = "Open",
   accent = false,
+  tone,
   className,
 }: FeatureCardProps) {
+  const resolved: StatTone = tone ?? (accent ? "brand" : "neutral");
+  const tinted = resolved !== "neutral";
+
   const body = (
     <>
       <span
         aria-hidden="true"
         className={cn(
-          "grid size-11 shrink-0 place-items-center rounded-xl border",
-          accent
-            ? "border-brand-border bg-surface-1 text-brand"
-            : "border-hairline bg-surface-2 text-muted-foreground"
+          "grid size-11 shrink-0 place-items-center rounded-xl transition-colors duration-500",
+          tinted
+            ? "tint-chip"
+            : "border border-hairline bg-surface-2 text-muted-foreground group-hover/feature:text-foreground"
         )}
       >
         <Icon className="size-5" />
@@ -66,7 +87,10 @@ export function FeatureCard({
               >
                 <span
                   aria-hidden="true"
-                  className="mt-[0.45rem] size-1.5 shrink-0 rounded-full bg-brand"
+                  className={cn(
+                    "mt-[0.45rem] size-1.5 shrink-0 rounded-full",
+                    tinted ? "bg-current tint-ink" : "bg-brand"
+                  )}
                 />
                 <span className="leading-relaxed">{point}</span>
               </li>
@@ -90,6 +114,7 @@ export function FeatureCard({
   const classes = cn(
     "group/feature flex h-full flex-col gap-4 p-5 sm:p-6",
     accent ? "panel-brand" : "panel panel-interactive",
+    tinted && TONE_CLASS[resolved],
     className
   );
 

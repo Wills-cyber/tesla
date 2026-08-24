@@ -73,8 +73,8 @@ export default async function InvestPage() {
           own empty state when the list really is empty. */}
       <InvestMarketplace plans={plans} />
 
-      <div className="flex gap-3 rounded-2xl border border-hairline bg-surface-2 p-4 sm:p-5">
-        <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
+      <div className="panel-tint tint-brand flex gap-3 p-4 sm:p-5">
+        <Info aria-hidden="true" className="tint-ink mt-0.5 size-4 shrink-0" />
         <p className="text-xs leading-relaxed text-muted-foreground">
           Every plan here is available to activate. Activation debits your
           available wallet balance immediately and creates an investment on your

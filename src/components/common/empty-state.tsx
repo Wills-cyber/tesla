@@ -25,7 +25,9 @@ type EmptyStateProps = {
  * fabricated one.
  *
  * With no `icon`, the brand mark stands in: an empty screen is still the product,
- * and the mark makes it feel deliberate rather than broken.
+ * and the mark makes it feel deliberate rather than broken. A soft gold wash sits
+ * behind it for the same reason — a dashed grey box reads as something that failed
+ * to load, where a lit one reads as a state the product intends.
  */
 export function EmptyState({
   icon: Icon,
@@ -45,15 +47,21 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-hairline-strong bg-surface-2/60 text-center",
+        "relative isolate flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-brand-border bg-surface-2/60 text-center",
         padding,
         className
       )}
     >
+      {/* Light pooling behind the mark, with no edge of its own. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-8 -top-16 -z-10 h-48 rounded-[50%] bg-brand-surface-strong blur-3xl"
+      />
+
       <span
         aria-hidden="true"
         className={cn(
-          "grid place-items-center rounded-2xl border border-hairline bg-surface-1 text-muted-foreground shadow-soft",
+          "grid place-items-center rounded-2xl border border-brand-border bg-surface-1 text-brand shadow-soft",
           size === "sm" ? "size-11" : "size-14"
         )}
       >

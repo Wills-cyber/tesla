@@ -18,7 +18,10 @@
    Rules the palette follows:
      · Warm ivory page, pure-white cards, soft ivory section bands.
      · Charcoal type. Secondary text is contrast-checked to AA on every surface.
-     · ONE accent: champagne→bronze gold. Nothing else is coloured decoratively.
+     · ONE decorative accent: champagne→bronze gold.
+     · Status hues — green, blue, amber, red — are allowed, but only where they
+       carry meaning: what a figure *is*, or what state something is in. See the
+       `.panel-tint` block. Nothing is coloured merely to look colourful.
      · Depth comes from soft shadows, not heavy borders.
    ============================================================================= */
 
@@ -586,6 +589,71 @@
     box-shadow: var(--elevation-lift);
   }
 
+  /* ==========================================================================
+     Tinted surfaces
+
+     The palette rule is still one decorative accent — these are not decoration.
+     A tint here always encodes what the number *is*: gold for money you hold,
+     green for money actually earned, blue for positions in flight, amber for
+     something waiting on you. Read down a dashboard column and the colour tells
+     you which figure you are looking at before you have read the label.
+
+     Set the hue with a `tint-*` class and the surface follows. Every tint is a
+     wash that resolves into `--surface-1` well before the text starts, so body
+     copy is always read against a near-white ground at full contrast.
+     ========================================================================== */
+  .panel-tint {
+    background-image: linear-gradient(
+      158deg,
+      var(--tint-surface) 0%,
+      var(--surface-1) 64%
+    );
+    border: 1px solid var(--tint-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--elevation-card);
+  }
+
+  /* The icon chip that sits on a tinted panel. */
+  .tint-chip {
+    border: 1px solid var(--tint-border);
+    background-color: var(--surface-1);
+    color: var(--tint-ink);
+  }
+
+  .tint-ink {
+    color: var(--tint-ink);
+  }
+
+  .tint-brand {
+    --tint-surface: var(--brand-surface);
+    --tint-border: var(--brand-border);
+    --tint-ink: var(--brand-emphasis);
+  }
+
+  .tint-success {
+    --tint-surface: var(--success-surface);
+    --tint-border: color-mix(in oklch, var(--success) 30%, transparent);
+    --tint-ink: var(--success);
+  }
+
+  .tint-info {
+    --tint-surface: var(--info-surface);
+    --tint-border: color-mix(in oklch, var(--info) 28%, transparent);
+    --tint-ink: var(--info);
+  }
+
+  .tint-warning {
+    --tint-surface: var(--warning-surface);
+    --tint-border: color-mix(in oklch, var(--warning) 30%, transparent);
+    --tint-ink: color-mix(in oklch, var(--warning) 82%, var(--ink-900));
+  }
+
+  .tint-neutral {
+    --tint-surface: var(--surface-2);
+    --tint-border: var(--hairline);
+    --tint-ink: var(--foreground);
+  }
+
   /* Floating navigation and overlays only. */
   .glass {
     background-color: color-mix(in oklch, var(--surface-1) 82%, transparent);
@@ -649,6 +717,62 @@
       black 88%,
       transparent
     );
+  }
+
+  /* ==========================================================================
+     Route entrance
+
+     A page's top-level sections fade and lift into place in sequence. Driven
+     entirely by the compositor: no hydration, no observer, no per-section motion
+     component. `PageEnter` re-keys the container on navigation so this re-runs on
+     every route change rather than only on first paint.
+
+     The final frame is `transform: none`, not `translate3d(0,0,0)`. With
+     `animation-fill-mode: both` the last keyframe sticks, and any transform other
+     than `none` would leave every animated section a containing block for fixed
+     and absolutely positioned descendants — quietly breaking `position: sticky`
+     inside a page for the rest of the session.
+     ========================================================================== */
+  @keyframes page-section-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .page-enter > * {
+    animation: page-section-in 620ms var(--ease-luxe) both;
+  }
+
+  /* Hand-written rather than generated: the cascade beyond the eighth section is
+     capped so a long page never trails into a visibly late entrance. */
+  .page-enter > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .page-enter > *:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .page-enter > *:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .page-enter > *:nth-child(4) {
+    animation-delay: 175ms;
+  }
+  .page-enter > *:nth-child(5) {
+    animation-delay: 225ms;
+  }
+  .page-enter > *:nth-child(6) {
+    animation-delay: 270ms;
+  }
+  .page-enter > *:nth-child(7) {
+    animation-delay: 310ms;
+  }
+  .page-enter > *:nth-child(n + 8) {
+    animation-delay: 340ms;
   }
 }
 

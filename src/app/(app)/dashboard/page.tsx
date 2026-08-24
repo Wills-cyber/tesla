@@ -42,6 +42,16 @@ export const metadata: Metadata = {
 };
 
 /**
+ * Cycles the icon-chip hue down the explainer grids.
+ *
+ * The educational sections are long columns of white cards, which is what made
+ * the page read as unfinished. These four hues give the column rhythm without
+ * tinting whole cards. The order is arbitrary but stable, so a card's colour never
+ * moves between renders.
+ */
+const EXPLAINER_TONES = ["brand", "info", "success", "warning"] as const;
+
+/**
  * Dashboard.
  *
  * Deliberately *not* a financial transaction page. Money lives in Wallet, the
@@ -135,7 +145,7 @@ export default async function DashboardPage() {
               value={formatCurrency(balance.availableCents)}
               icon={Wallet}
               note="Available to invest or withdraw."
-              emphasis
+              tone="brand"
             />
           </RevealItem>
           <RevealItem className="flex">
@@ -148,6 +158,7 @@ export default async function DashboardPage() {
                   ? "You haven't activated an investment yet."
                   : "In progress right now."
               }
+              tone="info"
             />
           </RevealItem>
           <RevealItem className="flex">
@@ -156,6 +167,7 @@ export default async function DashboardPage() {
               value={formatCurrency(balance.totalProfitCents)}
               icon={Banknote}
               note="Payments actually received — never projected."
+              tone="success"
             />
           </RevealItem>
         </RevealGroup>
@@ -228,6 +240,7 @@ export default async function DashboardPage() {
             description="Only the investments you actually hold, split into active, pending and completed, each with its real payment schedule."
             href={appRoutes.investments}
             linkLabel="View investments"
+            tone="info"
           />
           <FeatureCard
             icon={Wallet}
@@ -235,6 +248,7 @@ export default async function DashboardPage() {
             description="Your balance, plus the only place to deposit and withdraw. Every movement of value is listed here."
             href={appRoutes.wallet}
             linkLabel="Open wallet"
+            tone="success"
           />
           <FeatureCard
             icon={ShieldCheck}
@@ -266,6 +280,7 @@ export default async function DashboardPage() {
               title={explainer.title}
               description={explainer.description}
               points={explainer.points}
+              tone={EXPLAINER_TONES[index % EXPLAINER_TONES.length]}
               className={index === 0 ? "lg:col-span-2" : undefined}
             />
           ))}
@@ -297,13 +312,14 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          {walletExplainers.map((explainer) => (
+          {walletExplainers.map((explainer, index) => (
             <FeatureCard
               key={explainer.id}
               icon={explainer.icon}
               title={explainer.title}
               description={explainer.description}
               points={explainer.points}
+              tone={EXPLAINER_TONES[(index + 1) % EXPLAINER_TONES.length]}
             />
           ))}
         </div>

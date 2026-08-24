@@ -98,6 +98,7 @@ export default async function InvestmentsPage() {
                   ? `${investments.length} on record in total.`
                   : "In progress right now."
               }
+              tone="info"
             />
           </RevealItem>
           <RevealItem className="flex">
@@ -106,6 +107,7 @@ export default async function InvestmentsPage() {
               value={formatCurrency(balance.totalInvestedCents)}
               icon={Wallet}
               note="Capital committed from settled transactions."
+              tone="brand"
             />
           </RevealItem>
           <RevealItem className="flex">
@@ -114,7 +116,7 @@ export default async function InvestmentsPage() {
               value={formatCurrency(balance.totalProfitCents)}
               icon={Banknote}
               note="Payments actually received."
-              emphasis
+              tone="success"
             />
           </RevealItem>
         </RevealGroup>

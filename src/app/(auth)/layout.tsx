@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { PageEnter } from "@/components/common/page-enter";
 import { TeslaVehicleBackground } from "@/components/vehicles/tesla-vehicle-background";
 import { platformFeatures } from "@/config/content";
 import { siteConfig } from "@/config/site";
@@ -46,11 +47,14 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           <div className="absolute -top-32 -left-24 size-96 rounded-full bg-brand-surface blur-3xl" />
         </div>
 
-        <div className="flex items-center justify-between gap-4 px-5 pt-6 md:px-10 lg:hidden">
-          <Logo size="sm" />
+        {/* One header, at every breakpoint. The mark shows only below `lg`,
+            because from `lg` up the brand panel opposite carries it — rendering
+            both stacked two lockups above the form on a phone. */}
+        <div className="flex items-center justify-between gap-4 px-5 pt-6 md:px-10">
+          <Logo size="sm" className="lg:hidden" />
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft aria-hidden="true" className="size-3.5" />
             Back
@@ -61,18 +65,8 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           id="main-content"
           className="flex flex-1 items-center justify-center px-5 py-12 md:px-10 lg:py-16"
         >
-          <div className="w-full max-w-md">{children}</div>
+          <PageEnter className="w-full max-w-md">{children}</PageEnter>
         </main>
-
-        <div className="hidden px-10 pb-8 lg:block">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft aria-hidden="true" className="size-3.5" />
-            Back to home
-          </Link>
-        </div>
       </div>
 
       {/* ------------------------------------------------------ Brand column */}

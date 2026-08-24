@@ -2,7 +2,6 @@ import * as React from "react";
 import Link from "next/link";
 import { Info } from "lucide-react";
 
-import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 type AuthCardProps = {
@@ -19,8 +18,12 @@ type AuthCardProps = {
 /**
  * Shared chrome for the auth screens.
  *
- * The logo links home so a visitor is never trapped on a form, and the
- * pre-launch notice sits above the fields rather than below the submit button —
+ * Deliberately carries no logo. The shell owns brand identity — the mark sits in
+ * the form column's top bar on small screens and in the brand panel from `lg` up —
+ * so putting one here too stacked two lockups on top of each other on a phone.
+ * Exactly one is visible at every breakpoint.
+ *
+ * The pre-launch notice sits above the fields rather than below the submit button:
  * people should know the state of the system before they type into it.
  */
 export function AuthCard({
@@ -33,17 +36,19 @@ export function AuthCard({
 }: AuthCardProps) {
   return (
     <div className={cn("flex w-full flex-col gap-8", className)}>
-      <div className="flex flex-col gap-7">
-        <Logo size="md" />
-
-        <div className="flex flex-col gap-2.5">
-          <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-[2.1rem]">
-            {title}
-          </h1>
-          <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
-            {description}
-          </p>
-        </div>
+      <div className="flex flex-col gap-3">
+        <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-[2.1rem]">
+          {title}
+        </h1>
+        {/* A short gold rule under the title — the one spot of brand colour on an
+            otherwise deliberately quiet form. */}
+        <span
+          aria-hidden="true"
+          className="h-px w-14 bg-gradient-to-r from-brand to-transparent"
+        />
+        <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
+          {description}
+        </p>
       </div>
 
       {notice && (

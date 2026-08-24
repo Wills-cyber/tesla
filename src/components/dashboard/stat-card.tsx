@@ -3,6 +3,16 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * What the figure is, expressed as colour.
+ *
+ * Not decoration: `brand` is money you hold, `success` is money actually paid to
+ * you, `info` is a position in flight, `warning` is something waiting on you.
+ * Reading down a column of these, the hue identifies the figure before the label
+ * does. `neutral` is the plain white card, for figures with no such meaning.
+ */
+export type StatTone = "neutral" | "brand" | "success" | "info" | "warning";
+
 type StatCardProps = {
   label: string;
   /** Pre-formatted for display. Zero renders as "$0.00", never as "—". */
@@ -10,9 +20,23 @@ type StatCardProps = {
   icon?: LucideIcon;
   /** Short clarifier under the value, e.g. why it is zero. */
   note?: string;
-  /** Emphasises the primary figure. */
+  tone?: StatTone;
+  /**
+   * Emphasises the primary figure.
+   *
+   * Retained for callers that only want "make this one stand out" without picking
+   * a meaning; it resolves to the brand tint.
+   */
   emphasis?: boolean;
   className?: string;
+};
+
+const TONE_CLASS: Record<StatTone, string> = {
+  neutral: "",
+  brand: "tint-brand",
+  success: "tint-success",
+  info: "tint-info",
+  warning: "tint-warning",
 };
 
 /**
@@ -33,16 +57,18 @@ export function StatCard({
   value,
   icon: Icon,
   note,
+  tone,
   emphasis = false,
   className,
 }: StatCardProps) {
+  const resolved: StatTone = tone ?? (emphasis ? "brand" : "neutral");
+  const tinted = resolved !== "neutral";
+
   return (
     <div
       className={cn(
         "group/stat relative flex h-full flex-col gap-5 overflow-hidden rounded-2xl p-5 sm:p-6",
-        emphasis
-          ? "panel-brand"
-          : "panel panel-interactive",
+        tinted ? cn("panel-tint", TONE_CLASS[resolved]) : "panel panel-interactive",
         className
       )}
     >
@@ -54,10 +80,10 @@ export function StatCard({
           <span
             aria-hidden="true"
             className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-xl border transition-colors duration-500",
-              emphasis
-                ? "border-brand-border bg-surface-1 text-brand"
-                : "border-hairline bg-surface-2 text-muted-foreground group-hover/stat:text-foreground"
+              "grid size-9 shrink-0 place-items-center rounded-xl transition-colors duration-500",
+              tinted
+                ? "tint-chip"
+                : "border border-hairline bg-surface-2 text-muted-foreground group-hover/stat:text-foreground"
             )}
           >
             <Icon className="size-4" />
@@ -70,7 +96,7 @@ export function StatCard({
           data-numeric
           className={cn(
             "text-2xl leading-none font-semibold tracking-tight sm:text-[1.7rem]",
-            emphasis ? "text-brand-emphasis" : "text-foreground"
+            tinted ? "tint-ink" : "text-foreground"
           )}
         >
           {value}

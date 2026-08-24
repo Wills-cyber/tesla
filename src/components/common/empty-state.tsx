@@ -58,19 +58,24 @@ export function EmptyState({
         className="pointer-events-none absolute inset-x-8 -top-16 -z-10 h-48 rounded-[50%] bg-brand-surface-strong blur-3xl"
       />
 
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid place-items-center rounded-2xl border border-brand-border bg-surface-1 text-brand shadow-soft",
-          size === "sm" ? "size-11" : "size-14"
-        )}
-      >
-        {Icon ? (
+      {/* With an icon, a light chip holds it. Without one the brand badge *is* the
+          chip — the logo already carries its own dark plate, and nesting that
+          inside a second white chip reads as a badge inside a badge. */}
+      {Icon ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "grid place-items-center rounded-2xl border border-brand-border bg-surface-1 text-brand shadow-soft",
+            size === "sm" ? "size-11" : "size-14"
+          )}
+        >
           <Icon className={size === "sm" ? "size-4.5" : "size-5"} />
-        ) : (
-          <LogoMark className={size === "sm" ? "size-6" : "size-7"} />
-        )}
-      </span>
+        </span>
+      ) : (
+        <LogoMark
+          className={cn("shadow-soft", size === "sm" ? "size-11" : "size-14")}
+        />
+      )}
 
       <div className="flex flex-col gap-1.5">
         <p

@@ -106,7 +106,7 @@ export function QrCode({
           height={markSize}
         >
           <span className="flex size-full items-center justify-center text-ink-900">
-            <LogoMark variant="solid" className="size-full" />
+            <LogoMark variant="plate" className="size-full" />
           </span>
         </foreignObject>
       </svg>

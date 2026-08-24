@@ -132,7 +132,6 @@
   --animate-shimmer: shimmer 3.2s var(--ease-in-out-luxe) infinite;
   --animate-marquee: marquee 42s linear infinite;
   --animate-pulse-ring: pulse-ring 3.6s var(--ease-in-out-luxe) infinite;
-  --animate-mark-trace: mark-trace 2.4s var(--ease-in-out-luxe) infinite;
   --animate-mark-breathe: mark-breathe 2.4s var(--ease-in-out-luxe) infinite;
   --animate-mark-halo: mark-halo 2.4s var(--ease-in-out-luxe) infinite;
   --animate-orbit: orbit 1.15s linear infinite;
@@ -190,23 +189,10 @@
   }
 
   /* ---- Branded loader ---------------------------------------------------
-     The mark draws itself in, breathes once, and glows. Three cooperating
-     keyframes on the same duration so they stay locked in phase. */
-
-  @keyframes mark-trace {
-    0% {
-      stroke-dashoffset: var(--mark-dash, 48);
-      opacity: 0.25;
-    }
-    45% {
-      stroke-dashoffset: 0;
-      opacity: 1;
-    }
-    100% {
-      stroke-dashoffset: 0;
-      opacity: 1;
-    }
-  }
+     The mark breathes under a glowing halo, both on the same duration so they
+     stay locked in phase. The stroke trace that used to open the sequence went
+     when the mark became raster artwork — `.te-mark-sheen` sweeps light across
+     the badge instead. */
 
   @keyframes mark-breathe {
     0% {

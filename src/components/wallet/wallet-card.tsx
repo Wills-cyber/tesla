@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Logo } from "@/components/brand/logo";
+import { LogoLockup } from "@/components/brand/logo";
 import { StatusPill } from "@/components/common/status-pill";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -50,7 +50,9 @@ export function WalletCard({
 
       <div className="relative flex flex-col gap-8 p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <Logo size="sm" markOnly tone="inverse" asLink={false} />
+          {/* The one dark surface in the product, so the one place the full logo
+              artwork can be shown as drawn — chrome on black, no plate needed. */}
+          <LogoLockup size="sm" className="w-32 xl:w-36" />
           {preview && (
             <StatusPill
               tone="brand"

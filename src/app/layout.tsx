@@ -45,13 +45,22 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
-    images: [{ url: "/brand/og-mark.png", width: 512, height: 512 }],
+    // The logo artwork is a dark presentation card, so the preview shows the full
+    // lockup at 1.91:1 — the ratio both Open Graph and Twitter crop to.
+    images: [
+      {
+        url: "/brand/og-cover.png",
+        width: 1200,
+        height: 630,
+        alt: `${siteConfig.name} logo`,
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
-    images: ["/brand/og-mark.png"],
+    images: ["/brand/og-cover.png"],
   },
   robots: {
     index: true,

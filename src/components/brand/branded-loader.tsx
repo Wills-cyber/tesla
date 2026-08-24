@@ -1,14 +1,21 @@
 import * as React from "react";
 
+import { LogoMark } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 /**
  * The branded loading experience.
  *
  * A generic spinning circle tells you nothing and belongs to no product, so the
- * app never shows one on its own. Instead the brand mark draws itself in, settles
- * with a breath and a soft halo, and a fine progress ring orbits it — the
- * sequence reads as "TESLA Electronics is opening", then hands off to the page.
+ * app never shows one on its own. Instead the brand mark breathes under a soft
+ * halo while a fine progress ring orbits it — the sequence reads as "TESLA
+ * Electronics is opening", then hands off to the page.
+ *
+ * The mark is the real logo artwork on its dark badge, so the loader shows the
+ * same thing as the header, the favicon and the link preview. It replaced an
+ * inline SVG that drew itself in with a `stroke-dasharray` trace; a raster cannot
+ * be traced, so that beat is now a light sweep across the badge instead — see
+ * `.te-mark-sheen` in `globals.css`.
  *
  * Implemented in pure CSS (keyframes live in `globals.css`) with no client
  * JavaScript, so it can be rendered from a Server Component — including
@@ -47,9 +54,6 @@ export function BrandedMark({
   className?: string;
   markClassName?: string;
 }) {
-  const uid = React.useId().replace(/[^a-zA-Z0-9]/g, "");
-  const goldId = `te-loader-gold-${uid}`;
-
   return (
     <span className={cn("relative grid place-items-center", className)}>
       {/* Soft gold halo, breathing in phase with the mark. */}
@@ -58,56 +62,14 @@ export function BrandedMark({
         className="pointer-events-none absolute inset-0 rounded-full bg-brand blur-lg motion-safe:animate-mark-halo"
       />
 
-      <svg
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden="true"
+      <span
         className={cn(
-          "relative size-8 shrink-0 origin-center motion-safe:animate-mark-breathe",
+          "relative grid origin-center place-items-center motion-safe:animate-mark-breathe",
           markClassName
         )}
       >
-        <defs>
-          <linearGradient id={goldId} x1="8" y1="6" x2="26" y2="27">
-            <stop offset="0%" stopColor="var(--gold-300)" />
-            <stop offset="48%" stopColor="var(--gold-500)" />
-            <stop offset="100%" stopColor="var(--gold-700)" />
-          </linearGradient>
-        </defs>
-
-        {/* Aperture — traced in over the first half of the cycle. */}
-        <path
-          d="M11.4 2.6h9.2c1.02 0 2 .4 2.72 1.12l5.96 5.96A3.85 3.85 0 0 1 30.4 12.4v7.2c0 1.02-.4 2-1.12 2.72l-5.96 5.96a3.85 3.85 0 0 1-2.72 1.12h-9.2a3.85 3.85 0 0 1-2.72-1.12L2.72 22.32A3.85 3.85 0 0 1 1.6 19.6v-7.2c0-1.02.4-2 1.12-2.72l5.96-5.96A3.85 3.85 0 0 1 11.4 2.6Z"
-          stroke="currentColor"
-          strokeOpacity="0.3"
-          strokeWidth="1.2"
-          pathLength={100}
-          strokeDasharray="100"
-          className="motion-safe:animate-mark-trace"
-          style={{ ["--mark-dash" as string]: "100" }}
-        />
-
-        {/* "T" monogram + circuit trace. */}
-        <path
-          d="M10.2 11.3h11.6"
-          stroke={`url(#${goldId})`}
-          strokeWidth="2.3"
-          strokeLinecap="square"
-        />
-        <path
-          d="M16 11.3v10"
-          stroke={`url(#${goldId})`}
-          strokeWidth="2.3"
-          strokeLinecap="square"
-        />
-        <path
-          d="M16 18.9h3.7"
-          stroke={`url(#${goldId})`}
-          strokeWidth="1.7"
-          fill="none"
-        />
-        <circle cx="21.6" cy="18.9" r="1.9" fill={`url(#${goldId})`} />
-      </svg>
+        <LogoMark className="te-mark-sheen size-full" priority />
+      </span>
     </span>
   );
 }

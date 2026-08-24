@@ -719,6 +719,27 @@
     );
   }
 
+  /* A light sweep across the loader's badge.
+     Stands in for the stroke trace the inline-SVG mark used to draw: a raster
+     cannot be traced, but a highlight crossing the chrome reads as the same beat
+     and suits the artwork better. Masked to the badge's own rounded shape. */
+  .te-mark-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      104deg,
+      transparent 32%,
+      rgba(255, 255, 255, 0.42) 48%,
+      transparent 64%
+    );
+    /* `shimmer` drives background-position, so the gradient has to be wider than
+       the box for there to be anything to slide. */
+    background-size: 240% 100%;
+    animation: shimmer 2.6s var(--ease-in-out-luxe) infinite;
+  }
+
   /* ==========================================================================
      Route entrance
 

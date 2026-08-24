@@ -6,19 +6,27 @@
  * claim that any manufacturer supplies, sponsors or endorses these plans.
  *
  * ---------------------------------------------------------------------------
- * Replacing the placeholder artwork
+ * The artwork
  * ---------------------------------------------------------------------------
- * Every image is referenced only by the `image` field below, so swapping in real
- * photography is a one-line change per entry:
+ * Four photographs, one per category, all 1024x585 (1.75:1). Identical dimensions
+ * are load-bearing: the showcase preview crossfades between them, and any
+ * variation in aspect ratio would make the card jump height on every switch.
  *
- *   1. Drop the licensed asset into `public/images/vehicles/`
- *      (recommended: 1600x900 WebP/AVIF, transparent or near-black background).
- *   2. Point `image` at the new file and update `width` / `height`.
- *   3. For remote images, add the host to `images.remotePatterns` in
- *      `next.config.ts` and use the absolute URL here.
+ * They replaced a set of line-art SVG placeholders. Their source is the vehicle
+ * region of the corresponding plan banner in `public/images/investments/` — those
+ * banners are composites with plan pricing, badges and a call-to-action burnt into
+ * the raster, so each crop starts clear of the copy and stops short of the detail
+ * card. Where that clips the nose, the vehicle bleeds off the frame on purpose.
+ * The banners themselves are untouched and still used, whole, by the plan cards.
  *
- * `VehicleImage` (src/components/vehicles/vehicle-image.tsx) handles sizing,
- * lazy loading and the fallback treatment, so no component edits are required.
+ * Unlike the hero vehicle these are not cutouts — each keeps its road background
+ * and is presented framed. They are also 3/4 views, so the hero's wheel rotation
+ * cannot apply: a wheel drawn in perspective is an ellipse, and clipping a circle
+ * out of it would drag the background round with it. `VehicleImage` therefore
+ * sells movement by drifting the frame and lighting the lamp instead.
+ *
+ * To swap in licensed photography: drop a 1.75:1 file into
+ * `public/images/vehicles/`, point `image` at it, and re-measure `lamp`.
  */
 export type VehicleShowcaseItem = {
   id: string;
@@ -34,9 +42,35 @@ export type VehicleShowcaseItem = {
     height: number;
     alt: string;
   };
+  /** Where to light the headlight. Omit and the photograph stays unlit. */
+  lamp?: VehicleLamp;
+};
+
+/**
+ * A headlight's position within its photograph.
+ *
+ * Percentages, so the glow stays locked to the lamp at every card size without a
+ * line of JavaScript. Measured off a 10% reference grid rendered over each asset —
+ * automatic detection kept latching onto sky and paint highlights, which are just
+ * as bright as a lamp and far larger.
+ */
+export type VehicleLamp = {
+  /** Lamp centre, as a share of the photograph's width and height. */
+  left: string;
+  top: string;
+  /** Width of the hot core, as a share of the photograph's width. */
+  width: string;
+  /**
+   * Rake of the lens, in CSS degrees. All four vehicles face left, and a Tesla
+   * lamp slopes down toward the nose, so these are negative (anticlockwise).
+   */
+  rake: number;
 };
 
 const VEHICLE_IMAGE_BASE = "/images/vehicles";
+
+/** Every photograph is 1024x585, and identical dimensions are deliberate. */
+const IMAGE_SIZE = { width: 1024, height: 585 } as const;
 
 export const vehicleShowcase: readonly VehicleShowcaseItem[] = [
   {
@@ -47,11 +81,11 @@ export const vehicleShowcase: readonly VehicleShowcaseItem[] = [
       "The high-volume electric sedan segment — the category most closely associated with mainstream EV adoption.",
     highlights: ["Rear & dual motor", "Compact sedan", "Mass-market segment"],
     image: {
-      src: `${VEHICLE_IMAGE_BASE}/compact-sedan.svg`,
-      width: 1600,
-      height: 900,
-      alt: "Illustration of a compact electric sedan in side profile",
+      ...IMAGE_SIZE,
+      src: `${VEHICLE_IMAGE_BASE}/model-3-compact-sedan.webp`,
+      alt: "White Tesla Model 3 compact sedan on a mountain highway, front three-quarter view",
     },
+    lamp: { left: "47%", top: "53%", width: "15%", rake: -16 },
   },
   {
     id: "model-y",
@@ -61,11 +95,11 @@ export const vehicleShowcase: readonly VehicleShowcaseItem[] = [
       "The crossover segment, combining sedan efficiency with the interior volume buyers expect from an SUV.",
     highlights: ["Crossover platform", "Five to seven seats", "Utility focus"],
     image: {
-      src: `${VEHICLE_IMAGE_BASE}/crossover-suv.svg`,
-      width: 1600,
-      height: 900,
-      alt: "Illustration of an electric crossover SUV in side profile",
+      ...IMAGE_SIZE,
+      src: `${VEHICLE_IMAGE_BASE}/model-y-crossover-suv.webp`,
+      alt: "Blue Tesla Model Y crossover SUV on a coastal road, front three-quarter view",
     },
+    lamp: { left: "37%", top: "40%", width: "15%", rake: -22 },
   },
   {
     id: "cybertruck",
@@ -75,11 +109,12 @@ export const vehicleShowcase: readonly VehicleShowcaseItem[] = [
       "Angular, exoskeleton-led light-truck design — the segment pushing electrification into commercial and utility use.",
     highlights: ["Exoskeleton body", "Light-truck class", "Utility payload"],
     image: {
-      src: `${VEHICLE_IMAGE_BASE}/electric-truck.svg`,
-      width: 1600,
-      height: 900,
-      alt: "Illustration of an angular electric light truck in side profile",
+      ...IMAGE_SIZE,
+      src: `${VEHICLE_IMAGE_BASE}/cybertruck-light-truck.webp`,
+      alt: "Silver Tesla Cybertruck on desert terrain at dusk, front three-quarter view",
     },
+    // A full-width light bar rather than a lens, so the core is wide and nearly level.
+    lamp: { left: "13%", top: "46%", width: "20%", rake: -10 },
   },
   {
     id: "model-s",
@@ -89,11 +124,11 @@ export const vehicleShowcase: readonly VehicleShowcaseItem[] = [
       "The long-range performance sedan segment, where range, aerodynamics and drivetrain output are pushed hardest.",
     highlights: ["Long range", "Tri-motor class", "Flagship segment"],
     image: {
-      src: `${VEHICLE_IMAGE_BASE}/performance-sedan.svg`,
-      width: 1600,
-      height: 900,
-      alt: "Illustration of a performance electric sedan in side profile",
+      ...IMAGE_SIZE,
+      src: `${VEHICLE_IMAGE_BASE}/model-s-performance-sedan.webp`,
+      alt: "Red Tesla Model S performance sedan on a coastal road, front three-quarter view",
     },
+    lamp: { left: "27%", top: "61%", width: "17%", rake: -18 },
   },
 ] as const;
 
@@ -106,8 +141,8 @@ export const vehicleShowcase: readonly VehicleShowcaseItem[] = [
  * spins its wheels and lights its lamps — and that needs geometry, not just a
  * path. Both live in `src/config/vehicle-visual.ts`.
  *
- * The entries above are unrelated: they are vehicle *categories* for the
- * marketing showcase, and they keep their own artwork.
+ * The entries above are a different asset set: category photographs, framed and
+ * opaque, one per market segment.
  */
 
 /**

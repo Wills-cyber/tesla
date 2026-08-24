@@ -13,7 +13,10 @@ import { cn } from "@/lib/utils";
  *
  * A tab-less selector: clicking a category swaps the large preview. Kept as one
  * client component because the crossfade needs shared state, but the artwork
- * still routes through `VehicleImage` so replacing placeholders is a config edit.
+ * still routes through `VehicleImage` so replacing photography is a config edit.
+ *
+ * The four photographs share one aspect ratio, which is what keeps the preview
+ * card from changing height as categories crossfade.
  *
  * These are market *categories* the plans are modelled on. Naming a vehicle here
  * is descriptive and does not imply any manufacturer supplies, sponsors or
@@ -109,7 +112,9 @@ export function VehicleShowcase() {
           <VehicleImage
             source={active.image}
             sizes="(min-width: 1024px) 52vw, 92vw"
-            imageClassName="drop-shadow-[0_28px_60px_rgba(0,0,0,0.6)]"
+            driving
+            lamp={active.lamp}
+            className="rounded-xl"
           />
 
           <div className="flex flex-col gap-3">
@@ -158,7 +163,11 @@ export function VehicleShowcaseGrid() {
           <VehicleImage
             source={item.image}
             sizes="(min-width: 1024px) 22vw, (min-width: 640px) 44vw, 88vw"
-            imageClassName="transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/card:scale-[1.04]"
+            driving
+            // Streaks are noise at this size — the lamp and the drift carry it.
+            streaks={false}
+            lamp={item.lamp}
+            className="rounded-xl"
             meaningful={false}
           />
           <div className="flex flex-col gap-1">

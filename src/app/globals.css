@@ -1191,6 +1191,68 @@
       black 100%
     );
   }
+
+  /* ------------------------------------------------ Category photographs
+     The four category photographs are 3/4-view rasters on an opaque road
+     background, so none of the hero's techniques transfer. A wheel drawn in
+     perspective is an ellipse, and clipping a circle out of it would drag the
+     road round with it; a glow pasted over lit paint reads as a smudge. What
+     does work is moving the frame and blending the light — the same read of a
+     car under way, with nothing distorted.
+
+     Vehicles here face LEFT (the hero faces right), which happens to suit
+     `te-streak` as-is: it already travels right to left. */
+  .te-photo-frame {
+    position: relative;
+    overflow: hidden;
+    /* Scopes the lamp's screen blend to the photograph. Without it the blend
+       group reaches up to whatever ancestor happens to establish a stacking
+       context, and the glow starts brightening the card behind the frame. */
+    isolation: isolate;
+    --te-drive-x: 1.6%;
+    --te-drive-y: 6px;
+    --te-drive-duration: 15s;
+    --te-light-duration: 7.5s;
+  }
+
+  /* Tracking-shot drift. Scaled up a touch so the travel can never expose the
+     frame edge — 1.6% of width and 6px of rise against ~2.7% of overhang. */
+  .te-photo-drive {
+    scale: 1.055;
+    animation: te-drive var(--te-drive-duration) var(--ease-in-out-luxe) infinite;
+    will-change: transform;
+  }
+
+  /* Screen blending brightens the lamp that is already in the photograph rather
+     than laying an opaque disc on top of it, which is what the difference between
+     "headlight coming on" and "white blob on the wing" comes down to. */
+  .te-lamp-photo {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    animation: te-headlight var(--te-light-duration) var(--ease-in-out-luxe) infinite;
+  }
+
+  .te-lamp-photo-core {
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 255, 255, 0.92),
+      rgba(222, 239, 255, 0.5) 42%,
+      transparent 100%
+    );
+    filter: blur(5px);
+  }
+
+  .te-lamp-photo-bloom {
+    background: radial-gradient(
+      closest-side,
+      rgba(190, 222, 255, 0.4),
+      rgba(140, 190, 255, 0.13) 48%,
+      transparent 80%
+    );
+    filter: blur(18px);
+  }
 }
 
 /* Phones get a shorter drift, a smaller light budget and no drifting motes —
@@ -1199,6 +1261,11 @@
   .te-vehicle {
     --te-drive-x: 1%;
     --te-drive-y: 4px;
+  }
+
+  .te-photo-frame {
+    --te-drive-x: 0.9%;
+    --te-drive-y: 3px;
   }
 
   .te-particle,
@@ -1236,5 +1303,11 @@
   .te-road,
   .te-wheel-sheen {
     display: none !important;
+  }
+
+  /* The overscan only exists to give the drift somewhere to travel. With the
+     drift parked, show the photograph exactly as it was cropped. */
+  .te-photo-drive {
+    scale: 1 !important;
   }
 }

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch renders used to measure image coordinates — never part of the build
+/.tmp-verify/

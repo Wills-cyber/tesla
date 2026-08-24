@@ -714,6 +714,503 @@
   }
 }
 
+/* =============================================================================
+   Automotive brand layer
+
+   The vehicle photograph in `public/images/branding/` is one flat raster, so
+   nothing inside it can move on its own. Everything below is therefore an
+   *overlay* keyed to measured coordinates (see `src/config/vehicle-visual.ts`):
+   a circular crop of a wheel spun in place, a glow pinned to the headlight
+   lens, light that travels past the car rather than the car travelling across
+   the screen.
+
+   All of it is CSS. There is no animation loop, no canvas and no particle
+   engine — only `transform`, `opacity` and `filter`, which the compositor can
+   run off the main thread. The body itself barely moves: a ~12px figure-eight
+   drift. The read of speed comes from the wheels and the environment, which is
+   also how it is shot in real automotive film work, and it means the loop is
+   seamless without the car ever appearing to reverse.
+
+   Keyframes live at the top level (not in `@theme`) because they are consumed
+   by the semantic classes below rather than by `animate-*` utilities.
+   ============================================================================= */
+
+/* ---- Wheels ---------------------------------------------------------------
+   Seven turns per cycle, sampled from θ(t) = 2520t − 210.08·sin(2πt): a smooth
+   drive cycle whose angular velocity peaks mid-loop at ~3.2x its slowest and
+   whose acceleration is zero at both ends. That last property is what keeps the
+   loop invisible — and what stops it reading as a loading spinner, which is
+   exactly the constant-rate case this curve avoids. */
+@keyframes te-wheel-roll {
+  0% {
+    transform: rotate(0deg);
+  }
+  5% {
+    transform: rotate(61.1deg);
+  }
+  10% {
+    transform: rotate(128.5deg);
+  }
+  15% {
+    transform: rotate(208deg);
+  }
+  20% {
+    transform: rotate(304.2deg);
+  }
+  25% {
+    transform: rotate(419.9deg);
+  }
+  30% {
+    transform: rotate(556.2deg);
+  }
+  35% {
+    transform: rotate(712deg);
+  }
+  40% {
+    transform: rotate(884.5deg);
+  }
+  45% {
+    transform: rotate(1069.1deg);
+  }
+  50% {
+    transform: rotate(1260deg);
+  }
+  55% {
+    transform: rotate(1450.9deg);
+  }
+  60% {
+    transform: rotate(1635.5deg);
+  }
+  65% {
+    transform: rotate(1808deg);
+  }
+  70% {
+    transform: rotate(1963.8deg);
+  }
+  75% {
+    transform: rotate(2100.1deg);
+  }
+  80% {
+    transform: rotate(2215.8deg);
+  }
+  85% {
+    transform: rotate(2312deg);
+  }
+  90% {
+    transform: rotate(2391.5deg);
+  }
+  95% {
+    transform: rotate(2458.9deg);
+  }
+  100% {
+    transform: rotate(2520deg);
+  }
+}
+
+/* ---- Body -----------------------------------------------------------------
+   X follows sin²(πt) and Y follows sin(2πt): both return to zero with zero
+   velocity, so the loop has no seam and no visible reversal. */
+@keyframes te-drive {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  10% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.0955),
+      calc(var(--te-drive-y) * -0.588),
+      0
+    );
+  }
+  20% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.3455),
+      calc(var(--te-drive-y) * -0.951),
+      0
+    );
+  }
+  30% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.6545),
+      calc(var(--te-drive-y) * -0.951),
+      0
+    );
+  }
+  40% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.9045),
+      calc(var(--te-drive-y) * -0.588),
+      0
+    );
+  }
+  50% {
+    transform: translate3d(var(--te-drive-x), 0, 0);
+  }
+  60% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.9045),
+      calc(var(--te-drive-y) * 0.588),
+      0
+    );
+  }
+  70% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.6545),
+      calc(var(--te-drive-y) * 0.951),
+      0
+    );
+  }
+  80% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.3455),
+      calc(var(--te-drive-y) * 0.951),
+      0
+    );
+  }
+  90% {
+    transform: translate3d(
+      calc(var(--te-drive-x) * 0.0955),
+      calc(var(--te-drive-y) * 0.588),
+      0
+    );
+  }
+}
+
+/* ---- Lighting -------------------------------------------------------------
+   Low → bright → a touch brighter → soft fade → repeat, with two ~8% dips that
+   read as a lamp settling rather than a fault. Nothing here drops far enough or
+   fast enough to look broken, and nothing flashes. */
+@keyframes te-headlight {
+  0%,
+  100% {
+    opacity: 0.58;
+  }
+  10% {
+    opacity: 0.86;
+  }
+  16% {
+    opacity: 0.78;
+  }
+  24% {
+    opacity: 0.97;
+  }
+  38% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 0.93;
+  }
+  60% {
+    opacity: 1;
+  }
+  74% {
+    opacity: 0.88;
+  }
+  88% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes te-taillight {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}
+
+@keyframes te-beam {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(-50%) scaleX(0.94);
+  }
+  45% {
+    opacity: 0.58;
+    transform: translateY(-50%) scaleX(1.05);
+  }
+}
+
+/* ---- Environment ---------------------------------------------------------- */
+
+/* Light travelling past the car, right to left. */
+@keyframes te-streak {
+  0% {
+    transform: translate3d(118%, 0, 0) scaleX(0.45);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-150%, 0, 0) scaleX(1.4);
+    opacity: 0;
+  }
+}
+
+/* Ground rushing under the wheels. The layer is 200% wide, so a half-shift
+   lands on an identical repeat and the loop is invisible. */
+@keyframes te-road {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes te-particle {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-11rem, -2.2rem, 0) scale(0.55);
+    opacity: 0;
+  }
+}
+
+@keyframes te-contact {
+  0%,
+  100% {
+    opacity: 0.48;
+    transform: translateX(-50%) scaleX(0.97);
+  }
+  50% {
+    opacity: 0.74;
+    transform: translateX(-50%) scaleX(1.03);
+  }
+}
+
+@layer components {
+  /* -------------------------------------------------------------- The vehicle
+     `overflow` is deliberately NOT clipped here: the headlight bloom and beam
+     bleed past the bodywork on purpose. Clipping is the job of the ancestor
+     surface (the hero `<section>`, or the backdrop's own `overflow-hidden`),
+     which is what keeps the glow from ever creating a horizontal scrollbar. */
+  .te-vehicle {
+    position: relative;
+    /* Contains the internal layer order (image → wheels → lighting) so it can
+       never out-paint whatever the host places around the vehicle, and scopes
+       the wheel sheen's blend to the car rather than to the page behind it. */
+    isolation: isolate;
+    /* Distance is a share of the vehicle's own width, so the drift reads the
+       same whether the car is 320px or 1100px wide. */
+    --te-drive-x: 1.8%;
+    --te-drive-y: 7px;
+    --te-wheel-duration: 4.2s;
+    --te-drive-duration: 13s;
+    --te-light-duration: 7.5s;
+  }
+
+  .te-vehicle-drive {
+    animation: te-drive var(--te-drive-duration) linear infinite;
+    will-change: transform;
+  }
+
+  /* A circular window onto one wheel. The child is the same photograph,
+     enlarged and offset so this wheel exactly fills the window; rotating the
+     child therefore spins the wheel and nothing else. Clipped to 90% of the
+     tyre radius so the rotation never reaches the white fender arch above it —
+     the outer sliver stays the static image, which is uniform rubber. */
+  .te-wheel {
+    position: absolute;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    clip-path: circle(45% at 50% 50%);
+  }
+
+  .te-wheel-spin {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 50%;
+    animation: te-wheel-roll var(--te-wheel-duration) linear infinite;
+    will-change: transform;
+  }
+
+  /* Standing in for true radial motion blur: two soft highlight arcs sweeping
+     with the rim. Cheap, and it stops the spokes from strobing. */
+  .te-wheel-sheen {
+    position: absolute;
+    inset: 8%;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(255, 255, 255, 0.2) 24deg,
+      transparent 52deg,
+      transparent 180deg,
+      rgba(255, 255, 255, 0.14) 204deg,
+      transparent 232deg,
+      transparent 360deg
+    );
+    filter: blur(4px);
+    mix-blend-mode: screen;
+    animation: te-wheel-roll var(--te-wheel-duration) linear infinite;
+  }
+
+  /* Contact patch. Grounds the cutout so it reads as a car on a surface rather
+     than a sticker floating on the page. */
+  .te-contact-shadow {
+    position: absolute;
+    left: 50%;
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      oklch(0.222 0.009 264 / 46%),
+      transparent 74%
+    );
+    filter: blur(12px);
+    animation: te-contact var(--te-drive-duration) var(--ease-in-out-luxe) infinite;
+  }
+
+  /* ------------------------------------------------------------------ Lights
+     Cool-white core over a wide bloom. Both are tinted rather than pure white
+     so they still register as *light* against the ivory theme, where a white
+     glow on a near-white page would be invisible. */
+  .te-lamp {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    animation: te-headlight var(--te-light-duration) var(--ease-in-out-luxe) infinite;
+  }
+
+  .te-lamp-core {
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 255, 255, 0.98),
+      rgba(226, 241, 255, 0.85) 34%,
+      rgba(150, 199, 255, 0.4) 66%,
+      transparent 100%
+    );
+    filter: blur(3px);
+  }
+
+  .te-lamp-bloom {
+    background: radial-gradient(
+      closest-side,
+      rgba(203, 228, 255, 0.6),
+      rgba(150, 195, 255, 0.2) 44%,
+      transparent 78%
+    );
+    filter: blur(16px);
+  }
+
+  /* Light thrown forward from the nose. A clipped cone rather than a rectangle,
+     masked to nothing at its far end, so there is no edge to see. */
+  .te-lamp-beam {
+    position: absolute;
+    transform-origin: 0% 50%;
+    background: linear-gradient(
+      to right,
+      rgba(219, 236, 255, 0.5),
+      rgba(180, 214, 255, 0.16) 46%,
+      transparent 100%
+    );
+    clip-path: polygon(0% 40%, 100% 0%, 100% 100%, 0% 60%);
+    filter: blur(9px);
+    animation: te-beam calc(var(--te-light-duration) * 1.15)
+      var(--ease-in-out-luxe) infinite;
+  }
+
+  .te-lamp-tail {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      rgba(255, 92, 84, 0.62),
+      rgba(226, 46, 40, 0.2) 46%,
+      transparent 80%
+    );
+    filter: blur(8px);
+    animation: te-taillight calc(var(--te-light-duration) * 1.4)
+      var(--ease-in-out-luxe) infinite;
+  }
+
+  /* ------------------------------------------------------------- Environment */
+  .te-streak {
+    position: absolute;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to left,
+      transparent,
+      color-mix(in oklch, var(--gold-500) 62%, transparent) 34%,
+      color-mix(in oklch, var(--gold-300) 78%, transparent) 58%,
+      transparent
+    );
+    animation: te-streak var(--te-streak-duration, 9s) var(--ease-in-out-luxe)
+      infinite;
+    will-change: transform, opacity;
+  }
+
+  .te-road {
+    position: absolute;
+    width: 200%;
+    background-image: repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent 5.5rem,
+      color-mix(in oklch, var(--gold-400) 45%, transparent) 5.5rem,
+      color-mix(in oklch, var(--gold-400) 45%, transparent) 9rem,
+      transparent 9rem,
+      transparent 14.5rem
+    );
+    animation: te-road var(--te-road-duration, 6s) linear infinite;
+    filter: blur(1px);
+  }
+
+  .te-particle {
+    position: absolute;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--gold-400) 80%, transparent);
+    box-shadow: 0 0 6px 1px color-mix(in oklch, var(--gold-500) 45%, transparent);
+    animation: te-particle var(--te-particle-duration, 16s) linear infinite;
+  }
+
+  /* Keeps whatever sits on top legible: the layer fades out toward the top of
+     the viewport, where headings and page copy live on bare background. */
+  .te-fade-top {
+    mask-image: linear-gradient(to bottom, transparent 0%, black 46%, black 100%);
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 46%,
+      black 100%
+    );
+  }
+}
+
+/* Phones get a shorter drift, a smaller light budget and no drifting motes —
+   the same treatment, costing less. */
+@media (max-width: 640px) {
+  .te-vehicle {
+    --te-drive-x: 1%;
+    --te-drive-y: 4px;
+  }
+
+  .te-particle,
+  .te-road {
+    display: none;
+  }
+
+  .te-streak:nth-child(even) {
+    display: none;
+  }
+}
+
 /* Anyone who asks for less motion gets less motion — everywhere, including
    Motion-driven transforms, which read this via MotionConfig reducedMotion. */
 @media (prefers-reduced-motion: reduce) {
@@ -728,5 +1225,16 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* The rule above freezes every animation on its final keyframe, which for the
+     vehicle is its resting state — lights softly on, wheels at a whole number
+     of turns, body at origin. Travelling decoration has no resting state worth
+     showing, so it is removed outright rather than parked mid-flight. */
+  .te-streak,
+  .te-particle,
+  .te-road,
+  .te-wheel-sheen {
+    display: none !important;
   }
 }

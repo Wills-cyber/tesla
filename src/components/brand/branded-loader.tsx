@@ -178,6 +178,12 @@ export function BrandedLoader({
  *
  * Fills its container and centres the loader, so it works both as a route
  * `loading.tsx` and inside a panel that is waiting on data.
+ *
+ * The mark is untouched — it is still the brand's loading language. What is added
+ * behind it is the automotive lighting from the vehicle treatment: two light
+ * streaks passing horizontally and a soft lamp bloom, the same `te-*` classes the
+ * hero uses. It ties a route transition to the rest of the product without
+ * turning the loader into a car, and it costs two spans and no JavaScript.
  */
 export function BrandedLoaderScreen({
   label = "Loading",
@@ -192,10 +198,41 @@ export function BrandedLoaderScreen({
     <div
       aria-busy="true"
       className={cn(
-        "flex min-h-[60vh] flex-1 flex-col items-center justify-center gap-6 px-6 py-20",
+        "relative flex min-h-[60vh] flex-1 flex-col items-center justify-center gap-6 overflow-hidden px-6 py-20",
         className
       )}
     >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10"
+      >
+        <span
+          className="te-lamp te-lamp-bloom absolute top-1/2 left-1/2 size-64"
+          style={{ opacity: 0.5 }}
+        />
+        <span
+          className="te-streak"
+          style={{
+            top: "38%",
+            width: "36%",
+            height: "1px",
+            opacity: 0.34,
+            ["--te-streak-duration" as string]: "9s",
+          }}
+        />
+        <span
+          className="te-streak"
+          style={{
+            top: "63%",
+            width: "26%",
+            height: "2px",
+            opacity: 0.26,
+            animationDelay: "3.2s",
+            ["--te-streak-duration" as string]: "11.5s",
+          }}
+        />
+      </span>
+
       <BrandedLoader size={size} label={label} />
     </div>
   );

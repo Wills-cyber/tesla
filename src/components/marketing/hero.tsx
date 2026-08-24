@@ -7,33 +7,40 @@ import { ArrowRight, ChevronDown, Gauge } from "lucide-react";
 
 import { Container } from "@/components/layout/container";
 import { StatusPill } from "@/components/common/status-pill";
-import { VehicleImage } from "@/components/vehicles/vehicle-image";
+import { TeslaHeroVehicle } from "@/components/vehicles/tesla-hero-vehicle";
 import { Button } from "@/components/ui/button";
 import { authRoutes } from "@/config/navigation";
-import { heroVehicleImage } from "@/config/vehicles";
+import { heroVehicle } from "@/config/vehicle-visual";
 import { useAnchorScroll } from "@/hooks/use-anchor-scroll";
 import { EASE_LUXE, headlineWord, transitions } from "@/lib/motion";
 
 const HEADLINE = ["Invest", "in", "the", "Future", "of", "Mobility"] as const;
 
-/** Small floating spec chips that orbit the vehicle. Purely decorative. */
+/**
+ * Small floating spec chips that orbit the vehicle. Purely decorative.
+ *
+ * The photographic cutout fills its frame far more tightly than the line-art it
+ * replaced, so these are placed in the negative space the bodywork actually
+ * leaves: above the rear haunch, clear of the bonnet, and outboard of the rear
+ * tyre. They must never sit over the paint.
+ */
 const FLOATING_CHIPS = [
   {
     label: "Fixed Term",
     value: "30 Days",
-    className: "left-[2%] top-[16%] md:left-[-4%]",
+    className: "left-[1%] top-[8%] md:left-[-5%]",
     delay: 0,
   },
   {
     label: "Payment Periods",
     value: "4 Weekly",
-    className: "right-[1%] top-[6%] md:right-[-2%]",
+    className: "right-[1%] top-[2%] md:right-[-3%]",
     delay: 0.9,
   },
   {
     label: "Category",
     value: "Electric Vehicle",
-    className: "bottom-[10%] left-[8%] md:left-[2%]",
+    className: "bottom-[-2%] left-[4%] md:left-[-2%]",
     delay: 1.8,
   },
 ] as const;
@@ -161,20 +168,26 @@ export function Hero() {
             className="relative mx-auto w-full max-w-2xl lg:max-w-none"
           >
             <div className="relative">
+              {/* Environmental light the car sits inside, not a backing plate:
+                  a soft radial wash with no edge, so the transparent cutout has
+                  something to be lit by and never reads as a pasted rectangle. */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-[8%] top-1/2 h-[62%] -translate-y-1/2 rounded-[50%] bg-brand-surface-strong blur-3xl"
+                className="pointer-events-none absolute inset-x-[6%] top-1/2 h-[68%] -translate-y-1/2 rounded-[50%] bg-brand-surface-strong blur-3xl"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-[18%] bottom-[8%] h-[26%] rounded-[50%] bg-[radial-gradient(closest-side,rgba(150,195,255,0.22),transparent)] blur-2xl"
               />
 
-              <div className="motion-safe:animate-float-slow">
-                <VehicleImage
-                  source={heroVehicleImage}
-                  priority
-                  sizes="(min-width: 1024px) 46vw, 92vw"
-                  className="relative"
-                  imageClassName="drop-shadow-[0_36px_80px_rgba(0,0,0,0.65)]"
-                />
-              </div>
+              <TeslaHeroVehicle
+                intensity="strong"
+                priority
+                sizes="(min-width: 1024px) 46vw, 92vw"
+                alt={heroVehicle.alt}
+                className="relative"
+                imageClassName="drop-shadow-[0_36px_80px_rgba(0,0,0,0.28)]"
+              />
 
               {FLOATING_CHIPS.map((chip) => (
                 <motion.div

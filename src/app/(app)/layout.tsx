@@ -1,6 +1,7 @@
 import { AppTopBar } from "@/components/navigation/app-top-bar";
 import { BottomNavigation } from "@/components/navigation/bottom-navigation";
 import { RealtimeRefresh } from "@/components/providers/realtime-refresh";
+import { AppVehicleBackdrop } from "@/components/vehicles/app-vehicle-backdrop";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
 import { getUnreadNotificationCount, resolveOrEmpty } from "@/lib/data";
 
@@ -20,6 +21,20 @@ import { getUnreadNotificationCount, resolveOrEmpty } from "@/lib/data";
  * server, and Row Level Security is the final backstop on every table. While
  * Supabase is unconfigured, `getAccountMode()` reports `preview` and the shell
  * renders with a visible "backend not connected" label.
+ *
+ * ---------------------------------------------------------------------------
+ * Layering
+ * ---------------------------------------------------------------------------
+ * `isolate` makes this shell the stacking context for the whole app, which is
+ * what lets the vehicle backdrop sit at `z-0` and everything else stack above it
+ * predictably:
+ *
+ *   backdrop (0) → page content (10) → top bar (40) → bottom nav (50)
+ *
+ * Dialogs and toasts portal to `<body>`, so they land outside this context and
+ * stay on top of all of it. The backdrop is mounted once here rather than per
+ * page: a fixed layer costs nothing to keep across route changes, and the
+ * animation stays defined in exactly one place.
  */
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const account = await getAccountMode();
@@ -32,12 +47,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   );
 
   return (
-    <div className="flex min-h-dvh w-full flex-col">
+    <div className="relative isolate flex min-h-dvh w-full flex-col">
+      <AppVehicleBackdrop />
+
       <AppTopBar user={user} preview={preview} unreadCount={unreadCount} />
 
       <main
         id="main-content"
-        className="container-app pb-bottom-nav flex flex-1 flex-col gap-8 pt-7 md:gap-10 md:pt-9"
+        className="container-app pb-bottom-nav relative z-10 flex flex-1 flex-col gap-8 pt-7 md:gap-10 md:pt-9"
       >
         {children}
       </main>

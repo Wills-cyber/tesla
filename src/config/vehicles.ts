@@ -97,13 +97,18 @@ export const vehicleShowcase: readonly VehicleShowcaseItem[] = [
   },
 ] as const;
 
-/** Artwork used in the hero. Replace with licensed photography when available. */
-export const heroVehicleImage = {
-  src: `${VEHICLE_IMAGE_BASE}/hero-vehicle.svg`,
-  width: 1800,
-  height: 900,
-  alt: "Illustration of a premium electric vehicle in three-quarter profile",
-} as const;
+/**
+ * The hero vehicle is NOT configured here.
+ *
+ * It used to be: a line-art `hero-vehicle.svg` placeholder alongside the four
+ * category illustrations above. It is now a photographic transparent cutout with
+ * measured wheel, headlight and tail-lamp coordinates, because the landing page
+ * spins its wheels and lights its lamps — and that needs geometry, not just a
+ * path. Both live in `src/config/vehicle-visual.ts`.
+ *
+ * The entries above are unrelated: they are vehicle *categories* for the
+ * marketing showcase, and they keep their own artwork.
+ */
 
 /**
  * Investment-plan artwork is NOT configured here.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { TeslaVehicleBackground } from "@/components/vehicles/tesla-vehicle-background";
 import { platformFeatures } from "@/config/content";
 import { siteConfig } from "@/config/site";
 
@@ -14,12 +15,30 @@ import { siteConfig } from "@/config/site";
  *
  * Deliberately does not use the marketing header — a half-filled form is the
  * wrong place to offer nine navigation destinations.
+ *
+ * The vehicle treatment appears twice, at two very different volumes. Behind the
+ * form it is deliberately near-invisible — a small, dim, slow car with no lamps
+ * and no motes — because a login field is the last place to put something
+ * moving. The brand panel, which holds no inputs, gets the visible version.
  */
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    <div className="relative isolate grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       {/* ------------------------------------------------------- Form column */}
-      <div className="relative flex flex-col">
+      <div className="relative z-10 flex flex-col">
+        {/* `ambient`'s own 10% — low enough to read as texture behind the
+            fields, high enough that the treatment is actually present on a
+            phone, where the brand column opposite is not rendered at all. */}
+        <TeslaVehicleBackground
+          intensity="ambient"
+          size="sm"
+          position="bottom-left"
+          grid={false}
+          particles={false}
+          lighting={false}
+          streaks={false}
+        />
+
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
@@ -57,12 +76,22 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       </div>
 
       {/* ------------------------------------------------------ Brand column */}
-      <aside className="relative hidden overflow-hidden border-l border-hairline bg-surface-2 lg:block">
+      <aside className="relative z-10 hidden overflow-hidden border-l border-hairline bg-surface-2 lg:block">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="grid-field absolute inset-0 opacity-70" />
           <div className="absolute top-1/4 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-brand-surface-strong blur-3xl motion-safe:animate-drift" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface-3/70" />
         </div>
+
+        {/* No inputs live in this column, so the treatment can actually be seen
+            here: a medium vehicle with lit lamps, low and slow. */}
+        <TeslaVehicleBackground
+          intensity="subtle"
+          opacity={0.2}
+          size="lg"
+          position="bottom-center"
+          grid={false}
+        />
 
         <div className="relative flex h-full flex-col justify-between gap-12 p-12 xl:p-16">
           <Logo size="lg" />

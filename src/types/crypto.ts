@@ -109,6 +109,14 @@ export type DepositRecord = {
   reviewedAt: string | null;
   reviewedBy: string | null;
   rejectionReason: string | null;
+  /**
+   * Short-lived signed URL for the PRIVATE `deposit-receipts` object, generated
+   * server-side for authorised admin surfaces only (1-hour expiry). `null` for
+   * non-admin contexts and for deposits without a stored receipt path.
+   */
+  receiptSignedUrl?: string | null;
+  /** True when the stored receipt path points at a PDF (not an image). */
+  receiptIsPdf?: boolean;
   txHash: string | null;
   confirmations: number | null;
   requiredConfirmations: number | null;

@@ -22,6 +22,11 @@ import { getRateProvider } from "@/lib/quotes/rate-provider";
 import { computeWithdrawalCosts } from "@/lib/wallet/costs";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  parseReceiptPath,
+  RECEIPT_BUCKET,
+  RECEIPT_SIGN_TTL_SECONDS,
+} from "@/lib/wallet/receipts";
+import {
   adminApproveDepositSchema,
   adminDeclineDepositSchema,
   cancelDepositSchema,
@@ -353,11 +358,14 @@ export async function submitDepositProofAction(
   }
 
   if (deposit.expires_at && new Date(deposit.expires_at).getTime() < Date.now()) {
-    await supabase
-      .from("deposits")
-      .update({ status: "expired", updated_at: new Date().toISOString() })
-      .eq("id", depositId)
-      .eq("user_id", account.user.id);
+    // Marking the row `expired` must happen in its OWN transaction — a
+    // transaction that also raises cannot keep the update (see migration
+    // 0015). `expire_stale_deposit` is an owner-only security-definer RPC
+    // that does exactly that. Best effort: the user is surfaced the expiry
+    // either way, and `admin_get_deposits` sweeps stale rows on its side.
+    // supabase-js resolves database errors into `{ error }`, so this await
+    // cannot reject; the result is deliberately ignored.
+    await supabase.rpc("expire_stale_deposit", { p_deposit_id: depositId });
     return {
       status: "error",
       message: "This deposit request has expired. Please create a new deposit.",
@@ -429,8 +437,13 @@ export async function submitDepositProofAction(
     };
   }
 
-  // ---- Confirm Storage upload succeeded, then save Storage path to deposit record ----
-  // Try RPC first (atomic status change + notification)
+  // ---- Confirm Storage upload succeeded, then save the exact Storage path ----
+  // Primary path: the `submit_deposit_receipt()` RPC (migrations 0010/0012) —
+  // one security-definer transaction that validates the path shape, moves the
+  // deposit to `pending_review`, stores `receipt_path`, and notifies the user.
+  let rpcSucceeded = false;
+  let rpcErrorMessage: string | null = null;
+
   try {
     const { error: rpcError } = await supabase.rpc("submit_deposit_receipt", {
       p_deposit_id: depositId,
@@ -440,57 +453,90 @@ export async function submitDepositProofAction(
     });
 
     if (!rpcError) {
-      revalidatePath(appRoutes.wallet);
-      revalidatePath(appRoutes.dashboard);
-      revalidatePath(`/wallet/deposit/${depositId}`);
-      return {
-        status: "success",
-        message: "Your payment proof has been submitted successfully and is pending review.",
-      };
+      rpcSucceeded = true;
+    } else {
+      rpcErrorMessage = rpcError.message;
+      console.warn("[wallet:submitProof:rpcError]", rpcError.message);
     }
-    console.warn("[wallet:submitProof:rpcError]", rpcError?.message);
   } catch (rpcEx) {
+    rpcErrorMessage = rpcEx instanceof Error ? rpcEx.message : String(rpcEx);
     console.warn("[wallet:submitProof:rpcException]", rpcEx);
   }
 
-  // Direct table update fallback - only after successful storage upload
-  const { error: updateError } = await supabase
-    .from("deposits")
-    .update({
-      status: "pending_review",
-      receipt_path: filePath, // Exact private Storage object path.
-      receipt_url: null, // Private bucket: no public URL is stored.
-      receipt_submitted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", depositId)
-    .eq("user_id", account.user.id)
-    .eq("status", "pending"); // Ensure we only transition from pending
+  if (!rpcSucceeded) {
+    // Fallback for a database where the RPC is missing: a guarded direct
+    // update. On a correctly provisioned schema RLS denies user UPDATEs on
+    // `deposits`, so zero updated rows means the write never happened — and
+    // that must surface as a hard error, never as a silent success (which is
+    // exactly the "receipt in the bucket, nothing on the deposit" failure).
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("deposits")
+      .update({
+        status: "pending_review",
+        receipt_path: filePath, // Exact private Storage object path.
+        receipt_url: null, // Private bucket: no public URL is stored.
+        receipt_submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", depositId)
+      .eq("user_id", account.user.id)
+      .eq("status", "pending") // Ensure we only transition from pending
+      .select("id, status, receipt_path");
 
-  if (updateError) {
-    console.error("[wallet:submitProof:update]", updateError);
-    // Cleanup uploaded file to avoid orphaned files if DB update fails
-    try {
-      await supabase.storage.from("deposit-receipts").remove([filePath]);
-    } catch (cleanupErr) {
-      console.warn("[wallet:submitProof:cleanupFailed]", cleanupErr);
+    if (updateError || !updatedRows || updatedRows.length !== 1) {
+      console.error("[wallet:submitProof:persistFailed]", {
+        rpcErrorMessage,
+        updateError,
+        updatedRows,
+      });
+      await removeStoredReceipt(supabase, filePath);
+      return {
+        status: "error",
+        message:
+          "Your receipt was stored securely, but the deposit record could not be updated. Please try again — if this keeps happening, contact support.",
+      };
     }
+  }
+
+  // Final guard: success is only reported when the database actually holds
+  // `pending_review` with our exact receipt path on this deposit row.
+  const { data: persistedDeposit, error: verifyError } = await supabase
+    .from("deposits")
+    .select("id, status, receipt_path")
+    .eq("id", depositId)
+    .maybeSingle();
+
+  if (
+    verifyError ||
+    !persistedDeposit ||
+    persistedDeposit.status !== "pending_review" ||
+    persistedDeposit.receipt_path !== filePath
+  ) {
+    console.error("[wallet:submitProof:verifyFailed]", {
+      verifyError,
+      persistedDeposit,
+      rpcErrorMessage,
+    });
+    await removeStoredReceipt(supabase, filePath);
     return {
       status: "error",
-      message: "Receipt uploaded but failed to update deposit record. Please try again.",
+      message:
+        "Your receipt was stored securely, but the deposit record could not be updated. Please try again — if this keeps happening, contact support.",
     };
   }
 
-  // Create notification for user (best effort)
-  try {
-    await supabase.rpc("create_notification", {
-      p_type: "deposit",
-      p_title: "Payment Pending Review",
-      p_body: "Your payment proof has been submitted successfully and is pending review.",
-      p_href: appRoutes.wallet,
-    });
-  } catch {
-    // Notifications trigger or fallback - ignore
+  // Create notification for user (best effort; the RPC already creates one).
+  if (!rpcSucceeded) {
+    try {
+      await supabase.rpc("create_notification", {
+        p_type: "deposit",
+        p_title: "Payment Pending Review",
+        p_body: "Your payment proof has been submitted successfully and is pending review.",
+        p_href: appRoutes.wallet,
+      });
+    } catch {
+      // Notification best effort — the deposit state is already persisted.
+    }
   }
 
   revalidatePath(appRoutes.wallet);
@@ -501,6 +547,22 @@ export async function submitDepositProofAction(
     status: "success",
     message: "Your payment proof has been submitted successfully and is pending review.",
   };
+}
+
+/**
+ * Removes the uploaded receipt object when the database step fails, so a
+ * failed submission never leaves an orphan in the private bucket. Best effort:
+ * a cleanup failure is logged, not surfaced (the object is private and inert).
+ */
+async function removeStoredReceipt(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>,
+  filePath: string
+): Promise<void> {
+  try {
+    await supabase.storage.from("deposit-receipts").remove([filePath]);
+  } catch (cleanupErr) {
+    console.warn("[wallet:submitProof:cleanupFailed]", cleanupErr);
+  }
 }
 
 /**
@@ -530,7 +592,7 @@ export async function cancelDepositAction(
     };
   }
 
-  // Try RPC first
+  // Try RPC first (the security-definer write path)
   try {
     const { error: rpcError } = await supabase.rpc("cancel_deposit", {
       p_deposit_id: parsed.data.depositId,
@@ -545,10 +607,13 @@ export async function cancelDepositAction(
       };
     }
   } catch {
-    // Fall back to direct update
+    // Fall back to guarded direct update below
   }
 
-  const { error } = await supabase
+  // Guarded direct update fallback. Row count is checked: on a correctly
+  // provisioned schema users have no UPDATE policy on `deposits`, so zero rows
+  // means the cancellation never happened and must be reported as such.
+  const { data: updatedRows, error } = await supabase
     .from("deposits")
     .update({
       status: "cancelled",
@@ -556,10 +621,11 @@ export async function cancelDepositAction(
     })
     .eq("id", parsed.data.depositId)
     .eq("user_id", account.user.id)
-    .in("status", ["pending", "pending_review"]);
+    .in("status", ["pending", "pending_review"])
+    .select("id, status");
 
-  if (error) {
-    console.error("[wallet:cancelDeposit]", error);
+  if (error || !updatedRows || updatedRows.length !== 1) {
+    console.error("[wallet:cancelDeposit]", { error, updatedRows });
     return {
       status: "error",
       message: "Could not cancel deposit. It may have already been reviewed or expired.",
@@ -620,7 +686,16 @@ export async function adminApproveDepositAction(
     }
   }
 
-  // Try RPC first (fully atomic & idempotent)
+  // The database procedure is the ONLY supported write path: one atomic,
+  // idempotent transaction (row lock + pending-state guard + ledger insert +
+  // balance recompute trigger + audit fields). A direct PostgREST write from
+  // here can never succeed on a correctly provisioned schema (admins have no
+  // INSERT/UPDATE policy on transactions/deposits), and a partially applied
+  // direct write would let a later retry credit the user twice. So when the
+  // RPC fails we surface the database's own diagnosis instead — never a second,
+  // non-atomic path.
+  let rpcErrorMessage: string | null = null;
+
   try {
     const { data: rpcData, error: rpcError } = await supabase.rpc(
       "admin_approve_deposit",
@@ -639,122 +714,19 @@ export async function adminApproveDepositAction(
       };
     }
 
-    if (rpcError && rpcError.message) {
-      console.warn("[adminApproveDeposit:rpcError]", rpcError.message);
-    }
+    rpcErrorMessage = rpcError?.message ?? "unknown error";
+    console.warn("[adminApproveDeposit:rpcError]", rpcErrorMessage);
   } catch (rpcErr) {
+    rpcErrorMessage = rpcErr instanceof Error ? rpcErr.message : String(rpcErr);
     console.warn("[adminApproveDeposit:rpcException]", rpcErr);
   }
 
-  // Fallback direct execution with lock & checks
-  const { data: deposit, error: fetchErr } = await supabase
-    .from("deposits")
-    .select("*, payment_methods(asset_symbol, payment_networks(protocol))")
-    .eq("id", depositId)
-    .single();
-
-  if (fetchErr || !deposit) {
-    return { status: "error", message: "Deposit request not found." };
-  }
-
-  // Idempotency check: already approved
-  if (deposit.status === "approved" || deposit.status === "credited") {
-    return {
-      status: "success",
-      message: "Deposit was already approved. No duplicate credit was applied.",
-    };
-  }
-
-  if (deposit.status !== "pending_review" && deposit.status !== "pending") {
-    return {
-      status: "error",
-      message: `Deposit cannot be approved in state ${deposit.status}.`,
-    };
-  }
-
-  if (!deposit.receipt_path && !deposit.receipt_url) {
-    return {
-      status: "error",
-      message: "Cannot approve deposit: no payment receipt has been submitted.",
-    };
-  }
-
-  const amountCents = deposit.amount_cents != null
-    ? deposit.amount_cents
-    : deposit.asset_amount != null
-    ? Math.round(Number(deposit.asset_amount) * 100)
-    : 0;
-
-  if (amountCents <= 0) {
-    return { status: "error", message: "Invalid deposit amount on record." };
-  }
-
-  // Insert transaction ledger row (triggers balance recalculation)
-  const txnRef = deposit.reference || `DEP-${deposit.id.slice(0, 8).toUpperCase()}`;
-  const { data: txn, error: txnError } = await supabase
-    .from("transactions")
-    .insert({
-      user_id: deposit.user_id,
-      type: "deposit",
-      status: "completed",
-      amount_cents: amountCents,
-      currency: "USD",
-      reference: txnRef,
-      description: `USDT Deposit (${deposit.method_id.includes("bsc") ? "BEP-20" : "ERC-20"})`,
-      settled_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (txnError) {
-    console.error("[adminApprove:txnError]", txnError);
-    // If unique constraint violation on reference, it might have been already created
-    if (txnError.code !== "23505") {
-      return { status: "error", message: "Failed to credit user ledger. Please try again." };
-    }
-  }
-
-  // Update deposit row
-  const { error: updateErr } = await supabase
-    .from("deposits")
-    .update({
-      status: "approved",
-      credited_cents: amountCents,
-      transaction_id: txn?.id || null,
-      settled_at: new Date().toISOString(),
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: account.user.id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", depositId);
-
-  if (updateErr) {
-    console.error("[adminApprove:updateErr]", updateErr);
-  }
-
-  // Notify the user
-  try {
-    await supabase.rpc("admin_create_notifications", {
-      p_type: "deposit",
-      p_title: "Deposit Confirmed",
-      p_body: `Your deposit of $${(amountCents / 100).toFixed(2)} USDT has been approved and credited to your available balance.`,
-      p_href: appRoutes.walletActivity,
-      p_user_ids: [deposit.user_id],
-      p_all_users: false,
-    });
-  } catch {
-    // Ignore notification error
-  }
-
-  revalidatePath(appRoutes.wallet);
-  revalidatePath(appRoutes.walletActivity);
-  revalidatePath(appRoutes.dashboard);
-  revalidatePath("/admin");
-  revalidatePath("/admin/deposits");
-
+  const missingProcedure = /does not exist/i.test(rpcErrorMessage ?? "");
   return {
-    status: "success",
-    message: `Deposit approved. $${(amountCents / 100).toFixed(2)} USDT credited to user wallet.`,
+    status: "error",
+    message: missingProcedure
+      ? "Approval is unavailable: the database is missing the admin_approve_deposit() procedure. Apply the deposit migrations (supabase/migrations/0010+) and retry. No credit was applied."
+      : `Approval failed: ${rpcErrorMessage}. No credit was applied — the deposit remains in its previous state.`,
   };
 }
 
@@ -800,7 +772,13 @@ export async function adminDeclineDepositAction(
     }
   }
 
-  // Try RPC first
+  // The database procedure is the only write path — it validates the state
+  // transition, records the admin, reason and timestamp, and notifies the
+  // user, in one transaction. No non-atomic fallback: a direct update here
+  // would not be authorized on a correctly provisioned schema, and a false
+  // "declined" result would desync the admin queue from the ledger.
+  let rpcErrorMessage: string | null = null;
+
   try {
     const { error: rpcError } = await supabase.rpc("admin_decline_deposit", {
       p_deposit_id: depositId,
@@ -817,62 +795,20 @@ export async function adminDeclineDepositAction(
         message: "Deposit declined and reason recorded.",
       };
     }
-  } catch {
-    // Fall back to direct update
+
+    rpcErrorMessage = rpcError?.message ?? "unknown error";
+    console.warn("[adminDeclineDeposit:rpcError]", rpcErrorMessage);
+  } catch (rpcErr) {
+    rpcErrorMessage = rpcErr instanceof Error ? rpcErr.message : String(rpcErr);
+    console.warn("[adminDeclineDeposit:rpcException]", rpcErr);
   }
 
-  const { data: deposit, error: fetchErr } = await supabase
-    .from("deposits")
-    .select("id, user_id, status")
-    .eq("id", depositId)
-    .single();
-
-  if (fetchErr || !deposit) {
-    return { status: "error", message: "Deposit request not found." };
-  }
-
-  if (deposit.status === "approved" || deposit.status === "credited") {
-    return { status: "error", message: "Cannot decline an already approved deposit." };
-  }
-
-  const { error: updateErr } = await supabase
-    .from("deposits")
-    .update({
-      status: "declined",
-      rejection_reason: reason.trim(),
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: account.user.id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", depositId);
-
-  if (updateErr) {
-    console.error("[adminDecline:updateErr]", updateErr);
-    return { status: "error", message: "Failed to decline deposit. Please try again." };
-  }
-
-  // Notify user
-  try {
-    await supabase.rpc("admin_create_notifications", {
-      p_type: "deposit",
-      p_title: "Deposit Declined",
-      p_body: `Your deposit request was declined. Reason: ${reason.trim()}.`,
-      p_href: appRoutes.wallet,
-      p_user_ids: [deposit.user_id],
-      p_all_users: false,
-    });
-  } catch {
-    // Notification fallback
-  }
-
-  revalidatePath(appRoutes.wallet);
-  revalidatePath(appRoutes.dashboard);
-  revalidatePath("/admin");
-  revalidatePath("/admin/deposits");
-
+  const missingProcedure = /does not exist/i.test(rpcErrorMessage ?? "");
   return {
-    status: "success",
-    message: "Deposit declined and user notified.",
+    status: "error",
+    message: missingProcedure
+      ? "Decline is unavailable: the database is missing the admin_decline_deposit() procedure. Apply the deposit migrations (supabase/migrations/0010+) and retry. The deposit was not changed."
+      : `Decline failed: ${rpcErrorMessage}. The deposit was not changed.`,
   };
 }
 
@@ -923,15 +859,12 @@ export async function getReceiptSignedUrlAction(
     return { status: "error", message: "Deposit request not found." };
   }
 
-  const receiptPath = deposit.receipt_path;
-  const pathParts = receiptPath?.split("/") ?? [];
-  const isExactReceiptPath =
-    pathParts.length === 3 &&
-    pathParts[0] === deposit.user_id &&
-    pathParts[1] === deposit.id &&
-    /^receipt-[a-z0-9-]+\.(jpg|jpeg|png|webp|pdf)$/i.test(pathParts[2]);
-
-  if (typeof receiptPath !== "string" || !isExactReceiptPath) {
+  // Strictly validate the stored path before signing: exactly
+  // `{user_id}/{deposit_id}/receipt-*.ext` for this deposit. Legacy or
+  // corrupted values (bare filenames, URLs, other deposits' paths) are
+  // refused, so this action can never sign an arbitrary private object.
+  const parsedReceipt = parseReceiptPath(deposit.receipt_path, deposit.user_id, deposit.id);
+  if (!parsedReceipt) {
     return {
       status: "error",
       message: "This deposit does not have a valid stored receipt path.",
@@ -939,8 +872,8 @@ export async function getReceiptSignedUrlAction(
   }
 
   const { data, error } = await supabase.storage
-    .from("deposit-receipts")
-    .createSignedUrl(receiptPath, 3600);
+    .from(RECEIPT_BUCKET)
+    .createSignedUrl(deposit.receipt_path as string, RECEIPT_SIGN_TTL_SECONDS);
 
   if (error || !data?.signedUrl) {
     console.error("[getReceiptSignedUrl]", error);

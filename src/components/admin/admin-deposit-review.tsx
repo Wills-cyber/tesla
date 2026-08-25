@@ -6,7 +6,10 @@ import {
   Check,
   CheckCircle2,
   Eye,
+  ExternalLink,
+  FileText,
   Filter,
+  ImageOff,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -343,9 +346,15 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
               : "ERC-20 (Ethereum)";
 
             const hasReceipt = Boolean(deposit.receiptPath || deposit.receiptUrl);
-            const isReviewable =
-              deposit.status === "pending_review" ||
-              (deposit.status === "pending" && hasReceipt);
+            const isImageReceipt = hasReceipt && deposit.receiptIsPdf !== true;
+            const previewUrl = deposit.receiptSignedUrl ?? null;
+
+            // Every request in the pending queue shows both actions. Approve is
+            // disabled until a receipt is attached — and the database refuses to
+            // approve a deposit without proof, so the button is a mirror of a
+            // rule that also holds server-side.
+            const isActionable =
+              deposit.status === "pending_review" || deposit.status === "pending";
 
             return (
               <div
@@ -385,9 +394,6 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
                     <span className="font-mono font-semibold text-brand-emphasis">
                       {deposit.reference}
                     </span>
-                    <span className="text-muted-foreground">
-                      {formatDateTime(deposit.createdAt)}
-                    </span>
                   </div>
                 </div>
 
@@ -401,33 +407,39 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
                       {deposit.userFullName || "User"}
                     </span>
                     <span className="truncate text-[0.7rem] text-muted-foreground">
-                      {deposit.userEmail || deposit.userId || "—"}
+                      {deposit.userEmail || "—"}
+                    </span>
+                    <span
+                      className="truncate font-mono text-[0.68rem] text-muted-foreground"
+                      title={deposit.userId}
+                    >
+                      ID: {deposit.userId}
                     </span>
                   </div>
 
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[0.68rem] text-muted-foreground uppercase">
-                      Receiving Address
+                      Deposit Address
                     </span>
-                    <span className="truncate font-mono text-[0.72rem] text-foreground">
+                    <span className="break-all font-mono text-[0.72rem] text-foreground">
                       {deposit.receivingAddress}
                     </span>
                   </div>
 
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[0.68rem] text-muted-foreground uppercase">
-                      Payment Receipt Proof
+                      Requested
                     </span>
-                    {hasReceipt ? (
-                      <span className="flex items-center gap-1 font-semibold text-emerald-400">
-                        <CheckCircle2 className="size-3.5" />
-                        Receipt Uploaded
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        No receipt attached
-                      </span>
-                    )}
+                    <span className="text-[0.72rem] text-foreground">
+                      {formatDateTime(deposit.createdAt)}
+                    </span>
+                    {deposit.expiresAt &&
+                      (deposit.status === "pending" ||
+                        deposit.status === "pending_review") && (
+                        <span className="text-[0.68rem] text-muted-foreground">
+                          Proof window closes {formatDateTime(deposit.expiresAt)}
+                        </span>
+                      )}
                   </div>
 
                   <div className="flex flex-col gap-0.5">
@@ -435,13 +447,127 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
                       Review Audit
                     </span>
                     {deposit.reviewedAt ? (
-                      <span className="text-[0.7rem] text-muted-foreground">
-                        Reviewed at {formatDateTime(deposit.reviewedAt)}
-                      </span>
+                      <>
+                        <span className="text-[0.7rem] text-muted-foreground">
+                          Reviewed {formatDateTime(deposit.reviewedAt)}
+                        </span>
+                        {deposit.creditedCents != null && (
+                          <span
+                            data-numeric
+                            className="text-[0.7rem] font-semibold text-emerald-400"
+                          >
+                            Credited {formatCurrency(deposit.creditedCents)}
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className="text-amber-400">Awaiting review</span>
                     )}
                   </div>
+                </div>
+
+                {/* Payment Receipt Proof — inline preview from the PRIVATE bucket */}
+                <div className="flex flex-col gap-2.5 rounded-xl border border-hairline bg-surface-2 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[0.68rem] text-muted-foreground uppercase">
+                      Payment Receipt Proof
+                    </span>
+                    {hasReceipt ? (
+                      <span className="flex items-center gap-1 text-[0.7rem] font-semibold text-emerald-400">
+                        <CheckCircle2 className="size-3.5" />
+                        Submitted
+                        {deposit.receiptSubmittedAt
+                          ? ` · ${formatDateTime(deposit.receiptSubmittedAt)}`
+                          : ""}
+                      </span>
+                    ) : (
+                      <span className="text-[0.7rem] text-muted-foreground">
+                        Awaiting user upload
+                      </span>
+                    )}
+                  </div>
+
+                  {hasReceipt ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      {isImageReceipt && previewUrl ? (
+                        <div
+                          className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-hairline bg-black/40"
+                          title="Click View Receipt for the full size image"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={previewUrl}
+                            alt={`Receipt preview for ${deposit.reference}`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : isImageReceipt ? (
+                        <div
+                          className="grid h-16 w-16 shrink-0 place-items-center rounded-lg border border-hairline bg-surface-3 text-muted-foreground"
+                          title="Preview unavailable — open View Receipt to fetch a fresh signed link"
+                        >
+                          <ImageOff className="size-5" />
+                        </div>
+                      ) : (
+                        <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-surface-3 text-brand">
+                          <FileText className="size-6" />
+                        </div>
+                      )}
+
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="text-xs font-semibold text-foreground">
+                          {isImageReceipt ? "Image receipt" : "PDF receipt"}
+                        </span>
+                        <span className="text-[0.7rem] leading-relaxed text-muted-foreground">
+                          {previewUrl
+                            ? "Private bucket · secure signed link, valid 1 hour"
+                            : "Stored in the private deposit-receipts bucket — open View Receipt to fetch a fresh link"}
+                        </span>
+                      </div>
+
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {previewUrl && (
+                          <Button
+                            asChild
+                            variant="hairline"
+                            size="sm"
+                            className="gap-1.5"
+                          >
+                            <a
+                              href={previewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {isImageReceipt ? "View Full" : "Open Receipt"}
+                              <ExternalLink className="size-3" />
+                            </a>
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="hairline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() =>
+                            setViewingReceipt({
+                              depositId: deposit.id,
+                              reference: deposit.reference,
+                            })
+                          }
+                        >
+                          <Eye className="size-3.5" />
+                          View Receipt
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      No receipt attached yet. The user has been asked to upload
+                      payment proof — Approve unlocks automatically once it
+                      arrives.
+                    </p>
+                  )}
                 </div>
 
                 {/* Decline reason notice if declined */}
@@ -454,40 +580,33 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
                   </div>
                 )}
 
-                {/* Action Bar */}
+                {/* Action Bar — Approve + Decline on every pending request */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-3">
-                  <div>
-                    {hasReceipt && (
-                      <Button
-                        type="button"
-                        variant="hairline"
-                        size="sm"
-                        onClick={() =>
-                          setViewingReceipt({
-                            depositId: deposit.id,
-                            reference: deposit.reference,
-                          })
-                        }
-                        className="gap-1.5"
-                      >
-                        <Eye className="size-3.5" />
-                        View Receipt Proof
-                      </Button>
-                    )}
-                  </div>
+                  <span className="text-[0.7rem] text-muted-foreground">
+                    {isActionable
+                      ? hasReceipt
+                        ? "Receipt submitted — ready for review."
+                        : "Approve unlocks once the user uploads a receipt."
+                      : ""}
+                  </span>
 
-                  {isReviewable && (
-                    <div className="flex items-center gap-2">
+                  {isActionable && (
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button
                         type="button"
                         variant="accent"
                         size="sm"
                         onClick={() => setApprovingDeposit(deposit)}
                         disabled={!hasReceipt}
-                        className="gap-1.5 bg-emerald-600 hover:bg-emerald-500"
+                        title={
+                          hasReceipt
+                            ? undefined
+                            : "Waiting for the user to upload a receipt"
+                        }
+                        className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Check className="size-3.5" />
-                        Approve Deposit
+                        Approve
                       </Button>
 
                       <Button
@@ -537,7 +656,7 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
             </div>
             <DialogTitle>Approve USDT Deposit</DialogTitle>
             <DialogDescription>
-              Are you sure you want to approve this deposit of{" "}
+              Approve this deposit of{" "}
               <strong>
                 {approvingDeposit
                   ? formatCurrency(approvingDeposit.amountCents)
@@ -549,8 +668,8 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
                 {approvingDeposit?.userFullName ||
                   approvingDeposit?.userEmail ||
                   "the user"}
-              </strong>
-              ?
+              </strong>{" "}
+              and credit the user&apos;s wallet?
             </DialogDescription>
           </DialogHeader>
 
@@ -606,14 +725,9 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
             </div>
             <DialogTitle>Decline USDT Deposit</DialogTitle>
             <DialogDescription>
-              Specify a reason for declining this deposit of{" "}
-              <strong>
-                {decliningDeposit
-                  ? formatCurrency(decliningDeposit.amountCents)
-                  : ""}{" "}
-                USDT
-              </strong>
-              . The reason will be recorded and sent to the user.
+              Decline this deposit request? The user&apos;s wallet will not be
+              credited. A reason is required — it will be recorded and sent to
+              the user with the decline.
             </DialogDescription>
           </DialogHeader>
 

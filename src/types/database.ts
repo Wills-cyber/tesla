@@ -708,6 +708,15 @@ export type Database = {
         Args: { p_deposit_id: string };
         Returns: DepositRow;
       };
+      /**
+       * Marks an owner's own `pending` deposit `expired` once its proof window
+       * has closed. Runs in its own transaction so the update commits
+       * (migration 0015). Owner-only.
+       */
+      expire_stale_deposit: {
+        Args: { p_deposit_id: string };
+        Returns: DepositRow;
+      };
       /** Approves a deposit and credits user wallet. Idempotent. Admin only. */
       admin_approve_deposit: {
         Args: { p_deposit_id: string };

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test:deposit-db": "node scripts/e2e-deposit-db.mjs",
     "verify:qr": "node --no-warnings scripts/verify-qr.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
     "credit:balance": "node --no-warnings scripts/credit-balance.mjs"
@@ -35,8 +36,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "embedded-postgres": "^18.4.0-beta.17",
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
+    "pg": "^8.23.0",
     "shadcn": "^4.18.0",
     "tailwindcss": "^4",
     "typescript": "^5"

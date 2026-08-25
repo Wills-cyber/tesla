@@ -2,6 +2,7 @@ import "server-only";
 
 import { ADMIN_USER_ID, usdtDepositNetworks } from "@/config/crypto";
 import { toDecimalString } from "@/lib/crypto/decimal";
+import { attachAdminReceiptPreviews } from "@/lib/wallet/receipts";
 import type {
   DepositAddress,
   DepositRecord,
@@ -227,6 +228,12 @@ export async function getActivePendingDeposit(): Promise<DataResult<DepositRecor
 
 /**
  * Admin: Get all deposits with user details for admin review.
+ *
+ * Authorization is enforced twice, on purpose: the `admin_get_deposits` RPC
+ * re-checks `is_admin()` inside Postgres, and the table fallback only ever
+ * returns rows the caller's RLS policies can see. The receipt preview URLs
+ * attached below are signed *here*, server-side, for this authorized admin
+ * only — no raw Storage paths or public URLs ever reach the client.
  */
 export async function getAdminDeposits(
   statusFilter?: string
@@ -242,6 +249,19 @@ export async function getAdminDeposits(
     const { data: isDbAdmin } = await supabase.rpc("is_admin", {});
     if (!isDbAdmin) {
       return failed("Not authorized to view admin deposits.");
+    }
+  }
+
+  // The caller is a verified admin: sign private receipt paths for the
+  // actionable queue so the review cards can show inline previews. Failures
+  // are non-fatal — a queue without previews still renders, and the modal can
+  // request a fresh signed URL on demand.
+  async function withPreviews(records: DepositRecord[]): Promise<DepositRecord[]> {
+    try {
+      return await attachAdminReceiptPreviews(supabase, records);
+    } catch (previewError) {
+      console.warn("[adminDeposits:receiptPreviews]", previewError);
+      return records;
     }
   }
 
@@ -280,7 +300,7 @@ export async function getAdminDeposits(
         createdAt: row.created_at,
         settledAt: row.settled_at,
       }));
-      return ready(records);
+      return ready(await withPreviews(records));
     }
   } catch {
     // Fallback to table query if RPC is not available yet
@@ -309,7 +329,7 @@ export async function getAdminDeposits(
     };
   });
 
-  return ready(records);
+  return ready(await withPreviews(records));
 }
 
 export async function getUserWithdrawals(

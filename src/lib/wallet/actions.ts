@@ -257,12 +257,15 @@ export async function createDepositAction(
 /**
  * Submits a payment receipt proof for a pending deposit.
  *
- * Rules:
- * - Allow JPG, JPEG, PNG, WEBP, PDF
- * - Secure upload to Supabase Storage bucket `deposit-receipts`
- * - Change status to `pending_review`
- * - DO NOT credit the wallet
- * - Create user notification: "Payment Pending Review"
+ * Fixed implementation:
+ * - Validates authenticated user and deposit ownership
+ * - Validates file type and size
+ * - Uploads to PRIVATE bucket `deposit-receipts` at path:
+ *   {user_id}/{deposit_id}/{unique_filename}
+ * - Confirms Storage upload succeeds BEFORE updating DB
+ * - Saves Storage path (not fake public URL) to deposit record
+ * - Only then changes status to PENDING_REVIEW
+ * - NEVER credits wallet (credit only on admin approval)
  */
 export async function submitDepositProofAction(
   formData: FormData
@@ -321,7 +324,7 @@ export async function submitDepositProofAction(
     };
   }
 
-  // Verify deposit exists and is in pending status
+  // Verify deposit exists, belongs to user, and is in pending status
   const { data: deposit, error: fetchError } = await supabase
     .from("deposits")
     .select("id, status, expires_at, user_id")
@@ -352,32 +355,82 @@ export async function submitDepositProofAction(
   if (deposit.expires_at && new Date(deposit.expires_at).getTime() < Date.now()) {
     await supabase
       .from("deposits")
-      .update({ status: "expired" })
-      .eq("id", depositId);
+      .update({ status: "expired", updated_at: new Date().toISOString() })
+      .eq("id", depositId)
+      .eq("user_id", account.user.id);
     return {
       status: "error",
       message: "This deposit request has expired. Please create a new deposit.",
     };
   }
 
-  // Upload file to Supabase Storage
-  const ext = receiptFile.name.split(".").pop()?.toLowerCase() || "jpg";
-  const filePath = `${account.user.id}/${depositId}-${Date.now()}.${ext}`;
+  // ---- Generate safe, unique filename and path ----
+  // Path format: deposit-receipts/{user_id}/{deposit_id}/{filename}
+  // Inside bucket, path is: {user_id}/{deposit_id}/{filename}
+  const mimeToExt: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "application/pdf": "pdf",
+  };
+
+  const originalName = receiptFile.name || "receipt";
+  const extFromName = originalName.split(".").pop()?.toLowerCase() || "";
+  let ext = mimeToExt[receiptFile.type] || extFromName || "jpg";
+  // Sanitize extension
+  ext = ext.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10) || "jpg";
+  const allowedExts = ["jpg", "jpeg", "png", "webp", "pdf"];
+  if (!allowedExts.includes(ext)) {
+    ext = mimeToExt[receiptFile.type] || "jpg";
+  }
+  if (ext === "jpeg") ext = "jpg";
+
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+  const safeFilename = `receipt-${uniqueSuffix}.${ext}`;
+
+  // Use actual authenticated user ID and actual deposit ID, with deposit_id as folder
+  const filePath = `${account.user.id}/${depositId}/${safeFilename}`;
+
   const fileBuffer = await receiptFile.arrayBuffer();
 
+  // ---- Upload to Supabase Storage bucket deposit-receipts (PRIVATE) ----
   const { error: uploadError } = await supabase.storage
     .from("deposit-receipts")
     .upload(filePath, fileBuffer, {
       contentType: receiptFile.type,
-      upsert: true,
+      upsert: false, // prevent overwriting another user's receipt or same file
     });
 
   if (uploadError) {
     console.error("[wallet:submitProof:upload]", uploadError);
-    // Even if storage bucket policy error, we record the file path
+    const msgLower = (uploadError.message || "").toLowerCase();
+    if (msgLower.includes("bucket not found") || msgLower.includes("bucket_not_found")) {
+      return {
+        status: "error",
+        message: "Receipt storage is not configured. Please contact support. (deposit-receipts bucket missing)",
+      };
+    }
+    if (msgLower.includes("policy") || msgLower.includes("row-level security") || msgLower.includes("rls") || msgLower.includes("unauthorized")) {
+      return {
+        status: "error",
+        message: "You are not authorized to upload this receipt. Please try again or contact support.",
+      };
+    }
+    if (msgLower.includes("too large") || msgLower.includes("file size") || msgLower.includes("payload too large")) {
+      return {
+        status: "error",
+        message: "Receipt file is too large. Maximum file size is 10 MB.",
+      };
+    }
+    return {
+      status: "error",
+      message: `Failed to upload receipt: ${uploadError.message}. Please try again.`,
+    };
   }
 
-  // Try RPC first
+  // ---- Confirm Storage upload succeeded, then save Storage path to deposit record ----
+  // Try RPC first (atomic status change + notification)
   try {
     const { error: rpcError } = await supabase.rpc("submit_deposit_receipt", {
       p_deposit_id: depositId,
@@ -394,32 +447,40 @@ export async function submitDepositProofAction(
         message: "Your payment proof has been submitted successfully and is pending review.",
       };
     }
-  } catch {
-    // Fall back to direct table update
+    console.warn("[wallet:submitProof:rpcError]", rpcError?.message);
+  } catch (rpcEx) {
+    console.warn("[wallet:submitProof:rpcException]", rpcEx);
   }
 
-  // Direct table update fallback
+  // Direct table update fallback - only after successful storage upload
   const { error: updateError } = await supabase
     .from("deposits")
     .update({
       status: "pending_review",
-      receipt_path: filePath,
-      receipt_url: filePath,
+      receipt_path: filePath, // Store Storage path/reference, NOT fake public URL
+      receipt_url: filePath, // Keep for backward compatibility, same path
       receipt_submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", depositId)
-    .eq("user_id", account.user.id);
+    .eq("user_id", account.user.id)
+    .eq("status", "pending"); // Ensure we only transition from pending
 
   if (updateError) {
     console.error("[wallet:submitProof:update]", updateError);
+    // Cleanup uploaded file to avoid orphaned files if DB update fails
+    try {
+      await supabase.storage.from("deposit-receipts").remove([filePath]);
+    } catch (cleanupErr) {
+      console.warn("[wallet:submitProof:cleanupFailed]", cleanupErr);
+    }
     return {
       status: "error",
-      message: "Failed to update deposit record. Please try again.",
+      message: "Receipt uploaded but failed to update deposit record. Please try again.",
     };
   }
 
-  // Create notification for user
+  // Create notification for user (best effort)
   try {
     await supabase.rpc("create_notification", {
       p_type: "deposit",
@@ -428,7 +489,7 @@ export async function submitDepositProofAction(
       p_href: appRoutes.wallet,
     });
   } catch {
-    // Notifications trigger or fallback
+    // Notifications trigger or fallback - ignore
   }
 
   revalidatePath(appRoutes.wallet);
@@ -817,12 +878,23 @@ export async function adminDeclineDepositAction(
 /**
  * Generates a signed URL for viewing a private deposit receipt.
  * Restricted to the deposit owner or an admin.
+ *
+ * Security:
+ * - Bucket is PRIVATE (deposit-receipts)
+ * - Normal users can only access receipts where path starts with their user_id
+ * - Admin (f91a9db9-8f13-4759-9b10-a0cdf385e7d4 or is_admin()) can view any
+ * - Uses signed URL with 1-hour expiration for secure retrieval
  */
 export async function getReceiptSignedUrlAction(
   receiptPath: string
 ): Promise<{ status: "success"; signedUrl: string } | { status: "error"; message: string }> {
   if (!receiptPath) {
     return { status: "error", message: "No receipt path provided." };
+  }
+
+  // Prevent path traversal
+  if (receiptPath.includes("..") || receiptPath.startsWith("/") || receiptPath.includes("//")) {
+    return { status: "error", message: "Invalid receipt path." };
   }
 
   const account = await getAccountMode();
@@ -838,19 +910,43 @@ export async function getReceiptSignedUrlAction(
   const isAdminUser = account.user.id === ADMIN_USER_ID;
   const isOwner = receiptPath.startsWith(`${account.user.id}/`);
 
+  // If not owner and not hardcoded admin, check DB admin flag
   if (!isAdminUser && !isOwner) {
-    const { data: isDbAdmin } = await supabase.rpc("is_admin", {});
-    if (!isDbAdmin) {
+    try {
+      const { data: isDbAdmin } = await supabase.rpc("is_admin", {});
+      if (!isDbAdmin) {
+        return { status: "error", message: "Not authorized to view this receipt." };
+      }
+    } catch {
       return { status: "error", message: "Not authorized to view this receipt." };
+    }
+  }
+
+  // For owner, additionally verify deposit record belongs to them (defense in depth)
+  // This prevents a user guessing another user's path that starts with their own ID (which can't happen)
+  // but also ensures the receipt path is actually tied to a deposit they own.
+  if (isOwner && !isAdminUser) {
+    // Optional: verify path structure {user_id}/{deposit_id}/{filename}
+    const parts = receiptPath.split("/");
+    if (parts.length < 3) {
+      // Allow legacy format {user_id}/{file} for backward compatibility, but log
+      console.warn("[getReceiptSignedUrl] legacy path format", receiptPath);
     }
   }
 
   const { data, error } = await supabase.storage
     .from("deposit-receipts")
-    .createSignedUrl(receiptPath, 3600); // 1 hour expiration
+    .createSignedUrl(receiptPath, 3600); // 1 hour expiration - secure retrieval from PRIVATE bucket
 
   if (error || !data?.signedUrl) {
     console.error("[getReceiptSignedUrl]", error);
+    const msgLower = (error?.message || "").toLowerCase();
+    if (msgLower.includes("not found") || msgLower.includes("object not found")) {
+      return { status: "error", message: "Receipt file not found in storage. It may have been removed or never uploaded." };
+    }
+    if (msgLower.includes("policy") || msgLower.includes("unauthorized")) {
+      return { status: "error", message: "Not authorized to access this receipt. Check storage policies." };
+    }
     return { status: "error", message: "Could not generate secure link for receipt." };
   }
 

@@ -1,9 +1,10 @@
 import * as React from "react";
-import { ArrowDownToLine, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { ArrowDownToLine, ArrowRight, ExternalLink } from "lucide-react";
 
 import { StatusPill, type PillTone } from "@/components/common/status-pill";
 import { buildExplorerUrl } from "@/config/crypto";
-import { formatAssetAmount, formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
   DepositRecord,
@@ -15,10 +16,15 @@ const statusCopy: Record<
   DepositRecordStatus,
   { label: string; tone: PillTone }
 > = {
-  awaiting_funds: { label: "Awaiting funds", tone: "neutral" },
-  pending: { label: "Pending", tone: "warning" },
-  confirmed: { label: "Confirmed", tone: "info" },
+  pending_review: { label: "Pending Review", tone: "warning" },
+  pending: { label: "Pending Payment", tone: "warning" },
+  approved: { label: "Approved", tone: "success" },
   credited: { label: "Credited", tone: "success" },
+  declined: { label: "Declined", tone: "danger" },
+  expired: { label: "Expired", tone: "neutral" },
+  cancelled: { label: "Cancelled", tone: "neutral" },
+  awaiting_funds: { label: "Awaiting funds", tone: "neutral" },
+  confirmed: { label: "Confirmed", tone: "info" },
   failed: { label: "Failed", tone: "danger" },
 };
 
@@ -27,15 +33,6 @@ function shortenHash(hash: string): string {
   return `${hash.slice(0, 8)}…${hash.slice(-6)}`;
 }
 
-/**
- * Observed deposits.
- *
- * Rows are written by the payment provider's webhook, never by the app, so a
- * deposit appears here because the chain showed it. The confirmation count is the
- * provider's own figure — the UI does not estimate progress, and a deposit is only
- * `Credited` once a ledger transaction exists for it (enforced by the
- * `deposits_credited_complete` constraint).
- */
 export function DepositList({
   deposits,
   methods,
@@ -59,11 +56,23 @@ export function DepositList({
         const method = methods.find(
           (candidate) => candidate.id === deposit.methodId
         );
-        const status = statusCopy[deposit.status];
+        const status = statusCopy[deposit.status] || {
+          label: deposit.status,
+          tone: "neutral" as PillTone,
+        };
+
         const explorerUrl =
           method && deposit.txHash
             ? buildExplorerUrl(method.network, deposit.txHash)
             : null;
+
+        const networkProtocol = deposit.methodId.includes("bsc")
+          ? "BEP-20"
+          : deposit.methodId.includes("ethereum")
+          ? "ERC-20"
+          : method?.network.protocol ?? "";
+
+        const isPending = deposit.status === "pending";
 
         return (
           <li
@@ -81,7 +90,7 @@ export function DepositList({
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="text-sm font-semibold">
                   {deposit.assetSymbol}
-                  {method ? ` · ${method.network.protocol}` : ""}
+                  {networkProtocol ? ` · ${networkProtocol}` : ""}
                 </span>
                 <StatusPill tone={status.tone} dot>
                   {status.label}
@@ -92,6 +101,11 @@ export function DepositList({
                 <time dateTime={deposit.settledAt ?? deposit.createdAt}>
                   {formatDateTime(deposit.settledAt ?? deposit.createdAt)}
                 </time>
+
+                <span aria-hidden="true">·</span>
+                <span data-numeric className="font-mono">
+                  {deposit.reference}
+                </span>
 
                 {deposit.confirmations !== null && (
                   <>
@@ -128,24 +142,31 @@ export function DepositList({
               </span>
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-0.5">
-              {deposit.assetAmount && method && (
-                <span
-                  data-numeric
-                  className="text-sm font-semibold whitespace-nowrap sm:text-base"
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <span
+                data-numeric
+                className="text-sm font-semibold whitespace-nowrap sm:text-base"
+              >
+                {formatCurrency(deposit.amountCents)} {deposit.assetSymbol}
+              </span>
+
+              {isPending ? (
+                <Link
+                  href={`/wallet/deposit/${deposit.id}`}
+                  className="inline-flex items-center gap-1 text-[0.72rem] font-semibold text-brand-emphasis hover:underline"
                 >
-                  {formatAssetAmount(
-                    deposit.assetAmount,
-                    method.asset.displayDecimals
-                  )}{" "}
-                  {deposit.assetSymbol}
+                  <span>Continue</span>
+                  <ArrowRight className="size-3" />
+                </Link>
+              ) : (
+                <span data-numeric className="text-[0.7rem] text-muted-foreground">
+                  {deposit.creditedCents === null
+                    ? deposit.status === "pending_review"
+                      ? "Pending review"
+                      : "Not credited"
+                    : `Credited ${formatCurrency(deposit.creditedCents)}`}
                 </span>
               )}
-              <span data-numeric className="text-[0.7rem] text-muted-foreground">
-                {deposit.creditedCents === null
-                  ? "Not yet credited"
-                  : formatCurrency(deposit.creditedCents)}
-              </span>
             </div>
           </li>
         );

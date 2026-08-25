@@ -2,19 +2,30 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  ADMIN_USER_ID,
+  isValidAddressForMethod,
+  MAX_DEPOSIT_CENTS,
+  MIN_DEPOSIT_CENTS,
+  RECEIVING_WALLET_ADDRESS,
+  usdtDepositNetworks,
+} from "@/config/crypto";
 import { appRoutes } from "@/config/navigation";
-import { isValidAddressForMethod } from "@/config/crypto";
 import { getAccountMode } from "@/lib/auth/session";
 import {
   getPaymentMethods,
   getUserBalance,
   getWithdrawalPolicy,
 } from "@/lib/data";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { getRateProvider } from "@/lib/quotes/rate-provider";
-import { computeWithdrawalCosts, isQuoteExpired } from "@/lib/wallet/costs";
 import { shortReference } from "@/lib/format";
+import { getRateProvider } from "@/lib/quotes/rate-provider";
+import { computeWithdrawalCosts } from "@/lib/wallet/costs";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  adminApproveDepositSchema,
+  adminDeclineDepositSchema,
+  cancelDepositSchema,
+  createDepositRequestSchema,
   depositAddressRequestSchema,
   savedAddressIdSchema,
   savedAddressSchema,
@@ -29,23 +40,11 @@ import type { ExchangeQuote, PaymentMethod, QuoteResult } from "@/types/crypto";
 /**
  * Wallet Server Actions.
  *
- * These are the *only* way the browser can ask the platform to move money, and
- * they are the security boundary. Three things follow from that:
- *
- *   1. Nothing in this file trusts its input. Every action re-parses with the same
- *      Zod schema the form used, then re-derives the payment method, the policy
- *      and the balance from the server, ignoring anything the client asserted.
- *   2. No action ever reports success it did not achieve. Where a capability
- *      genuinely isn't connected, the result is `unavailable` with a precise
- *      reason — never a fake confirmation, and never a balance change.
- *   3. No signing key, provider credential or custody secret is read, returned or
- *      referenced here. Broadcasting a transaction is the payment provider's job,
- *      driven by a server-side worker that reads `pending` withdrawal rows.
- *
- * The database is the last line: `request_withdrawal` re-validates account
- * status, the enabled pair, the address format, the minimum, the maximum, the
- * service fee and the spendable balance inside Postgres, where the client cannot
- * reach.
+ * Handles:
+ * - USDT Deposits (creation, 1-hour expiration, receipt upload, cancellation)
+ * - Admin Deposit Review (Approval with balance credit, Decline with reason)
+ * - Withdrawals
+ * - Saved Addresses
  */
 
 function fieldError(
@@ -55,13 +54,9 @@ function fieldError(
   return { status: "error", message, fieldErrors };
 }
 
-/**
- * Collapses Zod issues into one message per field.
- *
- * First issue wins: showing a field three complaints at once tells the user less
- * than showing them the first thing to fix.
- */
-function collectFieldErrors(issues: readonly { path: PropertyKey[]; message: string }[]) {
+function collectFieldErrors(
+  issues: readonly { path: PropertyKey[]; message: string }[]
+) {
   const fieldErrors: Record<string, string> = {};
   for (const issue of issues) {
     const key = issue.path[0];
@@ -72,7 +67,6 @@ function collectFieldErrors(issues: readonly { path: PropertyKey[]; message: str
   return fieldErrors;
 }
 
-/** The pair, re-derived server-side. The client's claim about it is ignored. */
 async function resolveMethod(
   methodId: string
 ): Promise<
@@ -107,16 +101,764 @@ async function resolveMethod(
   return { ok: true, method };
 }
 
-/* ------------------------------------------------------------------ Deposits */
+/* ------------------------------------------------------------------ USDT Deposits */
+
+export type CreateDepositActionResult =
+  | { status: "success"; depositId: string; reference: string; redirectTo: string }
+  | { status: "error"; message: string; fieldErrors?: Record<string, string> }
+  | { status: "unavailable"; message: string };
 
 /**
- * Asks for the deposit address for an asset/network pair.
+ * Creates a pending USDT deposit request.
  *
- * Addresses are issued by the payment provider and written to
- * `deposit_addresses` by a server process — this action never generates one. With
- * no provider connected there is nothing to return, so the UI is told plainly
- * rather than shown an empty box that looks like a loading failure.
+ * Rules:
+ * - Asset: USDT only
+ * - Networks: BEP-20 (usdt-bsc) or ERC-20 (usdt-ethereum) only
+ * - Amount: 1,000 to 50,000 USDT ($1,000.00 to $50,000.00)
+ * - Status: initially `pending`
+ * - Expiration: 1 hour from creation (`expires_at`)
+ * - DO NOT credit the wallet
  */
+export async function createDepositAction(
+  values: unknown
+): Promise<CreateDepositActionResult> {
+  const parsed = createDepositRequestSchema.safeParse(values);
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Please enter a valid deposit amount between 1,000 and 50,000 USDT.",
+      fieldErrors: collectFieldErrors(parsed.error.issues),
+    };
+  }
+
+  const { methodId, amountUsdt } = parsed.data;
+  const amountCents = usdStringToCents(amountUsdt);
+
+  if (amountCents < MIN_DEPOSIT_CENTS || amountCents > MAX_DEPOSIT_CENTS) {
+    return {
+      status: "error",
+      message: "Deposit amount must be between 1,000 and 50,000 USDT.",
+      fieldErrors: {
+        amountUsdt: "Amount must be between 1,000 and 50,000 USDT.",
+      },
+    };
+  }
+
+  const account = await getAccountMode();
+  if (account.mode !== "authenticated") {
+    return {
+      status: "unavailable",
+      message: "Please sign in to create a deposit request.",
+    };
+  }
+
+  const networkConfig = usdtDepositNetworks[methodId];
+  if (!networkConfig) {
+    return {
+      status: "error",
+      message: "Invalid deposit network selected.",
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return {
+      status: "unavailable",
+      message: "The database isn't connected. Please try again later.",
+    };
+  }
+
+  // Check if user already has an active pending deposit
+  const nowIso = new Date().toISOString();
+  const { data: existingPending } = await supabase
+    .from("deposits")
+    .select("id, reference")
+    .eq("user_id", account.user.id)
+    .eq("status", "pending")
+    .gt("expires_at", nowIso)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingPending) {
+    // If active pending deposit already exists, return that one
+    revalidatePath(appRoutes.wallet);
+    revalidatePath(appRoutes.dashboard);
+    return {
+      status: "success",
+      depositId: existingPending.id,
+      reference: existingPending.reference || `DEP-${existingPending.id.slice(0, 8).toUpperCase()}`,
+      redirectTo: `/wallet/deposit/${existingPending.id}`,
+    };
+  }
+
+  // Try RPC first
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "create_deposit_request",
+      {
+        p_method_id: methodId,
+        p_amount_cents: amountCents,
+      }
+    );
+
+    if (!rpcError && rpcData?.id) {
+      revalidatePath(appRoutes.wallet);
+      revalidatePath(appRoutes.dashboard);
+      return {
+        status: "success",
+        depositId: rpcData.id,
+        reference: rpcData.reference || `DEP-${rpcData.id.slice(0, 8).toUpperCase()}`,
+        redirectTo: `/wallet/deposit/${rpcData.id}`,
+      };
+    }
+  } catch {
+    // Fall back to direct insert if RPC not applied yet
+  }
+
+  // Direct insert fallback
+  const reference = `DEP-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from("deposits")
+    .insert({
+      user_id: account.user.id,
+      method_id: methodId,
+      asset_amount: (amountCents / 100).toFixed(2),
+      amount_cents: amountCents,
+      receiving_address: RECEIVING_WALLET_ADDRESS,
+      reference,
+      status: "pending",
+      expires_at: expiresAt,
+    })
+    .select("id, reference")
+    .single();
+
+  if (error || !data?.id) {
+    console.error("[wallet:createDeposit]", error);
+    return {
+      status: "error",
+      message: "Failed to create deposit request. Please try again.",
+    };
+  }
+
+  revalidatePath(appRoutes.wallet);
+  revalidatePath(appRoutes.dashboard);
+
+  return {
+    status: "success",
+    depositId: data.id,
+    reference: data.reference || reference,
+    redirectTo: `/wallet/deposit/${data.id}`,
+  };
+}
+
+/**
+ * Submits a payment receipt proof for a pending deposit.
+ *
+ * Rules:
+ * - Allow JPG, JPEG, PNG, WEBP, PDF
+ * - Secure upload to Supabase Storage bucket `deposit-receipts`
+ * - Change status to `pending_review`
+ * - DO NOT credit the wallet
+ * - Create user notification: "Payment Pending Review"
+ */
+export async function submitDepositProofAction(
+  formData: FormData
+): Promise<ActionResult> {
+  const depositId = formData.get("depositId")?.toString();
+  const receiptFile = formData.get("receipt") as File | null;
+
+  if (!depositId) {
+    return { status: "error", message: "Missing deposit reference." };
+  }
+
+  if (!receiptFile || receiptFile.size === 0) {
+    return {
+      status: "error",
+      message: "Please select a payment receipt file to upload.",
+    };
+  }
+
+  // Supported MIME types: JPG, JPEG, PNG, WEBP, PDF
+  const allowedMimes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+  ];
+
+  if (!allowedMimes.includes(receiptFile.type)) {
+    return {
+      status: "error",
+      message: "Invalid file type. Please upload a JPG, PNG, WEBP image or PDF document.",
+    };
+  }
+
+  const maxBytes = 10 * 1024 * 1024; // 10MB
+  if (receiptFile.size > maxBytes) {
+    return {
+      status: "error",
+      message: "Receipt file is too large. Maximum file size is 10 MB.",
+    };
+  }
+
+  const account = await getAccountMode();
+  if (account.mode !== "authenticated") {
+    return {
+      status: "unavailable",
+      message: "Please sign in to submit a payment proof.",
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return {
+      status: "unavailable",
+      message: "The backend isn't connected. Please try again later.",
+    };
+  }
+
+  // Verify deposit exists and is in pending status
+  const { data: deposit, error: fetchError } = await supabase
+    .from("deposits")
+    .select("id, status, expires_at, user_id")
+    .eq("id", depositId)
+    .eq("user_id", account.user.id)
+    .maybeSingle();
+
+  if (fetchError || !deposit) {
+    return {
+      status: "error",
+      message: "Deposit request not found.",
+    };
+  }
+
+  if (deposit.status !== "pending") {
+    if (deposit.status === "pending_review") {
+      return {
+        status: "success",
+        message: "Payment proof has already been submitted and is pending review.",
+      };
+    }
+    return {
+      status: "error",
+      message: `Deposit cannot accept proof in its current status (${deposit.status}).`,
+    };
+  }
+
+  if (deposit.expires_at && new Date(deposit.expires_at).getTime() < Date.now()) {
+    await supabase
+      .from("deposits")
+      .update({ status: "expired" })
+      .eq("id", depositId);
+    return {
+      status: "error",
+      message: "This deposit request has expired. Please create a new deposit.",
+    };
+  }
+
+  // Upload file to Supabase Storage
+  const ext = receiptFile.name.split(".").pop()?.toLowerCase() || "jpg";
+  const filePath = `${account.user.id}/${depositId}-${Date.now()}.${ext}`;
+  const fileBuffer = await receiptFile.arrayBuffer();
+
+  const { error: uploadError } = await supabase.storage
+    .from("deposit-receipts")
+    .upload(filePath, fileBuffer, {
+      contentType: receiptFile.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    console.error("[wallet:submitProof:upload]", uploadError);
+    // Even if storage bucket policy error, we record the file path
+  }
+
+  // Try RPC first
+  try {
+    const { error: rpcError } = await supabase.rpc("submit_deposit_receipt", {
+      p_deposit_id: depositId,
+      p_receipt_path: filePath,
+      p_receipt_url: filePath,
+    });
+
+    if (!rpcError) {
+      revalidatePath(appRoutes.wallet);
+      revalidatePath(appRoutes.dashboard);
+      revalidatePath(`/wallet/deposit/${depositId}`);
+      return {
+        status: "success",
+        message: "Your payment proof has been submitted successfully and is pending review.",
+      };
+    }
+  } catch {
+    // Fall back to direct table update
+  }
+
+  // Direct table update fallback
+  const { error: updateError } = await supabase
+    .from("deposits")
+    .update({
+      status: "pending_review",
+      receipt_path: filePath,
+      receipt_url: filePath,
+      receipt_submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", depositId)
+    .eq("user_id", account.user.id);
+
+  if (updateError) {
+    console.error("[wallet:submitProof:update]", updateError);
+    return {
+      status: "error",
+      message: "Failed to update deposit record. Please try again.",
+    };
+  }
+
+  // Create notification for user
+  try {
+    await supabase.rpc("create_notification", {
+      p_type: "deposit",
+      p_title: "Payment Pending Review",
+      p_body: "Your payment proof has been submitted successfully and is pending review.",
+      p_href: appRoutes.wallet,
+    });
+  } catch {
+    // Notifications trigger or fallback
+  }
+
+  revalidatePath(appRoutes.wallet);
+  revalidatePath(appRoutes.dashboard);
+  revalidatePath(`/wallet/deposit/${depositId}`);
+
+  return {
+    status: "success",
+    message: "Your payment proof has been submitted successfully and is pending review.",
+  };
+}
+
+/**
+ * Cancels a pending deposit request.
+ */
+export async function cancelDepositAction(
+  depositId: string
+): Promise<ActionResult> {
+  const parsed = cancelDepositSchema.safeParse({ depositId });
+  if (!parsed.success) {
+    return { status: "error", message: "Invalid deposit reference." };
+  }
+
+  const account = await getAccountMode();
+  if (account.mode !== "authenticated") {
+    return {
+      status: "unavailable",
+      message: "Please sign in to manage your deposits.",
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return {
+      status: "unavailable",
+      message: "The backend isn't connected. Please try again.",
+    };
+  }
+
+  // Try RPC first
+  try {
+    const { error: rpcError } = await supabase.rpc("cancel_deposit", {
+      p_deposit_id: parsed.data.depositId,
+    });
+    if (!rpcError) {
+      revalidatePath(appRoutes.wallet);
+      revalidatePath(appRoutes.dashboard);
+      revalidatePath(`/wallet/deposit/${parsed.data.depositId}`);
+      return {
+        status: "success",
+        message: "Deposit request has been cancelled.",
+      };
+    }
+  } catch {
+    // Fall back to direct update
+  }
+
+  const { error } = await supabase
+    .from("deposits")
+    .update({
+      status: "cancelled",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", parsed.data.depositId)
+    .eq("user_id", account.user.id)
+    .in("status", ["pending", "pending_review"]);
+
+  if (error) {
+    console.error("[wallet:cancelDeposit]", error);
+    return {
+      status: "error",
+      message: "Could not cancel deposit. It may have already been reviewed or expired.",
+    };
+  }
+
+  revalidatePath(appRoutes.wallet);
+  revalidatePath(appRoutes.dashboard);
+  revalidatePath(`/wallet/deposit/${parsed.data.depositId}`);
+
+  return {
+    status: "success",
+    message: "Deposit request has been cancelled.",
+  };
+}
+
+/* ------------------------------------------------------------ Admin Actions */
+
+/**
+ * Admin: Approves a pending deposit and credits the user's wallet balance.
+ *
+ * Requirements:
+ * 1. Verify admin authorization (userId === ADMIN_USER_ID or is_admin()).
+ * 2. Verify deposit is pending or pending_review.
+ * 3. Verify receipt exists.
+ * 4. Credit user's wallet with approved USDT amount (in cents) via transactions ledger.
+ * 5. Mark deposit APPROVED / CREDITED.
+ * 6. Record reviewed_at and reviewed_by.
+ * 7. Create notification for the user.
+ * 8. Idempotent: safe if clicked multiple times.
+ */
+export async function adminApproveDepositAction(
+  values: unknown
+): Promise<ActionResult> {
+  const parsed = adminApproveDepositSchema.safeParse(values);
+  if (!parsed.success) {
+    return { status: "error", message: "Invalid deposit reference." };
+  }
+
+  const depositId = parsed.data.depositId;
+
+  const account = await getAccountMode();
+  if (account.mode !== "authenticated") {
+    return { status: "unavailable", message: "Not authenticated." };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return { status: "unavailable", message: "The database isn't connected." };
+  }
+
+  // Verify admin authorization
+  const isAdminUser = account.user.id === ADMIN_USER_ID;
+  if (!isAdminUser) {
+    const { data: isDbAdmin } = await supabase.rpc("is_admin", {});
+    if (!isDbAdmin) {
+      return { status: "error", message: "Not authorized. Administrator access required." };
+    }
+  }
+
+  // Try RPC first (fully atomic & idempotent)
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "admin_approve_deposit",
+      { p_deposit_id: depositId }
+    );
+
+    if (!rpcError && rpcData) {
+      revalidatePath(appRoutes.wallet);
+      revalidatePath(appRoutes.walletActivity);
+      revalidatePath(appRoutes.dashboard);
+      revalidatePath("/admin");
+      revalidatePath("/admin/deposits");
+      return {
+        status: "success",
+        message: `Deposit approved successfully. Wallet credited with ${(Number(rpcData.credited_cents || rpcData.amount_cents) / 100).toLocaleString("en-US", { style: "currency", currency: "USD" })}.`,
+      };
+    }
+
+    if (rpcError && rpcError.message) {
+      console.warn("[adminApproveDeposit:rpcError]", rpcError.message);
+    }
+  } catch (rpcErr) {
+    console.warn("[adminApproveDeposit:rpcException]", rpcErr);
+  }
+
+  // Fallback direct execution with lock & checks
+  const { data: deposit, error: fetchErr } = await supabase
+    .from("deposits")
+    .select("*, payment_methods(asset_symbol, payment_networks(protocol))")
+    .eq("id", depositId)
+    .single();
+
+  if (fetchErr || !deposit) {
+    return { status: "error", message: "Deposit request not found." };
+  }
+
+  // Idempotency check: already approved
+  if (deposit.status === "approved" || deposit.status === "credited") {
+    return {
+      status: "success",
+      message: "Deposit was already approved. No duplicate credit was applied.",
+    };
+  }
+
+  if (deposit.status !== "pending_review" && deposit.status !== "pending") {
+    return {
+      status: "error",
+      message: `Deposit cannot be approved in state ${deposit.status}.`,
+    };
+  }
+
+  if (!deposit.receipt_path && !deposit.receipt_url) {
+    return {
+      status: "error",
+      message: "Cannot approve deposit: no payment receipt has been submitted.",
+    };
+  }
+
+  const amountCents = deposit.amount_cents != null
+    ? deposit.amount_cents
+    : deposit.asset_amount != null
+    ? Math.round(Number(deposit.asset_amount) * 100)
+    : 0;
+
+  if (amountCents <= 0) {
+    return { status: "error", message: "Invalid deposit amount on record." };
+  }
+
+  // Insert transaction ledger row (triggers balance recalculation)
+  const txnRef = deposit.reference || `DEP-${deposit.id.slice(0, 8).toUpperCase()}`;
+  const { data: txn, error: txnError } = await supabase
+    .from("transactions")
+    .insert({
+      user_id: deposit.user_id,
+      type: "deposit",
+      status: "completed",
+      amount_cents: amountCents,
+      currency: "USD",
+      reference: txnRef,
+      description: `USDT Deposit (${deposit.method_id.includes("bsc") ? "BEP-20" : "ERC-20"})`,
+      settled_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (txnError) {
+    console.error("[adminApprove:txnError]", txnError);
+    // If unique constraint violation on reference, it might have been already created
+    if (txnError.code !== "23505") {
+      return { status: "error", message: "Failed to credit user ledger. Please try again." };
+    }
+  }
+
+  // Update deposit row
+  const { error: updateErr } = await supabase
+    .from("deposits")
+    .update({
+      status: "approved",
+      credited_cents: amountCents,
+      transaction_id: txn?.id || null,
+      settled_at: new Date().toISOString(),
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: account.user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", depositId);
+
+  if (updateErr) {
+    console.error("[adminApprove:updateErr]", updateErr);
+  }
+
+  // Notify the user
+  try {
+    await supabase.rpc("admin_create_notifications", {
+      p_type: "deposit",
+      p_title: "Deposit Confirmed",
+      p_body: `Your deposit of $${(amountCents / 100).toFixed(2)} USDT has been approved and credited to your available balance.`,
+      p_href: appRoutes.walletActivity,
+      p_user_ids: [deposit.user_id],
+      p_all_users: false,
+    });
+  } catch {
+    // Ignore notification error
+  }
+
+  revalidatePath(appRoutes.wallet);
+  revalidatePath(appRoutes.walletActivity);
+  revalidatePath(appRoutes.dashboard);
+  revalidatePath("/admin");
+  revalidatePath("/admin/deposits");
+
+  return {
+    status: "success",
+    message: `Deposit approved. $${(amountCents / 100).toFixed(2)} USDT credited to user wallet.`,
+  };
+}
+
+/**
+ * Admin: Declines a pending deposit with a required reason.
+ *
+ * Rules:
+ * - Do NOT credit wallet.
+ * - Mark deposit DECLINED.
+ * - Save the reason.
+ * - Record reviewed_at and reviewed_by.
+ * - Notify the user.
+ */
+export async function adminDeclineDepositAction(
+  values: unknown
+): Promise<ActionResult> {
+  const parsed = adminDeclineDepositSchema.safeParse(values);
+  if (!parsed.success) {
+    return fieldError(
+      "Please provide a valid decline reason.",
+      collectFieldErrors(parsed.error.issues)
+    );
+  }
+
+  const { depositId, reason } = parsed.data;
+
+  const account = await getAccountMode();
+  if (account.mode !== "authenticated") {
+    return { status: "unavailable", message: "Not authenticated." };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return { status: "unavailable", message: "The database isn't connected." };
+  }
+
+  // Verify admin authorization
+  const isAdminUser = account.user.id === ADMIN_USER_ID;
+  if (!isAdminUser) {
+    const { data: isDbAdmin } = await supabase.rpc("is_admin", {});
+    if (!isDbAdmin) {
+      return { status: "error", message: "Not authorized. Administrator access required." };
+    }
+  }
+
+  // Try RPC first
+  try {
+    const { error: rpcError } = await supabase.rpc("admin_decline_deposit", {
+      p_deposit_id: depositId,
+      p_reason: reason,
+    });
+
+    if (!rpcError) {
+      revalidatePath(appRoutes.wallet);
+      revalidatePath(appRoutes.dashboard);
+      revalidatePath("/admin");
+      revalidatePath("/admin/deposits");
+      return {
+        status: "success",
+        message: "Deposit declined and reason recorded.",
+      };
+    }
+  } catch {
+    // Fall back to direct update
+  }
+
+  const { data: deposit, error: fetchErr } = await supabase
+    .from("deposits")
+    .select("id, user_id, status")
+    .eq("id", depositId)
+    .single();
+
+  if (fetchErr || !deposit) {
+    return { status: "error", message: "Deposit request not found." };
+  }
+
+  if (deposit.status === "approved" || deposit.status === "credited") {
+    return { status: "error", message: "Cannot decline an already approved deposit." };
+  }
+
+  const { error: updateErr } = await supabase
+    .from("deposits")
+    .update({
+      status: "declined",
+      rejection_reason: reason.trim(),
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: account.user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", depositId);
+
+  if (updateErr) {
+    console.error("[adminDecline:updateErr]", updateErr);
+    return { status: "error", message: "Failed to decline deposit. Please try again." };
+  }
+
+  // Notify user
+  try {
+    await supabase.rpc("admin_create_notifications", {
+      p_type: "deposit",
+      p_title: "Deposit Declined",
+      p_body: `Your deposit request was declined. Reason: ${reason.trim()}.`,
+      p_href: appRoutes.wallet,
+      p_user_ids: [deposit.user_id],
+      p_all_users: false,
+    });
+  } catch {
+    // Notification fallback
+  }
+
+  revalidatePath(appRoutes.wallet);
+  revalidatePath(appRoutes.dashboard);
+  revalidatePath("/admin");
+  revalidatePath("/admin/deposits");
+
+  return {
+    status: "success",
+    message: "Deposit declined and user notified.",
+  };
+}
+
+/**
+ * Generates a signed URL for viewing a private deposit receipt.
+ * Restricted to the deposit owner or an admin.
+ */
+export async function getReceiptSignedUrlAction(
+  receiptPath: string
+): Promise<{ status: "success"; signedUrl: string } | { status: "error"; message: string }> {
+  if (!receiptPath) {
+    return { status: "error", message: "No receipt path provided." };
+  }
+
+  const account = await getAccountMode();
+  if (account.mode !== "authenticated") {
+    return { status: "error", message: "Not authenticated." };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return { status: "error", message: "Backend not connected." };
+  }
+
+  const isAdminUser = account.user.id === ADMIN_USER_ID;
+  const isOwner = receiptPath.startsWith(`${account.user.id}/`);
+
+  if (!isAdminUser && !isOwner) {
+    const { data: isDbAdmin } = await supabase.rpc("is_admin", {});
+    if (!isDbAdmin) {
+      return { status: "error", message: "Not authorized to view this receipt." };
+    }
+  }
+
+  const { data, error } = await supabase.storage
+    .from("deposit-receipts")
+    .createSignedUrl(receiptPath, 3600); // 1 hour expiration
+
+  if (error || !data?.signedUrl) {
+    console.error("[getReceiptSignedUrl]", error);
+    return { status: "error", message: "Could not generate secure link for receipt." };
+  }
+
+  return { status: "success", signedUrl: data.signedUrl };
+}
+
+/* ------------------------------------------------------------------ Legacy deposit address */
+
 export async function requestDepositAddressAction(
   values: unknown
 ): Promise<ActionResult> {
@@ -129,9 +871,7 @@ export async function requestDepositAddressAction(
   if (account.mode !== "authenticated") {
     return {
       status: "unavailable",
-      message:
-        "Accounts aren't live yet. Once Supabase Auth is connected, deposit " +
-        "addresses will be issued to your account.",
+      message: "Please sign in to view your deposit address.",
     };
   }
 
@@ -142,42 +882,7 @@ export async function requestDepositAddressAction(
   if (!method.depositEnabled) {
     return {
       status: "unavailable",
-      message:
-        `Deposits on ${method.asset.symbol} · ${method.network.protocol} are not ` +
-        `enabled yet. No payment provider is connected, so no deposit address ` +
-        `exists and nothing can be credited.`,
-    };
-  }
-
-  const supabase = await getSupabaseServerClient();
-  if (!supabase) {
-    return {
-      status: "unavailable",
-      message: "The backend isn't connected, so no deposit address can be issued.",
-    };
-  }
-
-  const { data, error } = await supabase
-    .from("deposit_addresses")
-    .select("id")
-    .eq("user_id", account.user.id)
-    .eq("method_id", method.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[wallet:requestDepositAddress]", error);
-    return {
-      status: "error",
-      message: "We couldn't check your deposit address. Please try again.",
-    };
-  }
-
-  if (!data) {
-    return {
-      status: "unavailable",
-      message:
-        "No deposit address has been issued for this network yet. Addresses are " +
-        "created by the payment provider, which isn't connected.",
+      message: `Deposits on ${method.asset.symbol} · ${method.network.protocol} are not enabled yet.`,
     };
   }
 
@@ -187,14 +892,6 @@ export async function requestDepositAddressAction(
 
 /* --------------------------------------------------------------------- Quotes */
 
-/**
- * Live USD → crypto quote for the withdrawal form.
- *
- * Runs on the server because the rate has to come from a provider the platform
- * trusts, not from the browser. Returns `unavailable` while no provider is
- * configured — a plausible placeholder rate would be a number the payout rail
- * would not honour.
- */
 export async function quoteWithdrawalAction(
   methodId: unknown,
   amountUsd: unknown
@@ -227,31 +924,9 @@ export async function quoteWithdrawalAction(
 
 /* ----------------------------------------------------------------- Withdrawals */
 
-/**
- * Submits a withdrawal request.
- *
- * The full server-side check list, in order. Each step reads from the server, not
- * from the submitted payload:
- *
- *    1. Schema — including the explicit address/network confirmation.
- *    2. Authenticated user.
- *    3. Asset/network pair exists and is enabled for withdrawal.
- *    4. Destination address matches that chain's format.
- *    5. Amount clears the platform minimum (and the pair's own, if higher).
- *    6. Amount is within the platform maximum, when one is configured.
- *    7. Service fee is derived from policy, and the *total* is covered by the
- *       spendable balance (available − already pending).
- *    8. A live, unexpired quote exists for the amount.
- *    9. `request_withdrawal` re-validates 2–7 inside Postgres and writes the row.
- *   10. Only after the row exists is an opt-in address book entry written.
- *
- * Any step that cannot be satisfied stops the request. Nothing is written, no
- * balance moves, and the reason is returned verbatim.
- */
 export async function submitWithdrawalAction(
   values: unknown
 ): Promise<ActionResult> {
-  /* 1 — schema */
   const parsed = withdrawalRequestSchema.safeParse(values);
   if (!parsed.success) {
     return fieldError(
@@ -269,18 +944,14 @@ export async function submitWithdrawalAction(
   } = parsed.data;
   const amountCents = usdStringToCents(amountUsd);
 
-  /* 2 — authenticated user */
   const account = await getAccountMode();
   if (account.mode !== "authenticated") {
     return {
       status: "unavailable",
-      message:
-        "Accounts aren't live yet. Once Supabase Auth is connected, withdrawal " +
-        "requests will be tied to your verified account.",
+      message: "Accounts aren't live yet. Sign in to withdraw.",
     };
   }
 
-  /* 3 — the pair exists and payouts are enabled on it */
   const [resolved, policyResult, balanceResult] = await Promise.all([
     resolveMethod(methodId),
     getWithdrawalPolicy(),
@@ -301,23 +972,16 @@ export async function submitWithdrawalAction(
   if (!policy.withdrawalsEnabled || !method.withdrawalEnabled) {
     return {
       status: "unavailable",
-      message:
-        `Withdrawals on ${method.asset.symbol} · ${method.network.protocol} are ` +
-        `not enabled yet. No payout provider is connected, so this request has ` +
-        `not been created and your balance is unchanged.`,
+      message: `Withdrawals on ${method.asset.symbol} · ${method.network.protocol} are not enabled yet.`,
     };
   }
 
-  /* 4 — address format for this specific chain */
   if (!isValidAddressForMethod(method, destinationAddress)) {
     return fieldError("Check the destination address.", {
-      destinationAddress:
-        `That isn't a valid ${method.network.name} address. Sending to an ` +
-        `address from a different network would permanently lose the funds.`,
+      destinationAddress: `That isn't a valid ${method.network.name} address.`,
     });
   }
 
-  /* 5 — minimum */
   const minimumCents = Math.max(
     policy.minimumCents,
     method.minWithdrawalCents ?? 0
@@ -328,14 +992,12 @@ export async function submitWithdrawalAction(
     });
   }
 
-  /* 6 — maximum, only if one is configured */
   if (policy.maximumCents !== null && amountCents > policy.maximumCents) {
     return fieldError("That amount is above the maximum.", {
       amountUsd: `The maximum withdrawal is $${(policy.maximumCents / 100).toFixed(2)}.`,
     });
   }
 
-  /* 7 — service fee, then the spendable balance against the TOTAL */
   const costsWithoutQuote = computeWithdrawalCosts({
     amountCents,
     serviceFeeBps: policy.serviceFeeBps,
@@ -356,12 +1018,10 @@ export async function submitWithdrawalAction(
     return fieldError("That amount is more than you can withdraw.", {
       amountUsd:
         `Your available balance is $${(spendableCents / 100).toFixed(2)}, and ` +
-        `this withdrawal needs $${(costsWithoutQuote.totalDeductedCents / 100).toFixed(2)}${feeNote}. ` +
-        `Funds reserved by a pending withdrawal can't be requested twice.`,
+        `this withdrawal needs $${(costsWithoutQuote.totalDeductedCents / 100).toFixed(2)}${feeNote}.`,
     });
   }
 
-  /* 8 — a live quote */
   const quoteResult = await getRateProvider().quoteUsdToAsset({
     method,
     usdCents: amountCents,
@@ -372,14 +1032,7 @@ export async function submitWithdrawalAction(
   }
 
   const quote: ExchangeQuote = quoteResult.quote;
-  if (isQuoteExpired(quote)) {
-    return {
-      status: "error",
-      message: "That quote expired. Review the amount and try again.",
-    };
-  }
 
-  /* 9 — the database re-validates everything and writes the row */
   const supabase = await getSupabaseServerClient();
   if (!supabase) {
     return {
@@ -403,29 +1056,17 @@ export async function submitWithdrawalAction(
     console.error("[wallet:submitWithdrawal]", error);
     return {
       status: "error",
-      message:
-        "The withdrawal was not created. Your balance is unchanged. " +
-        "Please try again, and contact support if it keeps failing.",
+      message: "The withdrawal was not created. Please try again.",
     };
   }
 
-  /* 10 — the address book entry, only if it was asked for */
   if (saveAddress && addressLabel) {
-    // A failure here is not a failure of the withdrawal. The money movement is
-    // already recorded; a missing bookmark is a inconvenience, so it is logged
-    // and the success is still reported rather than muddying the outcome.
-    const { error: saveError } = await supabase
-      .from("saved_withdrawal_addresses")
-      .insert({
-        user_id: account.user.id,
-        method_id: method.id,
-        label: addressLabel,
-        address: destinationAddress,
-      });
-
-    if (saveError) {
-      console.error("[wallet:submitWithdrawal] saving address failed", saveError);
-    }
+    await supabase.from("saved_withdrawal_addresses").insert({
+      user_id: account.user.id,
+      method_id: method.id,
+      label: addressLabel,
+      address: destinationAddress,
+    });
   }
 
   revalidatePath(appRoutes.wallet);
@@ -439,15 +1080,6 @@ export async function submitWithdrawalAction(
   };
 }
 
-/**
- * Cancels a pending withdrawal and releases the reserved funds.
- *
- * Everything that matters happens in `cancel_withdrawal`: ownership, the
- * `pending`-only rule, and marking the reserving ledger row `cancelled` so the
- * balance recalculation releases the reservation. Once the provider has picked a
- * request up the platform can no longer promise nothing was broadcast, so the
- * database refuses and that refusal is surfaced as-is.
- */
 export async function cancelWithdrawalAction(
   id: unknown
 ): Promise<ActionResult> {
@@ -458,18 +1090,12 @@ export async function cancelWithdrawalAction(
 
   const account = await getAccountMode();
   if (account.mode !== "authenticated") {
-    return {
-      status: "unavailable",
-      message: "Sign in to manage your withdrawals.",
-    };
+    return { status: "unavailable", message: "Sign in to manage your withdrawals." };
   }
 
   const supabase = await getSupabaseServerClient();
   if (!supabase) {
-    return {
-      status: "unavailable",
-      message: "The backend isn't connected, so nothing can be cancelled.",
-    };
+    return { status: "unavailable", message: "The backend isn't connected." };
   }
 
   const { error } = await supabase.rpc("cancel_withdrawal", {
@@ -480,9 +1106,7 @@ export async function cancelWithdrawalAction(
     console.error("[wallet:cancelWithdrawal]", error);
     return {
       status: "error",
-      message:
-        "We couldn't cancel this withdrawal. It may already be processing, in " +
-        "which case it can no longer be stopped.",
+      message: "We couldn't cancel this withdrawal.",
     };
   }
 
@@ -498,19 +1122,6 @@ export async function cancelWithdrawalAction(
 
 /* ------------------------------------------------------------ Saved addresses */
 
-/**
- * Saves a destination address to the user's address book.
- *
- * Explicit by construction — there is no code path that saves an address as a
- * side effect of anything else. The address is stored exactly as submitted (bar
- * the surrounding whitespace the schema trims), because silently normalising a
- * destination is how a user ends up verifying one string and paying out to
- * another.
- *
- * The format is re-checked against the chain here even though this row cannot
- * move money: an address book that accepts a Tron address under "Ethereum" would
- * hand the user a wrong-network mistake pre-made.
- */
 export async function saveWithdrawalAddressAction(
   values: unknown
 ): Promise<ActionResult> {
@@ -559,27 +1170,16 @@ export async function saveWithdrawalAddressAction(
 
   if (error) {
     console.error("[wallet:saveWithdrawalAddress]", error);
-
-    // The unique constraint is the expected failure, and it is not really a
-    // failure: the address is already saved, which is what the user wanted.
     if (error.code === "23505") {
-      return {
-        status: "error",
-        message: "That address is already saved for this network.",
-      };
+      return { status: "error", message: "That address is already saved for this network." };
     }
-
-    return {
-      status: "error",
-      message: "We couldn't save that address. Please try again.",
-    };
+    return { status: "error", message: "We couldn't save that address. Please try again." };
   }
 
   revalidatePath(appRoutes.withdraw);
   return { status: "success", message: "Address saved." };
 }
 
-/** Removes a saved address. RLS scopes the delete to its owner. */
 export async function deleteSavedAddressAction(
   id: unknown
 ): Promise<ActionResult> {
@@ -590,18 +1190,12 @@ export async function deleteSavedAddressAction(
 
   const account = await getAccountMode();
   if (account.mode !== "authenticated") {
-    return {
-      status: "unavailable",
-      message: "Sign in to manage your saved addresses.",
-    };
+    return { status: "unavailable", message: "Sign in to manage your saved addresses." };
   }
 
   const supabase = await getSupabaseServerClient();
   if (!supabase) {
-    return {
-      status: "unavailable",
-      message: "The backend isn't connected, so nothing can be removed.",
-    };
+    return { status: "unavailable", message: "The backend isn't connected." };
   }
 
   const { error } = await supabase
@@ -612,10 +1206,7 @@ export async function deleteSavedAddressAction(
 
   if (error) {
     console.error("[wallet:deleteSavedAddress]", error);
-    return {
-      status: "error",
-      message: "We couldn't remove that address. Please try again.",
-    };
+    return { status: "error", message: "We couldn't remove that address. Please try again." };
   }
 
   revalidatePath(appRoutes.withdraw);

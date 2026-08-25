@@ -1,18 +1,18 @@
 import { z } from "zod";
+import {
+  MAX_DEPOSIT_CENTS,
+  MAX_DEPOSIT_USDT,
+  MIN_DEPOSIT_CENTS,
+  MIN_DEPOSIT_USDT,
+} from "@/config/crypto";
 
 /**
  * Wallet form schemas.
  *
- * Shared by the client (react-hook-form resolver) and the Server Actions, so a
- * request that skips the browser is validated the same way. The database function
- * `request_withdrawal` then re-checks everything a third time against rows the
- * client cannot touch — see `supabase/migrations/0003_wallet_and_payments.sql`.
- *
- * Amounts are entered in dollars and converted to cents at the boundary. Nothing
- * downstream sees a fractional dollar.
+ * Shared by client and server-side actions.
  */
 
-/** `${assetSymbol}-${networkId}`, lowercased. Never an asset on its own. */
+/** `${assetSymbol}-${networkId}`, lowercased. */
 const methodIdField = z
   .string()
   .trim()
@@ -25,15 +25,10 @@ const addressField = z
   .trim()
   .min(1, "Enter your destination wallet address.")
   .max(128, "That address is too long.")
-  // Format is checked per-network once the pair is known: an address that is
-  // valid on one chain is a fund-losing mistake on another.
   .regex(/^[a-zA-Z0-9]+$/, "Wallet addresses contain letters and numbers only.");
 
 /**
  * USD amount as typed.
- *
- * Accepts up to two decimal places and rejects anything else outright rather
- * than silently rounding someone's money.
  */
 const usdAmountField = z
   .string()
@@ -45,12 +40,63 @@ export const depositAddressRequestSchema = z.object({
   methodId: methodIdField,
 });
 
-/**
- * The user's own name for a saved address.
- *
- * Rendered back to them verbatim, so it is length-bounded and stripped of
- * characters that would let a label impersonate UI chrome in a list of addresses.
- */
+/* ----------------------------------------------------------- USDT Deposit */
+
+export const createDepositRequestSchema = z.object({
+  methodId: z.enum(["usdt-bsc", "usdt-ethereum"], {
+    message: "Select a valid USDT network (BEP-20 or ERC-20).",
+  }),
+  amountUsdt: z
+    .string()
+    .trim()
+    .min(1, "Enter a deposit amount in USDT.")
+    .regex(/^\d{1,9}(\.\d{1,2})?$/, "Enter a valid amount (e.g. 1000 or 1500.00)")
+    .refine(
+      (val) => {
+        const cents = usdStringToCents(val);
+        return cents >= MIN_DEPOSIT_CENTS;
+      },
+      {
+        message: `Minimum deposit is ${MIN_DEPOSIT_USDT.toLocaleString("en-US")} USDT.`,
+      }
+    )
+    .refine(
+      (val) => {
+        const cents = usdStringToCents(val);
+        return cents <= MAX_DEPOSIT_CENTS;
+      },
+      {
+        message: `Maximum deposit is ${MAX_DEPOSIT_USDT.toLocaleString("en-US")} USDT.`,
+      }
+    ),
+});
+
+export const cancelDepositSchema = z.object({
+  depositId: z.string().uuid("Invalid deposit reference."),
+});
+
+export const adminApproveDepositSchema = z.object({
+  depositId: z.string().uuid("Invalid deposit reference."),
+});
+
+export const adminDeclineDepositSchema = z.object({
+  depositId: z.string().uuid("Invalid deposit reference."),
+  reason: z
+    .string()
+    .trim()
+    .min(1, "Please provide a decline reason.")
+    .max(300, "Decline reason is too long."),
+});
+
+export type CreateDepositRequestValues = z.infer<
+  typeof createDepositRequestSchema
+>;
+export type AdminDeclineDepositValues = z.infer<
+  typeof adminDeclineDepositSchema
+>;
+
+/* --------------------------------------------------------------- Address Book */
+
 const addressLabelField = z
   .string()
   .trim()
@@ -61,53 +107,27 @@ const addressLabelField = z
     "Use letters, numbers, spaces and basic punctuation."
   );
 
-/**
- * The withdrawal payload, before cross-field checks.
- *
- * Kept as a plain object so `.pick()` still works for the quote schema below —
- * a refined schema is no longer an object and cannot be narrowed.
- */
+/* --------------------------------------------------------------- Withdrawals */
+
 const withdrawalRequestFields = z.object({
   methodId: methodIdField,
   amountUsd: usdAmountField,
   destinationAddress: addressField,
-  /**
-   * The explicit confirmation from the review step.
-   *
-   * Required at the schema level, not just in the UI: an unchecked box must fail
-   * on the server too, or the checkbox is decoration.
-   */
   addressConfirmed: z.literal(true, {
     message: "Confirm the destination address and network before withdrawing.",
   }),
-  /**
-   * Opt-in address book entry.
-   *
-   * Defaults to `false`. Saving is never a side effect of withdrawing — an
-   * address the user did not ask to keep is not kept.
-   */
   saveAddress: z.boolean().default(false),
   addressLabel: z.string().trim().max(60).optional(),
 });
 
-export const withdrawalRequestSchema = withdrawalRequestFields
-  // A save request without a name would create an unidentifiable entry, so the
-  // pair is validated together rather than the label being silently defaulted.
-  .refine(
-    (values) => !values.saveAddress || (values.addressLabel?.length ?? 0) > 0,
-    {
-      path: ["addressLabel"],
-      message: "Name this address, or clear “Save this address”.",
-    }
-  );
+export const withdrawalRequestSchema = withdrawalRequestFields.refine(
+  (values) => !values.saveAddress || (values.addressLabel?.length ?? 0) > 0,
+  {
+    path: ["addressLabel"],
+    message: "Name this address, or clear “Save this address”.",
+  }
+);
 
-/**
- * The subset a quote needs.
- *
- * A separate schema rather than a `.pick()` off the refined one: the refinement
- * above covers fields a quote has no opinion about, and re-using it would make
- * quoting fail for reasons unrelated to quoting.
- */
 export const withdrawalQuoteSchema = withdrawalRequestFields.pick({
   methodId: true,
   amountUsd: true,

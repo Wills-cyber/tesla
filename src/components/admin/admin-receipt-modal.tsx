@@ -14,14 +14,15 @@ import {
 import { getReceiptSignedUrlAction } from "@/lib/wallet/actions";
 
 type AdminReceiptModalProps = {
-  receiptPath: string | null;
+  /** The server resolves the receipt path from this deposit record. */
+  depositId: string | null;
   depositReference: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
 export function AdminReceiptModal({
-  receiptPath,
+  depositId,
   depositReference,
   open,
   onOpenChange,
@@ -31,7 +32,7 @@ export function AdminReceiptModal({
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!open || !receiptPath) {
+    if (!open || !depositId) {
       return;
     }
 
@@ -47,7 +48,10 @@ export function AdminReceiptModal({
 
       (async () => {
         try {
-          const res = await getReceiptSignedUrlAction(receiptPath);
+          // The action receives only a deposit ID. It authorizes this admin,
+          // loads receipt_path from the deposit record, and signs that exact
+          // private Storage object path on the server.
+          const res = await getReceiptSignedUrlAction(depositId);
           if (!isMounted) return;
           if (res.status === "success") {
             setSignedUrl(res.signedUrl);
@@ -72,7 +76,7 @@ export function AdminReceiptModal({
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [open, receiptPath]);
+  }, [open, depositId]);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
@@ -83,9 +87,8 @@ export function AdminReceiptModal({
     onOpenChange(newOpen);
   };
 
-  const lowerPath = receiptPath?.toLowerCase() ?? "";
   const lowerUrl = signedUrl?.toLowerCase() ?? "";
-  const isPdf = lowerPath.endsWith(".pdf") || lowerUrl.includes(".pdf");
+  const isPdf = lowerUrl.includes(".pdf");
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -118,17 +121,15 @@ export function AdminReceiptModal({
             <div className="flex flex-col items-center gap-3 text-muted-foreground">
               <Loader2 className="size-6 animate-spin text-brand" />
               <span className="text-xs">Loading secure receipt from private storage...</span>
-              <span className="text-[0.68rem] text-muted-foreground">Generating signed URL for {receiptPath}</span>
+              <span className="text-[0.68rem] text-muted-foreground">Retrieving the receipt from the deposit record…</span>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center gap-2 text-center text-xs text-destructive max-w-md">
               <X className="size-6" />
               <p className="font-medium">{error}</p>
-              <p className="text-muted-foreground break-all">
-                File path: <code className="font-mono text-[0.7rem]">{receiptPath}</code>
-              </p>
               <p className="text-[0.68rem] text-muted-foreground">
-                Bucket: deposit-receipts (PRIVATE) • Path format: {"{user_id}/{deposit_id}/{filename}"}
+                The receipt remains in the private deposit-receipts bucket. Check that
+                the uploaded object and this deposit&apos;s receipt path are present.
               </p>
             </div>
           ) : signedUrl ? (

@@ -75,7 +75,7 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
 
   // Modal states
   const [viewingReceipt, setViewingReceipt] = React.useState<{
-    path: string | null;
+    depositId: string;
     reference: string;
   } | null>(null);
 
@@ -464,7 +464,7 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
                         size="sm"
                         onClick={() =>
                           setViewingReceipt({
-                            path: deposit.receiptPath || deposit.receiptUrl,
+                            depositId: deposit.id,
                             reference: deposit.reference,
                           })
                         }
@@ -515,7 +515,7 @@ export function AdminDepositReview({ deposits }: AdminDepositReviewProps) {
 
       {/* ---------------------------------------------------- Receipt View Modal */}
       <AdminReceiptModal
-        receiptPath={viewingReceipt?.path ?? null}
+        depositId={viewingReceipt?.depositId ?? null}
         depositReference={viewingReceipt?.reference ?? ""}
         open={Boolean(viewingReceipt)}
         onOpenChange={(open) => {

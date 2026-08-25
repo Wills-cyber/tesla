@@ -435,7 +435,8 @@ export async function submitDepositProofAction(
     const { error: rpcError } = await supabase.rpc("submit_deposit_receipt", {
       p_deposit_id: depositId,
       p_receipt_path: filePath,
-      p_receipt_url: filePath,
+      // receipt_path is the private Storage object path; never a public URL.
+      p_receipt_url: null,
     });
 
     if (!rpcError) {
@@ -457,8 +458,8 @@ export async function submitDepositProofAction(
     .from("deposits")
     .update({
       status: "pending_review",
-      receipt_path: filePath, // Store Storage path/reference, NOT fake public URL
-      receipt_url: filePath, // Keep for backward compatibility, same path
+      receipt_path: filePath, // Exact private Storage object path.
+      receipt_url: null, // Private bucket: no public URL is stored.
       receipt_submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -876,25 +877,19 @@ export async function adminDeclineDepositAction(
 }
 
 /**
- * Generates a signed URL for viewing a private deposit receipt.
- * Restricted to the deposit owner or an admin.
+ * Generates a signed URL for an admin to view a private deposit receipt.
  *
- * Security:
- * - Bucket is PRIVATE (deposit-receipts)
- * - Normal users can only access receipts where path starts with their user_id
- * - Admin (f91a9db9-8f13-4759-9b10-a0cdf385e7d4 or is_admin()) can view any
- * - Uses signed URL with 1-hour expiration for secure retrieval
+ * The browser supplies a deposit ID, never a Storage path. On the server we
+ * authorize the admin, load `receipt_path` from that deposit, verify that it
+ * is exactly the expected object path, and then sign it. This prevents a
+ * client from using this action to sign arbitrary private bucket objects.
  */
 export async function getReceiptSignedUrlAction(
-  receiptPath: string
+  depositId: string
 ): Promise<{ status: "success"; signedUrl: string } | { status: "error"; message: string }> {
-  if (!receiptPath) {
-    return { status: "error", message: "No receipt path provided." };
-  }
-
-  // Prevent path traversal
-  if (receiptPath.includes("..") || receiptPath.startsWith("/") || receiptPath.includes("//")) {
-    return { status: "error", message: "Invalid receipt path." };
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(depositId)) {
+    return { status: "error", message: "Invalid deposit reference." };
   }
 
   const account = await getAccountMode();
@@ -907,47 +902,53 @@ export async function getReceiptSignedUrlAction(
     return { status: "error", message: "Backend not connected." };
   }
 
-  const isAdminUser = account.user.id === ADMIN_USER_ID;
-  const isOwner = receiptPath.startsWith(`${account.user.id}/`);
-
-  // If not owner and not hardcoded admin, check DB admin flag
-  if (!isAdminUser && !isOwner) {
-    try {
-      const { data: isDbAdmin } = await supabase.rpc("is_admin", {});
-      if (!isDbAdmin) {
-        return { status: "error", message: "Not authorized to view this receipt." };
-      }
-    } catch {
-      return { status: "error", message: "Not authorized to view this receipt." };
-    }
+  let isAdmin = account.user.id === ADMIN_USER_ID;
+  if (!isAdmin) {
+    const { data: isDbAdmin, error: adminError } = await supabase.rpc("is_admin", {});
+    isAdmin = !adminError && Boolean(isDbAdmin);
+  }
+  if (!isAdmin) {
+    return { status: "error", message: "Not authorized to view deposit receipts." };
   }
 
-  // For owner, additionally verify deposit record belongs to them (defense in depth)
-  // This prevents a user guessing another user's path that starts with their own ID (which can't happen)
-  // but also ensures the receipt path is actually tied to a deposit they own.
-  if (isOwner && !isAdminUser) {
-    // Optional: verify path structure {user_id}/{deposit_id}/{filename}
-    const parts = receiptPath.split("/");
-    if (parts.length < 3) {
-      // Allow legacy format {user_id}/{file} for backward compatibility, but log
-      console.warn("[getReceiptSignedUrl] legacy path format", receiptPath);
-    }
+  // Do not trust a path from the UI or the legacy receipt_url column. The path
+  // used for signing is always the exact receipt_path stored on this deposit.
+  const { data: deposit, error: depositError } = await supabase
+    .from("deposits")
+    .select("id, user_id, receipt_path")
+    .eq("id", depositId)
+    .maybeSingle();
+
+  if (depositError || !deposit) {
+    return { status: "error", message: "Deposit request not found." };
+  }
+
+  const receiptPath = deposit.receipt_path;
+  const pathParts = receiptPath?.split("/") ?? [];
+  const isExactReceiptPath =
+    pathParts.length === 3 &&
+    pathParts[0] === deposit.user_id &&
+    pathParts[1] === deposit.id &&
+    /^receipt-[a-z0-9-]+\.(jpg|jpeg|png|webp|pdf)$/i.test(pathParts[2]);
+
+  if (!isExactReceiptPath) {
+    return {
+      status: "error",
+      message: "This deposit does not have a valid stored receipt path.",
+    };
   }
 
   const { data, error } = await supabase.storage
     .from("deposit-receipts")
-    .createSignedUrl(receiptPath, 3600); // 1 hour expiration - secure retrieval from PRIVATE bucket
+    .createSignedUrl(receiptPath, 3600);
 
   if (error || !data?.signedUrl) {
     console.error("[getReceiptSignedUrl]", error);
-    const msgLower = (error?.message || "").toLowerCase();
-    if (msgLower.includes("not found") || msgLower.includes("object not found")) {
-      return { status: "error", message: "Receipt file not found in storage. It may have been removed or never uploaded." };
+    const message = (error?.message || "").toLowerCase();
+    if (message.includes("not found") || message.includes("object not found")) {
+      return { status: "error", message: "Receipt file not found in storage." };
     }
-    if (msgLower.includes("policy") || msgLower.includes("unauthorized")) {
-      return { status: "error", message: "Not authorized to access this receipt. Check storage policies." };
-    }
-    return { status: "error", message: "Could not generate secure link for receipt." };
+    return { status: "error", message: "Could not generate a secure receipt link." };
   }
 
   return { status: "success", signedUrl: data.signedUrl };

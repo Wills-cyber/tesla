@@ -5,12 +5,16 @@ import { BellOff } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { MarkAllReadButton } from "@/components/dashboard/mark-all-read-button";
-import { NotificationList } from "@/components/dashboard/notification-list";
+import { NotificationFeed } from "@/components/dashboard/notification-feed";
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
 import { appRoutes } from "@/config/navigation";
 import { getAccountMode, isPreviewMode } from "@/lib/auth/session";
-import { getUserNotifications, resolveOrEmpty } from "@/lib/data";
+import {
+  EMPTY_NOTIFICATION_PAGE,
+  type NotificationPage,
+} from "@/types/notification";
+import { getUnreadNotificationCount, getUserNotifications, resolveOrEmpty } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Notifications",
@@ -25,18 +29,29 @@ export const metadata: Metadata = {
  * navigation — five primary areas is the practical ceiling on a phone, and a
  * notification feed is something you visit when prompted rather than a place you
  * navigate to.
+ *
+ * The page renders only the first page (20 rows) server-side; the client feed
+ * loads older rows on demand with a keyset cursor, so an account with years of
+ * history never ships them all at once. New notifications still arrive through
+ * the realtime provider — a toast, an updated badge, and a route refresh — while
+ * this page is open.
  */
 export default async function NotificationsPage() {
   const account = await getAccountMode();
   const preview = isPreviewMode(account);
 
-  const { data: notifications, error } = resolveOrEmpty(
-    await getUserNotifications(),
-    []
-  );
+  const [pageResult, unreadResult] = await Promise.all([
+    getUserNotifications(),
+    getUnreadNotificationCount(),
+  ]);
 
-  // Counted from the rows already fetched rather than a second round trip.
-  const unreadCount = notifications.filter((n) => n.readAt === null).length;
+  const { data: page, error } = resolveOrEmpty<NotificationPage>(
+    pageResult,
+    EMPTY_NOTIFICATION_PAGE
+  );
+  // The exact unread count comes from the server (a head count), not from the
+  // first page, so the "mark all" label is truthful however many rows are loaded.
+  const { data: unreadCount } = resolveOrEmpty(unreadResult, 0);
 
   return (
     <>
@@ -53,7 +68,7 @@ export default async function NotificationsPage() {
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <MarkAllReadButton unreadCount={unreadCount} />
+            {!preview && <MarkAllReadButton unreadCount={unreadCount} />}
             <Button asChild variant="ghost" size="md">
               <Link href={`${appRoutes.profile}#notifications`}>Preferences</Link>
             </Button>
@@ -68,7 +83,7 @@ export default async function NotificationsPage() {
         >
           {error}
         </div>
-      ) : notifications.length === 0 ? (
+      ) : page.items.length === 0 ? (
         <EmptyState
           icon={BellOff}
           size="lg"
@@ -82,7 +97,11 @@ export default async function NotificationsPage() {
           }
         />
       ) : (
-        <NotificationList notifications={notifications} showMarkRead />
+        <NotificationFeed
+          initialNotifications={page.items}
+          initialCursor={page.nextCursor}
+          initialHasMore={page.hasMore}
+        />
       )}
     </>
   );

@@ -1,10 +1,11 @@
 import { AppTopBar } from "@/components/navigation/app-top-bar";
 import { BottomNavigation } from "@/components/navigation/bottom-navigation";
 import { PageEnter } from "@/components/common/page-enter";
+import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { RealtimeRefresh } from "@/components/providers/realtime-refresh";
 import { AppVehicleBackdrop } from "@/components/vehicles/app-vehicle-backdrop";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
-import { getUnreadNotificationCount, resolveOrEmpty } from "@/lib/data";
+import { getIsAdmin, getUnreadNotificationCount, resolveOrEmpty } from "@/lib/data";
 
 /**
  * Authenticated application shell.
@@ -22,6 +23,11 @@ import { getUnreadNotificationCount, resolveOrEmpty } from "@/lib/data";
  * server, and Row Level Security is the final backstop on every table. While
  * Supabase is unconfigured, `getAccountMode()` reports `preview` and the shell
  * renders with a visible "backend not connected" label.
+ *
+ * The notification provider is mounted here — once per authenticated shell — so
+ * there is exactly one realtime subscription for the signed-in user, the bell
+ * badge and the dropdown reflect it, and unmounting on sign-out tears the
+ * subscription down.
  *
  * ---------------------------------------------------------------------------
  * Layering
@@ -42,31 +48,43 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const user = getAccountUser(account);
   const preview = isPreviewMode(account);
 
-  const { data: unreadCount } = resolveOrEmpty(
-    await getUnreadNotificationCount(),
-    0
-  );
+  const [unreadResult, adminResult] = await Promise.all([
+    getUnreadNotificationCount(),
+    getIsAdmin(),
+  ]);
+
+  // Both degrade to the safe default: an honest zero badge before Supabase is
+  // connected, and "not an admin" for anyone without a row in `admins`.
+  const { data: unreadCount } = resolveOrEmpty(unreadResult, 0);
+  const { data: isAdmin } = resolveOrEmpty(adminResult, false);
 
   return (
     <div className="relative isolate flex min-h-dvh w-full flex-col">
       <AppVehicleBackdrop />
 
-      <AppTopBar user={user} preview={preview} unreadCount={unreadCount} />
-
-      {/* `PageEnter` renders the `<main>` itself so the shell's layout is
-          unchanged, and re-keys it per route so each page's sections animate in
-          on every navigation rather than only on first paint. */}
-      <PageEnter
-        as="main"
-        id="main-content"
-        className="container-app pb-bottom-nav relative z-10 flex flex-1 flex-col gap-8 pt-7 md:gap-10 md:pt-9"
+      <NotificationsProvider
+        userId={user?.id ?? null}
+        initialUnreadCount={unreadCount}
       >
-        {children}
-      </PageEnter>
+        <AppTopBar user={user} preview={preview} isAdmin={isAdmin} />
 
-      {/* Keeps notification and withdrawal state current without a manual reload.
-          Only mounted for a real signed-in account — there is nothing to subscribe
-          to in preview mode. */}
+        {/* `PageEnter` renders the `<main>` itself so the shell's layout is
+            unchanged, and re-keys it per route so each page's sections animate in
+            on every navigation rather than only on first paint. */}
+        <PageEnter
+          as="main"
+          id="main-content"
+          className="container-app pb-bottom-nav relative z-10 flex flex-1 flex-col gap-8 pt-7 md:gap-10 md:pt-9"
+        >
+          {children}
+        </PageEnter>
+      </NotificationsProvider>
+
+      {/* Keeps withdrawal state current without a manual reload. Notification
+          state is owned by the provider above; this component now covers only
+          `withdrawal_requests`, so nothing opens two subscriptions for the same
+          table. Only mounted for a real signed-in account — there is nothing to
+          subscribe to in preview mode. */}
       {user ? <RealtimeRefresh userId={user.id} /> : null}
 
       <BottomNavigation />

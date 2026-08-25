@@ -1,54 +1,85 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
   Bell,
+  CircleDollarSign,
+  Landmark,
   Megaphone,
-  Receipt,
+  Send,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
 import { appRoutes } from "@/config/navigation";
-import type { NotificationCategory } from "@/types/notification";
+import type { NotificationType } from "@/types/notification";
 
 const categories: readonly {
-  category: NotificationCategory;
+  type: NotificationType;
   label: string;
   description: string;
   icon: LucideIcon;
 }[] = [
   {
-    category: "account",
+    type: "auth",
     label: "Account",
-    description: "Verification status, profile changes and account standing.",
+    description: "Welcome, email verification and account standing.",
     icon: BadgeCheck,
   },
   {
-    category: "investment",
-    label: "Investments",
-    description: "Activation, each payment period, and completion of a term.",
-    icon: TrendingUp,
-  },
-  {
-    category: "transaction",
-    label: "Transactions",
-    description: "Deposits credited, withdrawals submitted, processed or failed.",
-    icon: Receipt,
-  },
-  {
-    category: "security",
+    type: "security",
     label: "Security",
-    description: "Sign-ins from a new device, password and email changes.",
+    description:
+      "New sign-ins, password changes, email changes and failed login attempts.",
     icon: ShieldCheck,
   },
   {
-    category: "platform",
-    label: "Platform",
-    description: "New plans, and when deposits and withdrawals open.",
+    type: "deposit",
+    label: "Deposits",
+    description: "Pending, confirmed, credited and failed deposit events.",
+    icon: Landmark,
+  },
+  {
+    type: "withdrawal",
+    label: "Withdrawals",
+    description: "Requests, processing, completion, rejection and cancellation.",
+    icon: Send,
+  },
+  {
+    type: "investment",
+    label: "Investments",
+    description: "Activation and completion of a plan term.",
+    icon: TrendingUp,
+  },
+  {
+    type: "profit",
+    label: "Profit payments",
+    description: "Each scheduled payment period that is actually credited.",
+    icon: CircleDollarSign,
+  },
+  {
+    type: "wallet",
+    label: "Wallet",
+    description: "Ledger and balance events that affect your account.",
+    icon: Wallet,
+  },
+  {
+    type: "promotion",
+    label: "Promotions",
+    description: "Optional offers sent by the platform.",
+    icon: Sparkles,
+  },
+  {
+    type: "announcement",
+    label: "Announcements",
+    description: "Platform notices such as maintenance and new plans.",
     icon: Megaphone,
   },
 ] as const;
@@ -60,8 +91,9 @@ const categories: readonly {
  * yet, so a switch here would either do nothing or lie about being saved — and a
  * silently-ignored security-alert preference is worse than no control at all.
  *
- * Instead this states what the platform sends and which categories are currently
- * always-on, and gives a working link to the feed. When the preferences table
+ * Instead this states what the platform delivers — events are typed consistently
+ * end to end, and new ones arrive in the feed and as a toast without a page
+ * refresh — and gives a working link to the feed. When the preferences table
  * exists, each row gains a real switch and this comment goes away.
  */
 export function NotificationPreferences({
@@ -74,13 +106,14 @@ export function NotificationPreferences({
       <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
         These are the notifications the platform sends. Per-category controls arrive
         with the preferences backend; until then every category is delivered to your
-        in-app feed and none can be switched off.
+        in-app feed and none can be switched off. New notifications appear
+        instantly — an unread badge and a brief toast, without refreshing the page.
       </p>
 
       <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
         {categories.map((entry) => (
           <li
-            key={entry.category}
+            key={entry.type}
             className="flex items-center gap-3.5 bg-surface-1 px-4 py-3.5"
           >
             <span

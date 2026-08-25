@@ -57,6 +57,18 @@ export type NotificationCategoryEnum =
   | "security"
   | "platform";
 
+export type NotificationTypeEnum =
+  | "auth"
+  | "security"
+  | "deposit"
+  | "withdrawal"
+  | "investment"
+  | "profit"
+  | "wallet"
+  | "system"
+  | "promotion"
+  | "announcement";
+
 export type AddressFormatEnum = "evm" | "tron";
 
 export type DepositStatusEnum =
@@ -158,10 +170,30 @@ type NotificationRow = {
   id: string;
   user_id: string;
   category: NotificationCategoryEnum;
+  /** Event-specific kind — migration 0009. */
+  type: NotificationTypeEnum;
   title: string;
   body: string;
+  /** Generated projection of `body`, for consumers expecting a `message` name. */
+  message: string;
   href: string | null;
   read_at: string | null;
+  /** Generated projection of `read_at`. */
+  is_read: boolean;
+  /** Structured metadata: ids, amounts, currency, references. Never secrets. */
+  data: Json;
+  expires_at: string | null;
+  created_at: string;
+};
+
+/**
+ * Explicit admin allow-list (migration 0009). Deliberately a table rather than a
+ * boolean on `profiles`: the profile UPDATE policy lets an owner edit their own
+ * row, so a flag there would be self-assignable. RLS is enabled with no
+ * policies — only `security definer` functions may read it.
+ */
+type AdminRow = {
+  user_id: string;
   created_at: string;
 };
 
@@ -426,6 +458,14 @@ export type Database = {
           >,
         ];
       };
+      admins: {
+        Row: AdminRow;
+        Insert: Partial<AdminRow> & Pick<AdminRow, "user_id">;
+        Update: Partial<AdminRow>;
+        Relationships: [
+          Relationship<"admins_user_id_fkey", ["user_id"], "profiles", ["id"], true>,
+        ];
+      };
       user_balances: {
         Row: UserBalanceRow;
         Insert: Partial<UserBalanceRow> & Pick<UserBalanceRow, "user_id">;
@@ -619,6 +659,68 @@ export type Database = {
         Args: { p_email: string; p_device?: string | null };
         Returns: undefined;
       };
+      /**
+       * Records a "Password Reset Requested" notice for the account with this
+       * email. Same contract as `record_failed_login`: anonymous callable,
+       * non-revealing, throttled.
+       */
+      record_password_reset_requested: {
+        Args: { p_email: string; p_device?: string | null };
+        Returns: undefined;
+      };
+      /** True when the caller is a member of `admins` (migration 0009). */
+      is_admin: {
+        Args: { p_user?: string | null };
+        Returns: boolean;
+      };
+      /** Resolves admin-supplied emails to user ids. Admin only. */
+      admin_resolve_user_ids: {
+        Args: { p_emails: string[] };
+        Returns: string[];
+      };
+      /**
+       * Admin broadcast: one user, a chosen set, or all users. The recipient set
+       * is validated inside the definer function; the caller can never name a
+       * recipient it is not entitled to.
+       */
+      admin_create_notifications: {
+        Args: {
+          p_type: NotificationTypeEnum;
+          p_title: string;
+          p_body: string;
+          p_href?: string | null;
+          p_data?: Json;
+          p_expires_at?: string | null;
+          p_user_ids?: string[] | null;
+          p_all_users?: boolean;
+        };
+        Returns: number;
+      };
+      /**
+       * Creates one notification for the *signed-in* user. The recipient always
+       * comes from `auth.uid()` — there is no recipient parameter to spoof.
+       */
+      create_notification: {
+        Args: {
+          p_type: NotificationTypeEnum;
+          p_title: string;
+          p_body: string;
+          p_href?: string | null;
+          p_data?: Json;
+          p_expires_at?: string | null;
+        };
+        Returns: string;
+      };
+      /** Batch self-notification. `p_items` must be a JSON array of ≤50 items. */
+      create_notifications: {
+        Args: { p_items: Json };
+        Returns: number;
+      };
+      /** Deletes expired rows. Maintenance only — not exposed to clients. */
+      purge_expired_notifications: {
+        Args: Record<never, never>;
+        Returns: number;
+      };
     };
     Enums: {
       account_status: AccountStatusEnum;
@@ -628,6 +730,7 @@ export type Database = {
       transaction_type: TransactionTypeEnum;
       transaction_status: TransactionStatusEnum;
       notification_category: NotificationCategoryEnum;
+      notification_type: NotificationTypeEnum;
       address_format: AddressFormatEnum;
       deposit_status: DepositStatusEnum;
       withdrawal_status: WithdrawalStatusEnum;

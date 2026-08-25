@@ -31,6 +31,7 @@ const PROTECTED_PREFIXES = [
   "/wallet",
   "/profile",
   "/notifications",
+  "/admin",
 ] as const;
 const AUTH_ONLY_PATHS = [
   authRoutes.login,

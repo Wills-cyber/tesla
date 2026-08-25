@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, LogOut, Megaphone, ShieldCheck, UserRound } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import { StatusPill } from "@/components/common/status-pill";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +26,8 @@ type AppTopBarProps = {
   user: SessionUser | null;
   /** True when Supabase isn't connected: the UI is a labelled preview. */
   preview: boolean;
-  unreadCount: number;
+  /** Operators in the `admins` table see the admin broadcast surface. */
+  isAdmin: boolean;
 };
 
 /**
@@ -35,8 +36,12 @@ type AppTopBarProps = {
  * Deliberately thin: it carries the brand, the notification bell, the theme
  * preference and the account menu. All *navigation* lives in the bottom bar, so
  * this never grows a second set of destinations.
+ *
+ * The bell is a client component fed by the realtime notification provider
+ * mounted in the app shell — the badge, the dropdown list and its read state
+ * update without a page refresh, and without a second socket per bar.
  */
-export function AppTopBar({ user, preview, unreadCount }: AppTopBarProps) {
+export function AppTopBar({ user, preview, isAdmin }: AppTopBarProps) {
   const displayName = user?.fullName ?? (preview ? "Preview" : "Your account");
   const displayEmail = user?.email ?? (preview ? "No account connected" : "");
 
@@ -56,26 +61,7 @@ export function AppTopBar({ user, preview, unreadCount }: AppTopBarProps) {
         <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
 
-          <Button
-            asChild
-            variant="ghost"
-            size="icon-lg"
-            className="relative text-muted-foreground hover:text-foreground"
-          >
-            <Link href={appRoutes.notifications}>
-              <Bell />
-              <span className="sr-only">
-                Notifications
-                {unreadCount > 0 ? ` (${unreadCount} unread)` : ""}
-              </span>
-              {unreadCount > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute top-2 right-2 size-1.5 rounded-full bg-brand ring-2 ring-background"
-                />
-              )}
-            </Link>
-          </Button>
+          <NotificationBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -128,6 +114,15 @@ export function AppTopBar({ user, preview, unreadCount }: AppTopBarProps) {
                   Notifications
                 </Link>
               </DropdownMenuItem>
+
+              {isAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link href={appRoutes.adminNotifications}>
+                    <Megaphone />
+                    Send announcement
+                  </Link>
+                </DropdownMenuItem>
+              )}
 
               <DropdownMenuSeparator />
 

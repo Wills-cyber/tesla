@@ -37,39 +37,40 @@ export function AdminReceiptModal({
 
     let isMounted = true;
 
-    async function fetchReceiptUrl() {
-      try {
-        const res = await getReceiptSignedUrlAction(receiptPath!);
-        if (!isMounted) return;
-        if (res.status === "success") {
-          setSignedUrl(res.signedUrl);
-          setError(null);
-        } else {
-          setError(res.message);
-          setSignedUrl(null);
-        }
-      } catch {
-        if (!isMounted) return;
-        setError("Failed to load secure receipt link.");
-        setSignedUrl(null);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
 
-    // Wrap loading flag to defer state transition
-    const timeout = setTimeout(() => {
-      if (isMounted) {
-        setLoading(true);
-        void fetchReceiptUrl();
-      }
+      // Defer state updates to avoid cascading renders warning
+      setLoading(true);
+      setError(null);
+      setSignedUrl(null);
+
+      (async () => {
+        try {
+          const res = await getReceiptSignedUrlAction(receiptPath);
+          if (!isMounted) return;
+          if (res.status === "success") {
+            setSignedUrl(res.signedUrl);
+            setError(null);
+          } else {
+            setError(res.message);
+            setSignedUrl(null);
+          }
+        } catch {
+          if (!isMounted) return;
+          setError("Failed to load secure receipt link from private storage.");
+          setSignedUrl(null);
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
+      })();
     }, 0);
 
     return () => {
       isMounted = false;
-      clearTimeout(timeout);
+      clearTimeout(timer);
     };
   }, [open, receiptPath]);
 
@@ -82,25 +83,27 @@ export function AdminReceiptModal({
     onOpenChange(newOpen);
   };
 
-  const isPdf =
-    receiptPath?.toLowerCase().endsWith(".pdf") ||
-    signedUrl?.toLowerCase().includes(".pdf");
+  const lowerPath = receiptPath?.toLowerCase() ?? "";
+  const lowerUrl = signedUrl?.toLowerCase() ?? "";
+  const isPdf = lowerPath.endsWith(".pdf") || lowerUrl.includes(".pdf");
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-6">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <DialogTitle className="text-lg font-semibold">
                 Payment Receipt Proof
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 Deposit Reference: <span className="font-mono">{depositReference}</span>
+                <br />
+                <span className="text-[0.68rem]">Securely retrieved from PRIVATE bucket deposit-receipts via signed URL</span>
               </DialogDescription>
             </div>
             {signedUrl && (
-              <Button asChild variant="hairline" size="sm" className="gap-1.5">
+              <Button asChild variant="hairline" size="sm" className="gap-1.5 shrink-0">
                 <a href={signedUrl} target="_blank" rel="noopener noreferrer">
                   <span>Open Full Size</span>
                   <ExternalLink className="size-3" />
@@ -114,14 +117,18 @@ export function AdminReceiptModal({
           {loading ? (
             <div className="flex flex-col items-center gap-3 text-muted-foreground">
               <Loader2 className="size-6 animate-spin text-brand" />
-              <span className="text-xs">Loading secure receipt from storage...</span>
+              <span className="text-xs">Loading secure receipt from private storage...</span>
+              <span className="text-[0.68rem] text-muted-foreground">Generating signed URL for {receiptPath}</span>
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center gap-2 text-center text-xs text-destructive">
+            <div className="flex flex-col items-center gap-2 text-center text-xs text-destructive max-w-md">
               <X className="size-6" />
-              <p>{error}</p>
-              <p className="text-muted-foreground">
-                File path: <code className="font-mono">{receiptPath}</code>
+              <p className="font-medium">{error}</p>
+              <p className="text-muted-foreground break-all">
+                File path: <code className="font-mono text-[0.7rem]">{receiptPath}</code>
+              </p>
+              <p className="text-[0.68rem] text-muted-foreground">
+                Bucket: deposit-receipts (PRIVATE) • Path format: {"{user_id}/{deposit_id}/{filename}"}
               </p>
             </div>
           ) : signedUrl ? (
@@ -133,24 +140,41 @@ export function AdminReceiptModal({
                 <div className="flex flex-col items-center gap-1 text-center">
                   <p className="text-sm font-semibold">PDF Document</p>
                   <p className="text-xs text-muted-foreground">
-                    Receipt uploaded as a PDF document.
+                    Receipt uploaded as a PDF document in private storage.
+                  </p>
+                  <p className="text-[0.68rem] text-muted-foreground mt-1">
+                    Secure signed URL • Expires in 1 hour
                   </p>
                 </div>
-                <Button asChild variant="accent" size="md">
-                  <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="size-4" />
-                    View PDF Document
-                  </a>
-                </Button>
+                <div className="flex flex-col gap-2 w-full max-w-xs">
+                  <Button asChild variant="accent" size="md" className="w-full">
+                    <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="size-4" />
+                      View PDF Document
+                    </a>
+                  </Button>
+                  <div className="rounded-lg border border-hairline bg-surface-1 p-2">
+                    <iframe
+                      src={signedUrl}
+                      title={`Receipt PDF for ${depositReference}`}
+                      className="w-full h-64 rounded-md"
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="relative max-h-[65vh] w-full overflow-hidden rounded-xl bg-black/40">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={signedUrl}
-                  alt={`Payment proof for ${depositReference}`}
-                  className="max-h-[65vh] w-full object-contain"
-                />
+              <div className="flex flex-col gap-3 w-full">
+                <div className="relative max-h-[65vh] w-full overflow-hidden rounded-xl bg-black/40 border border-hairline">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={signedUrl}
+                    alt={`Payment proof for ${depositReference}`}
+                    className="max-h-[65vh] w-full object-contain"
+                  />
+                </div>
+                <p className="text-[0.68rem] text-center text-muted-foreground">
+                  Image securely loaded from private bucket via signed URL • Expires in 1 hour
+                </p>
               </div>
             )
           ) : (

@@ -14,18 +14,23 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { DashboardGuide, type GuideStep } from "@/components/dashboard/dashboard-guide";
 import { FeatureCard } from "@/components/dashboard/feature-card";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/common/empty-state";
 import { RevealGroup, RevealItem } from "@/components/common/reveal";
 import { StatusPill } from "@/components/common/status-pill";
+import { UnfinishedDepositPrompt } from "@/components/wallet/unfinished-deposit-prompt";
 import { Button } from "@/components/ui/button";
 import { dashboardGuideSteps } from "@/config/content";
+import { ADMIN_USER_ID } from "@/config/crypto";
 import { appRoutes, legalRoutes } from "@/config/navigation";
 import { siteConfig } from "@/config/site";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
 import {
+  getActivePendingDeposit,
+  getAdminDeposits,
   getInvestmentPlans,
   getUserBalance,
   getUserInvestments,
@@ -40,24 +45,28 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * Dashboard — completely redesigned for a premium fintech experience.
- *
- * Transformed from an educational landing page into a true financial dashboard
- * that immediately communicates the user's financial position and provides
- * quick access to every action.
- *
- * Every figure is read from the ledger. Nothing is fabricated.
- */
 export default async function DashboardPage() {
   const account = await getAccountMode();
   const user = getAccountUser(account);
   const preview = isPreviewMode(account);
 
-  const [balanceResult, investmentsResult, plansResult] = await Promise.all([
+  // If this specific designated admin user is logged in, show the Admin Panel
+  if (user?.id === ADMIN_USER_ID) {
+    const depositsResult = await getAdminDeposits();
+    const { data: adminDeposits } = resolveOrEmpty(depositsResult, []);
+    return <AdminDashboard user={user} deposits={adminDeposits} />;
+  }
+
+  const [
+    balanceResult,
+    investmentsResult,
+    plansResult,
+    pendingDepositResult,
+  ] = await Promise.all([
     getUserBalance(),
     getUserInvestments(),
     getInvestmentPlans(),
+    getActivePendingDeposit(),
   ]);
 
   const { data: balance } = resolveOrEmpty(balanceResult, {
@@ -68,6 +77,10 @@ export default async function DashboardPage() {
 
   const { data: investments } = resolveOrEmpty(investmentsResult, []);
   const { data: plans } = resolveOrEmpty(plansResult, []);
+  const { data: activePendingDeposit } = resolveOrEmpty(
+    pendingDepositResult,
+    null
+  );
 
   const activeCount = investments.filter(
     (investment) => investment.status === "active"
@@ -91,6 +104,11 @@ export default async function DashboardPage() {
 
   return (
     <>
+      {/* ------------------------------------------------- Unfinished Deposit Alert */}
+      {activePendingDeposit && (
+        <UnfinishedDepositPrompt deposit={activePendingDeposit} />
+      )}
+
       {/* --------------------------------------------------------- Welcome */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3">
@@ -158,7 +176,7 @@ export default async function DashboardPage() {
 
             <div className="relative flex flex-wrap gap-3">
               <Button asChild variant="accent" size="md">
-                <Link href={appRoutes.wallet}>
+                <Link href={appRoutes.deposit}>
                   <ArrowDownToLine />
                   Deposit
                 </Link>
@@ -229,7 +247,7 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <QuickAction
-            href={appRoutes.wallet}
+            href={appRoutes.deposit}
             icon={ArrowDownToLine}
             label="Deposit"
             description="Fund your wallet"

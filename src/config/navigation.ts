@@ -23,12 +23,20 @@ export const appRoutes = {
   investments: "/investments",
   wallet: "/wallet",
   walletActivity: "/wallet/activity",
+  /** The multi-step USDT deposit flow. */
+  deposit: "/wallet/deposit",
+  /** A single deposit request's payment screen and status. */
+  depositDetail: (id: string) => `/wallet/deposit/${id}`,
   /** The multi-step withdrawal flow. A page, not a modal — see the route file. */
   withdraw: "/wallet/withdraw",
   /** A single withdrawal request's status. Addressable, so it can be shared. */
   withdrawalDetail: (id: string) => `/wallet/withdraw/${id}`,
   profile: "/profile",
   notifications: "/notifications",
+  /** Admin portal dashboard. */
+  admin: "/admin",
+  /** Admin deposit review and approval surface. */
+  adminDeposits: "/admin/deposits",
   /** Admin-only broadcast surface. The page re-checks the `admins` table. */
   adminNotifications: "/admin/notifications",
 } as const;

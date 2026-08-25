@@ -4,6 +4,7 @@ import { PageEnter } from "@/components/common/page-enter";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { RealtimeRefresh } from "@/components/providers/realtime-refresh";
 import { AppVehicleBackdrop } from "@/components/vehicles/app-vehicle-backdrop";
+import { ADMIN_USER_ID } from "@/config/crypto";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
 import { getIsAdmin, getUnreadNotificationCount, resolveOrEmpty } from "@/lib/data";
 
@@ -56,7 +57,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // Both degrade to the safe default: an honest zero badge before Supabase is
   // connected, and "not an admin" for anyone without a row in `admins`.
   const { data: unreadCount } = resolveOrEmpty(unreadResult, 0);
-  const { data: isAdmin } = resolveOrEmpty(adminResult, false);
+  const { data: isAdminFromDb } = resolveOrEmpty(adminResult, false);
+  const isDesignatedAdmin = user?.id === ADMIN_USER_ID;
+  const isAdmin = isAdminFromDb || isDesignatedAdmin;
 
   return (
     <div className="relative isolate flex min-h-dvh w-full flex-col">

@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/common/status-pill";
 import { DepositList } from "@/components/wallet/deposit-list";
 import { DepositModal } from "@/components/wallet/deposit-modal";
 import { TransactionList } from "@/components/wallet/transaction-list";
+import { UnfinishedDepositPrompt } from "@/components/wallet/unfinished-deposit-prompt";
 import { indexWithdrawalsByTransaction } from "@/lib/wallet/receipts";
 import { WalletCard } from "@/components/wallet/wallet-card";
 import { WithdrawalList } from "@/components/wallet/withdrawal-list";
@@ -16,6 +17,7 @@ import { walletExplainers } from "@/config/content";
 import { appRoutes } from "@/config/navigation";
 import { getAccountMode, isPreviewMode } from "@/lib/auth/session";
 import {
+  getActivePendingDeposit,
   getPaymentMethods,
   getUserBalance,
   getUserDeposits,
@@ -49,6 +51,7 @@ export default async function WalletPage() {
     policyResult,
     depositsResult,
     withdrawalsResult,
+    pendingDepositResult,
   ] = await Promise.all([
     getUserBalance(),
     getUserTransactions({ limit: 10 }),
@@ -56,6 +59,7 @@ export default async function WalletPage() {
     getWithdrawalPolicy(),
     getUserDeposits(10),
     getUserWithdrawals(10),
+    getActivePendingDeposit(),
   ]);
 
   const { data: balance } = resolveOrEmpty(balanceResult, {
@@ -78,6 +82,7 @@ export default async function WalletPage() {
   });
   const { data: deposits } = resolveOrEmpty(depositsResult, []);
   const { data: withdrawals } = resolveOrEmpty(withdrawalsResult, []);
+  const { data: activePendingDeposit } = resolveOrEmpty(pendingDepositResult, null);
 
   const depositMethods = methods.filter(
     (method) => method.depositEnabled || !policy.depositsEnabled
@@ -85,6 +90,11 @@ export default async function WalletPage() {
 
   return (
     <>
+      {/* ------------------------------------------------- Unfinished Deposit Alert */}
+      {activePendingDeposit && (
+        <UnfinishedDepositPrompt deposit={activePendingDeposit} />
+      )}
+
       {/* --------------------------------------------------------- Header */}
       <div className="flex flex-col gap-3">
         <p className="eyebrow text-brand-emphasis">Wallet</p>

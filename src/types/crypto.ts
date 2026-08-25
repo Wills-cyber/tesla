@@ -72,17 +72,19 @@ export type DepositAddress = {
 
 /**
  * The result of asking for somewhere to send funds.
- *
- * `unavailable` is the honest answer while no provider is connected: there is no
- * address, so the UI must not render a copyable field or a QR code.
  */
 export type DepositAddressResult =
   | { status: "available"; address: DepositAddress }
   | { status: "unavailable"; reason: string };
 
 export type DepositRecordStatus =
-  | "awaiting_funds"
   | "pending"
+  | "pending_review"
+  | "approved"
+  | "declined"
+  | "expired"
+  | "cancelled"
+  | "awaiting_funds"
   | "confirmed"
   | "credited"
   | "failed";
@@ -92,16 +94,29 @@ export type DepositRecord = {
   methodId: string;
   assetSymbol: string;
   networkId: string;
+  amountCents: number;
   /** On-chain amount as a decimal string — never a float. */
   assetAmount: string | null;
   /** USD value credited, in cents. `null` until the provider settles it. */
   creditedCents: number | null;
   status: DepositRecordStatus;
+  receivingAddress: string;
+  reference: string;
+  expiresAt: string | null;
+  receiptUrl: string | null;
+  receiptPath: string | null;
+  receiptSubmittedAt: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  rejectionReason: string | null;
   txHash: string | null;
   confirmations: number | null;
   requiredConfirmations: number | null;
   createdAt: string;
   settledAt: string | null;
+  userEmail?: string | null;
+  userFullName?: string | null;
+  userId?: string;
 };
 
 /* --------------------------------------------------------------- Withdrawals */
@@ -140,10 +155,6 @@ export type WithdrawalRequest = {
   failureReason: string | null;
   /**
    * The ledger row that reserves the funds for this request.
-   *
-   * The join key between a withdrawal and its entry in the transaction history, so
-   * a receipt opened from the activity feed can show the asset, network,
-   * destination and — once one exists — the transaction hash.
    */
   transactionId: string | null;
   createdAt: string;
@@ -164,10 +175,6 @@ export function isWithdrawalTerminal(status: WithdrawalStatus): boolean {
 
 /**
  * A saved destination address.
- *
- * Always carries the pair it was saved for. Displaying an address without its
- * network is how someone pays out ERC-20 USDT to a TRC-20 wallet, so the network
- * is part of the record rather than something the UI is trusted to remember.
  */
 export type SavedAddress = {
   id: string;
@@ -181,13 +188,6 @@ export type SavedAddress = {
 
 /* ------------------------------------------------------------------- Quotes */
 
-/**
- * A USD → asset conversion, produced server-side by a rate provider.
- *
- * Never hard-coded and never computed in the browser: the amount a user is shown
- * has to be the amount the payout rail will honour, which only the provider can
- * say. Amounts are decimal strings so no rate ever passes through a float.
- */
 export type ExchangeQuote = {
   assetSymbol: string;
   networkId: string;
@@ -213,19 +213,6 @@ export type QuoteResult =
 
 /* --------------------------------------------------------------------- Fees */
 
-/**
- * What a withdrawal costs, broken into the parts a user is entitled to see.
- *
- * Two currencies are in play and conflating them is how fee displays end up
- * lying. The USD side is what leaves the platform ledger: the amount requested
- * plus any platform service fee. The asset side is what happens on-chain: the
- * network takes its fee out of the transfer itself, so it reduces what *arrives*
- * without changing what was debited.
- *
- * Every asset-side field is `null` when no live quote exists. That is not a
- * degraded state to paper over — the network fee is the provider's number and
- * depends on live chain conditions, so there is nothing honest to put there.
- */
 export type WithdrawalCosts = {
   /** What the user asked to withdraw, in USD cents. */
   amountCents: number;
@@ -247,14 +234,6 @@ export type WithdrawalCosts = {
   quote: ExchangeQuote | null;
 };
 
-/**
- * Platform withdrawal policy.
- *
- * `maximumCents` is `null` when no ceiling is configured, and that is a
- * meaningful `null`: the UI must render nothing rather than invent a limit.
- * `serviceFeeBps` of `0` likewise means the platform charges no fee, not that the
- * fee is unknown.
- */
 export type WithdrawalPolicy = {
   minimumCents: number;
   maximumCents: number | null;

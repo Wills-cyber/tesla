@@ -112,12 +112,26 @@ export function AppTopBar({ user, preview, isAdmin }: AppTopBarProps) {
               </DropdownMenuItem>
 
               {isAdmin && (
-                <DropdownMenuItem asChild>
-                  <Link href={appRoutes.adminNotifications}>
-                    <Megaphone />
-                    Send announcement
-                  </Link>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href={appRoutes.admin}>
+                      <ShieldCheck />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={appRoutes.adminDeposits}>
+                      <ShieldCheck />
+                      Deposit Reviews
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={appRoutes.adminNotifications}>
+                      <Megaphone />
+                      Send announcement
+                    </Link>
+                  </DropdownMenuItem>
+                </>
               )}
 
               <DropdownMenuSeparator />

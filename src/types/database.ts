@@ -72,8 +72,13 @@ export type NotificationTypeEnum =
 export type AddressFormatEnum = "evm" | "tron";
 
 export type DepositStatusEnum =
-  | "awaiting_funds"
   | "pending"
+  | "pending_review"
+  | "approved"
+  | "declined"
+  | "expired"
+  | "cancelled"
+  | "awaiting_funds"
   | "confirmed"
   | "credited"
   | "failed";
@@ -269,13 +274,24 @@ type DepositRow = {
    * rather than assuming a string. See `src/lib/crypto/decimal.ts`.
    */
   asset_amount: string | number | null;
+  amount_cents: number | null;
   credited_cents: number | null;
   status: DepositStatusEnum;
+  receiving_address: string | null;
+  reference: string | null;
+  expires_at: string | null;
+  receipt_url: string | null;
+  receipt_path: string | null;
+  receipt_submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  rejection_reason: string | null;
   tx_hash: string | null;
   confirmations: number | null;
   required_confirmations: number | null;
   transaction_id: string | null;
   created_at: string;
+  updated_at?: string;
   settled_at: string | null;
 };
 
@@ -672,6 +688,46 @@ export type Database = {
       is_admin: {
         Args: { p_user?: string | null };
         Returns: boolean;
+      };
+      /** Creates a pending USDT deposit request. */
+      create_deposit_request: {
+        Args: { p_method_id: string; p_amount_cents: number };
+        Returns: DepositRow;
+      };
+      /** Submits a receipt for a pending deposit. */
+      submit_deposit_receipt: {
+        Args: {
+          p_deposit_id: string;
+          p_receipt_path: string;
+          p_receipt_url?: string | null;
+        };
+        Returns: DepositRow;
+      };
+      /** Cancels a pending deposit. */
+      cancel_deposit: {
+        Args: { p_deposit_id: string };
+        Returns: DepositRow;
+      };
+      /** Approves a deposit and credits user wallet. Idempotent. Admin only. */
+      admin_approve_deposit: {
+        Args: { p_deposit_id: string };
+        Returns: DepositRow;
+      };
+      /** Declines a deposit with a reason. Admin only. */
+      admin_decline_deposit: {
+        Args: { p_deposit_id: string; p_reason: string };
+        Returns: DepositRow;
+      };
+      /** Fetches all deposits for admin review. Admin only. */
+      admin_get_deposits: {
+        Args: { p_status?: string | null };
+        Returns: (DepositRow & {
+          user_email: string;
+          user_full_name: string | null;
+          asset_symbol: string;
+          network_name: string;
+          network_protocol: string;
+        })[];
       };
       /** Resolves admin-supplied emails to user ids. Admin only. */
       admin_resolve_user_ids: {

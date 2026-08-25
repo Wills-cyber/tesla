@@ -32,6 +32,9 @@ export {
 } from "./payment-methods";
 export {
   getDepositAddress,
+  getDepositById,
+  getActivePendingDeposit,
+  getAdminDeposits,
   getSavedAddresses,
   getUserDeposits,
   getUserWithdrawals,

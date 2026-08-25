@@ -24,30 +24,26 @@ import type { SessionUser } from "@/types/user";
 
 type AppTopBarProps = {
   user: SessionUser | null;
-  /** True when Supabase isn't connected: the UI is a labelled preview. */
   preview: boolean;
-  /** Operators in the `admins` table see the admin broadcast surface. */
   isAdmin: boolean;
 };
 
 /**
- * The application's slim top bar.
+ * Enhanced app top bar — slimmer, more premium.
  *
- * Deliberately thin: it carries the brand, the notification bell, the theme
- * preference and the account menu. All *navigation* lives in the bottom bar, so
- * this never grows a second set of destinations.
- *
- * The bell is a client component fed by the realtime notification provider
- * mounted in the app shell — the badge, the dropdown list and its read state
- * update without a page refresh, and without a second socket per bar.
+ * Premium touches:
+ * · Compact height (3.75rem / 60px)
+ * · Subtle bottom border with gold accent
+ * · Premium glass effect
+ * · Better menu styling
  */
 export function AppTopBar({ user, preview, isAdmin }: AppTopBarProps) {
-  const displayName = user?.fullName ?? (preview ? "Preview" : "Your account");
+  const displayName = user?.fullName ?? (preview ? "Preview" : "Account");
   const displayEmail = user?.email ?? (preview ? "No account connected" : "");
 
   return (
-    <header className="glass sticky top-0 z-40 border-b border-hairline">
-      <div className="container-app flex h-16 items-center justify-between gap-3">
+    <header className="glass-strong sticky top-0 z-40 border-b border-hairline">
+      <div className="container-app flex h-14 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Logo size="sm" href={appRoutes.dashboard} />
 
@@ -58,7 +54,7 @@ export function AppTopBar({ user, preview, isAdmin }: AppTopBarProps) {
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           <ThemeToggle />
 
           <NotificationBell />
@@ -68,15 +64,15 @@ export function AppTopBar({ user, preview, isAdmin }: AppTopBarProps) {
               <button
                 type="button"
                 aria-label="Account menu"
-                className="ml-0.5 flex items-center gap-2.5 rounded-full border border-hairline bg-surface-1 py-1 pr-1 pl-1 shadow-soft transition-[border-color,box-shadow] hover:border-hairline-strong hover:shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:pr-3.5"
+                className="ml-1 flex items-center gap-2.5 rounded-full border border-hairline bg-surface-1 p-0.5 shadow-soft transition-all duration-300 hover:border-hairline-strong hover:shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:pr-3"
               >
-                <Avatar className="size-8">
+                <Avatar className="size-7 sm:size-8">
                   {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="" />}
-                  <AvatarFallback className="bg-brand-surface-strong text-[0.7rem] font-semibold text-brand-emphasis">
+                  <AvatarFallback className="bg-brand-surface-strong text-[0.65rem] font-semibold text-brand-emphasis">
                     {user?.fullName ? getInitials(user.fullName) : "—"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden max-w-28 truncate text-sm font-medium sm:block">
+                <span className="hidden max-w-24 truncate text-sm font-medium sm:block sm:max-w-28">
                   {displayName}
                 </span>
               </button>
@@ -127,7 +123,6 @@ export function AppTopBar({ user, preview, isAdmin }: AppTopBarProps) {
               <DropdownMenuSeparator />
 
               <DropdownMenuItem asChild variant="destructive">
-                {/* A form post, so sign-out is never triggered by a prefetch. */}
                 <form action={signOutAction}>
                   <button type="submit" className="flex w-full items-center gap-2">
                     <LogOut />

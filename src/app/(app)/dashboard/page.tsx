@@ -2,27 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Banknote,
   Compass,
-  ScrollText,
-  ShieldCheck,
+  LayoutDashboard,
+  Sparkles,
   TrendingUp,
   Wallet,
+  ScrollText,
+  ShieldCheck,
 } from "lucide-react";
 
 import { DashboardGuide, type GuideStep } from "@/components/dashboard/dashboard-guide";
 import { FeatureCard } from "@/components/dashboard/feature-card";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/common/empty-state";
 import { RevealGroup, RevealItem } from "@/components/common/reveal";
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
-import {
-  dashboardGuideSteps,
-  platformExplainers,
-  walletExplainers,
-} from "@/config/content";
+import { dashboardGuideSteps } from "@/config/content";
 import { appRoutes, legalRoutes } from "@/config/navigation";
 import { siteConfig } from "@/config/site";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
@@ -37,32 +36,18 @@ import { EMPTY_BALANCE } from "@/types/balance";
 
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "Your starting point on TESLA Electronics.",
+  description: "Your TESLA Electronics investment dashboard.",
   robots: { index: false, follow: false },
 };
 
 /**
- * Cycles the icon-chip hue down the explainer grids.
+ * Dashboard — completely redesigned for a premium fintech experience.
  *
- * The educational sections are long columns of white cards, which is what made
- * the page read as unfinished. These four hues give the column rhythm without
- * tinting whole cards. The order is arbitrary but stable, so a card's colour never
- * moves between renders.
- */
-const EXPLAINER_TONES = ["brand", "info", "success", "warning"] as const;
-
-/**
- * Dashboard.
+ * Transformed from an educational landing page into a true financial dashboard
+ * that immediately communicates the user's financial position and provides
+ * quick access to every action.
  *
- * Deliberately *not* a financial transaction page. Money lives in Wallet, the
- * marketplace lives in Invest, and positions live in Investments — duplicating any
- * of them here would leave four places showing the same numbers and no obvious
- * place to act.
- *
- * What this page does instead: welcome the user, explain how the platform works,
- * and point at the right next step. The only figures shown are three high-level
- * ones, each read from the ledger, so a pre-launch account reads zero — which is
- * accurate rather than a placeholder.
+ * Every figure is read from the ledger. Nothing is fabricated.
  */
 export default async function DashboardPage() {
   const account = await getAccountMode();
@@ -92,10 +77,6 @@ export default async function DashboardPage() {
   const hasInvestment = investments.length > 0;
   const hasBalance = balance.availableCents > 0;
 
-  /**
-   * Step completion is evidence-based: a step is ticked only where a backend
-   * record proves it. Nothing is marked done to make the list look progressed.
-   */
   const steps: GuideStep[] = dashboardGuideSteps.map((step, index) => ({
     title: step.title,
     description: step.description,
@@ -111,43 +92,194 @@ export default async function DashboardPage() {
   return (
     <>
       {/* --------------------------------------------------------- Welcome */}
-      <PageHeader
-        eyebrow="Dashboard"
-        title={firstName ? `Welcome back, ${firstName}` : "Welcome to TESLA Electronics"}
-        description="This is your starting point for exploring the platform: how investing works here, what each area is for, and what to do next. Your money and your positions live in Wallet and Investments."
-        badge={
-          preview ? (
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          {preview && (
             <StatusPill tone="brand" dot className="self-start">
               UI Preview · No account connected
             </StatusPill>
-          ) : null
-        }
-        actions={
-          <Button asChild variant="accent" size="md">
-            <Link href={appRoutes.invest}>
-              Explore Plans
+          )}
+          <div className="flex flex-col gap-1.5">
+            <p className="eyebrow text-brand-emphasis">Dashboard</p>
+            <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-[2.25rem]">
+              {firstName ? `Welcome back, ${firstName}` : "Welcome to TESLA Electronics"}
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
+              Your financial overview at a glance. Manage your investments, wallet, and account from one place.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------- Financial Overview Cards */}
+      <section aria-labelledby="financial-summary-heading">
+        <h2 id="financial-summary-heading" className="sr-only">
+          Financial summary
+        </h2>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Available Balance — most prominent */}
+          <div className="panel-inverse relative col-span-full flex flex-col gap-5 overflow-hidden p-6 sm:p-7 lg:col-span-2">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-gold-500/12 blur-3xl"
+            />
+            <div aria-hidden="true" className="grid-field absolute inset-0 opacity-[0.04]" />
+
+            <div className="relative flex flex-col gap-1.5">
+              <p className="text-[0.68rem] font-semibold tracking-[0.18em] text-surface-inverse-foreground/60 uppercase">
+                Available Balance
+              </p>
+              <p
+                data-numeric
+                className="text-4xl leading-none font-semibold tracking-tight text-surface-inverse-foreground sm:text-5xl"
+              >
+                {formatCurrency(balance.availableCents, {
+                  currency: balance.currency,
+                })}
+              </p>
+              {balance.pendingWithdrawalCents > 0 ? (
+                <p className="text-xs text-surface-inverse-foreground/65">
+                  <span data-numeric className="font-semibold">
+                    {formatCurrency(balance.pendingWithdrawalCents)}
+                  </span>{" "}
+                  reserved ·{" "}
+                  <span data-numeric className="font-semibold">
+                    {formatCurrency(balance.availableCents - balance.pendingWithdrawalCents)}
+                  </span>{" "}
+                  spendable
+                </p>
+              ) : (
+                <p className="text-xs text-surface-inverse-foreground/60">
+                  Total funds available in your wallet
+                </p>
+              )}
+            </div>
+
+            <div className="relative flex flex-wrap gap-3">
+              <Button asChild variant="accent" size="md">
+                <Link href={appRoutes.wallet}>
+                  <ArrowDownToLine />
+                  Deposit
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="md"
+                className="border-white/20 bg-white/10 text-surface-inverse-foreground hover:bg-white/20 hover:text-surface-inverse-foreground"
+              >
+                <Link href={appRoutes.withdraw}>
+                  <ArrowUpFromLine />
+                  Withdraw
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Total Invested */}
+          <div className="panel-tint tint-investment flex h-full flex-col gap-3 p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-[0.68rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                Total Invested
+              </p>
+              <span aria-hidden="true" className="tint-chip grid size-9 place-items-center rounded-xl">
+                <TrendingUp className="size-4" />
+              </span>
+            </div>
+            <div className="mt-auto flex flex-col gap-1.5">
+              <p data-numeric className="text-2xl leading-none font-semibold tracking-tight tint-ink sm:text-[1.75rem]">
+                {formatCurrency(balance.totalInvestedCents)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {activeCount > 0
+                  ? `${activeCount} active ${activeCount === 1 ? "investment" : "investments"}`
+                  : "No active investments"}
+              </p>
+            </div>
+          </div>
+
+          {/* Total Profit */}
+          <div className="panel-tint tint-profit flex h-full flex-col gap-3 p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-[0.68rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                Total Profit
+              </p>
+              <span aria-hidden="true" className="tint-chip grid size-9 place-items-center rounded-xl">
+                <Banknote className="size-4" />
+              </span>
+            </div>
+            <div className="mt-auto flex flex-col gap-1.5">
+              <p data-numeric className="text-2xl leading-none font-semibold tracking-tight tint-ink sm:text-[1.75rem]">
+                {formatCurrency(balance.totalProfitCents)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Profit actually credited
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------- Quick Actions */}
+      <section aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className="sr-only">
+          Quick actions
+        </h2>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <QuickAction
+            href={appRoutes.wallet}
+            icon={ArrowDownToLine}
+            label="Deposit"
+            description="Fund your wallet"
+            color="deposit"
+          />
+          <QuickAction
+            href={appRoutes.withdraw}
+            icon={ArrowUpFromLine}
+            label="Withdraw"
+            description="Request payout"
+            color="withdrawal"
+          />
+          <QuickAction
+            href={appRoutes.invest}
+            icon={Sparkles}
+            label="Invest"
+            description="Browse plans"
+            color="investment"
+          />
+          <QuickAction
+            href={appRoutes.walletActivity}
+            icon={LayoutDashboard}
+            label="Activity"
+            description="Transactions"
+            color="neutral"
+          />
+        </div>
+      </section>
+
+      {/* ------------------------------------------------- Investment Progress */}
+      <section aria-labelledby="investment-progress-heading" className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <div className="flex flex-col gap-1.5">
+            <h2 id="investment-progress-heading" className="text-xl font-semibold sm:text-2xl">
+              Investment Progress
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Track your active investments and returns.
+            </p>
+          </div>
+
+          <Button asChild variant="hairline" size="md">
+            <Link href={appRoutes.investments}>
+              View All Investments
               <ArrowRight />
             </Link>
           </Button>
-        }
-      />
+        </div>
 
-      {/* ------------------------------------------------ High-level figures */}
-      <section aria-labelledby="account-summary-heading" className="flex flex-col gap-4">
-        <h2 id="account-summary-heading" className="sr-only">
-          Account summary
-        </h2>
-
-        <RevealGroup className="grid gap-4 sm:grid-cols-3" stagger={0.07}>
-          <RevealItem className="flex">
-            <StatCard
-              label="Wallet Balance"
-              value={formatCurrency(balance.availableCents)}
-              icon={Wallet}
-              note="Available to invest or withdraw."
-              tone="brand"
-            />
-          </RevealItem>
+        <RevealGroup className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" stagger={0.06}>
           <RevealItem className="flex">
             <StatCard
               label="Active Investments"
@@ -155,7 +287,7 @@ export default async function DashboardPage() {
               icon={TrendingUp}
               note={
                 activeCount === 0
-                  ? "You haven't activated an investment yet."
+                  ? "You haven&apos;t activated an investment yet."
                   : "In progress right now."
               }
               tone="info"
@@ -170,20 +302,28 @@ export default async function DashboardPage() {
               tone="success"
             />
           </RevealItem>
+          <RevealItem className="flex">
+            <StatCard
+              label="Wallet Balance"
+              value={formatCurrency(balance.availableCents)}
+              icon={Wallet}
+              note="Available to invest or withdraw."
+              tone="brand"
+            />
+          </RevealItem>
         </RevealGroup>
 
         <p className="text-xs leading-relaxed text-subtle-foreground">
           Figures come from your ledger, which is maintained server-side from
-          settled transactions. They are never calculated from a plan&apos;s stated
-          terms.
+          settled transactions. They are never calculated from a plan&apos;s stated terms.
         </p>
       </section>
 
       {/* ------------------------------------------------- Onboarding state */}
       {!hasInvestment && (
         <EmptyState
-          title="You haven't activated an investment yet"
-          description="Start by reading the plan terms in Invest. When you've chosen one, fund your wallet and activate it — your progress will then appear in Investments."
+          title="You haven&apos;t activated an investment yet"
+          description="Start by reading the plan terms in Invest. When you&apos;ve chosen one, fund your wallet and activate it &mdash; your progress will then appear in Investments."
           note={siteConfig.prelaunchNotice}
           action={
             <>
@@ -198,15 +338,14 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* -------------------------------------------------------- Start here */}
+      {/* ------------------------------------------------- Start here */}
       <section aria-labelledby="start-here-heading" className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <h2 id="start-here-heading" className="text-xl font-semibold sm:text-2xl">
             Start here
           </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
-            Five steps from reading the terms to tracking a live investment. Each
-            one takes you to the area that handles it.
+            Five steps from reading the terms to tracking a live investment.
           </p>
         </div>
 
@@ -220,8 +359,7 @@ export default async function DashboardPage() {
             What each area is for
           </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
-            Four destinations, one job each. Nothing important is hidden behind a
-            menu.
+            Four destinations, one job each.
           </p>
         </div>
 
@@ -237,7 +375,7 @@ export default async function DashboardPage() {
           <FeatureCard
             icon={TrendingUp}
             title="Investments"
-            description="Only the investments you actually hold, split into active, pending and completed, each with its real payment schedule."
+            description="Only the investments you actually hold, split into active, pending and completed."
             href={appRoutes.investments}
             linkLabel="View investments"
             tone="info"
@@ -245,7 +383,7 @@ export default async function DashboardPage() {
           <FeatureCard
             icon={Wallet}
             title="Wallet"
-            description="Your balance, plus the only place to deposit and withdraw. Every movement of value is listed here."
+            description="Your balance, plus the only place to deposit and withdraw."
             href={appRoutes.wallet}
             linkLabel="Open wallet"
             tone="success"
@@ -253,79 +391,14 @@ export default async function DashboardPage() {
           <FeatureCard
             icon={ShieldCheck}
             title="Profile"
-            description="Your account details, security settings, notification preferences and appearance."
+            description="Your account details, security settings, and preferences."
             href={appRoutes.profile}
             linkLabel="Open profile"
           />
         </div>
       </section>
 
-      {/* ------------------------------------------------- How things work */}
-      <section aria-labelledby="how-it-works-heading" className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <h2 id="how-it-works-heading" className="text-xl font-semibold sm:text-2xl">
-            How investing works here
-          </h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
-            The mechanics, in plain terms — how a plan is structured, how a payment
-            period is settled, and how the term runs to completion.
-          </p>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          {platformExplainers.map((explainer, index) => (
-            <FeatureCard
-              key={explainer.id}
-              icon={explainer.icon}
-              title={explainer.title}
-              description={explainer.description}
-              points={explainer.points}
-              tone={EXPLAINER_TONES[index % EXPLAINER_TONES.length]}
-              className={index === 0 ? "lg:col-span-2" : undefined}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------ Wallet basics */}
-      <section aria-labelledby="wallet-basics-heading" className="flex flex-col gap-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <h2
-              id="wallet-basics-heading"
-              className="text-xl font-semibold sm:text-2xl"
-            >
-              Deposits and withdrawals
-            </h2>
-            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
-              Both live in your Wallet. Crypto transfers cannot be reversed, so both
-              flows are built to make the asset and network unambiguous.
-            </p>
-          </div>
-
-          <Button asChild variant="hairline" size="md">
-            <Link href={appRoutes.wallet}>
-              Open Wallet
-              <ArrowRight />
-            </Link>
-          </Button>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          {walletExplainers.map((explainer, index) => (
-            <FeatureCard
-              key={explainer.id}
-              icon={explainer.icon}
-              title={explainer.title}
-              description={explainer.description}
-              points={explainer.points}
-              tone={EXPLAINER_TONES[(index + 1) % EXPLAINER_TONES.length]}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------- Legal */}
+      {/* ------------------------------------------------- Legal */}
       <section
         aria-labelledby="legal-heading"
         className="panel-sunken flex flex-col gap-4 p-6 sm:p-7"
@@ -344,8 +417,7 @@ export default async function DashboardPage() {
 
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground text-pretty">
           The figures on every plan are <strong>stated terms</strong> — what the plan
-          proposes to pay if it performs as published. Nothing on this platform is
-          financial, investment, tax or legal advice.
+          proposes to pay if it performs as published.
         </p>
 
         <p className="max-w-3xl text-xs leading-relaxed text-subtle-foreground">
@@ -362,5 +434,67 @@ export default async function DashboardPage() {
         </div>
       </section>
     </>
+  );
+}
+
+/* ------------------------------------------------------- Quick Action Component */
+
+function QuickAction({
+  href,
+  icon: Icon,
+  label,
+  description,
+  color,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
+  color: "deposit" | "withdrawal" | "investment" | "neutral";
+}) {
+  const colorMap = {
+    deposit: {
+      bg: "bg-deposit-surface",
+      icon: "text-deposit",
+      border: "border-deposit-border",
+      hover: "hover:border-deposit-border hover:shadow-[0_0_20px_-8px_var(--deposit)]",
+    },
+    withdrawal: {
+      bg: "bg-withdrawal-surface",
+      icon: "text-withdrawal",
+      border: "border-withdrawal-border",
+      hover: "hover:border-withdrawal-border hover:shadow-[0_0_20px_-8px_var(--withdrawal)]",
+    },
+    investment: {
+      bg: "bg-investment-surface",
+      icon: "text-investment-accent",
+      border: "border-investment-border",
+      hover: "hover:border-investment-border hover:shadow-[0_0_20px_-8px_var(--investment-accent)]",
+    },
+    neutral: {
+      bg: "bg-surface-2",
+      icon: "text-muted-foreground",
+      border: "border-hairline",
+      hover: "hover:border-hairline-strong hover:shadow-lift",
+    },
+  };
+
+  const c = colorMap[color];
+
+  return (
+    <Link
+      href={href}
+      className={`group/qa flex flex-col items-center gap-3 rounded-2xl border ${c.border} ${c.bg} bg-surface-1 p-4 text-center shadow-card transition-all duration-300 ${c.hover} hover:-translate-y-1 active:translate-y-0`}
+    >
+      <span
+        className={`grid size-11 place-items-center rounded-xl border ${c.border} ${c.bg} ${c.icon} transition-transform duration-300 group-hover/qa:scale-110`}
+      >
+        <Icon className="size-5" />
+      </span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm font-semibold text-foreground">{label}</span>
+        <span className="text-[0.65rem] text-muted-foreground">{description}</span>
+      </span>
+    </Link>
   );
 }

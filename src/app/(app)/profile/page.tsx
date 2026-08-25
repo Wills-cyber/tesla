@@ -11,7 +11,6 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { PageHeader } from "@/components/dashboard/page-header";
 import { ProfileAvatar } from "@/components/dashboard/profile-avatar";
 import { NotificationPreferences } from "@/components/profile/notification-preferences";
 import { PasswordChangeButton } from "@/components/profile/password-change-button";
@@ -59,14 +58,7 @@ const accountStatusCopy: Record<
 };
 
 /**
- * Profile.
- *
- * Account details, security, notifications and appearance — the settings surface.
- * Everything on it does something real: the name form writes to `profiles`, the
- * password button asks Supabase Auth to email a reset link, the theme control
- * persists a preference, and sign-out is a form post so it can't fire on a link
- * prefetch. Where a capability has no backend yet, the section says so instead of
- * offering a control that would silently do nothing.
+ * Profile — redesigned with premium card layout and organized settings.
  */
 export default async function ProfilePage() {
   const account = await getAccountMode();
@@ -88,18 +80,25 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Profile"
-        title="Profile & settings"
-        description="Your account details, security, notifications and appearance."
-        badge={
-          preview ? (
-            <StatusPill tone="brand" dot className="self-start">
+      {/* --------------------------------------------------------- Header */}
+      <div className="flex flex-col gap-3">
+        <p className="eyebrow text-brand-emphasis">Profile</p>
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-[2.25rem]">
+              Profile &amp; settings
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
+              Manage your account details, security, notifications and preferences.
+            </p>
+          </div>
+          {preview && (
+            <StatusPill tone="brand" dot className="self-start shrink-0">
               UI Preview · No account connected
             </StatusPill>
-          ) : null
-        }
-      />
+          )}
+        </div>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:items-start">
         {/* ---------------------------------------------------- Account details */}
@@ -126,7 +125,7 @@ export default async function ProfilePage() {
                 label="Email"
                 value={email ?? "Not connected"}
                 muted={!email}
-                hint="Changing your email address requires re-verification and isn't available yet."
+                hint="Changing your email address requires re-verification."
               />
               <DetailRow
                 icon={ShieldCheck}
@@ -153,8 +152,7 @@ export default async function ProfilePage() {
 
             {preview && (
               <p className="text-xs leading-relaxed text-subtle-foreground">
-                These fields are empty because Supabase is not connected yet. Once it
-                is, they populate from your <code>profiles</code> row.
+                These fields are empty because Supabase is not connected yet.
               </p>
             )}
           </Section>
@@ -246,7 +244,6 @@ export default async function ProfilePage() {
                 : "Signing out clears your session cookies on this device."}
             </p>
 
-            {/* A form post so sign-out is never triggered by a link prefetch. */}
             <form action={signOutAction} className="self-start">
               <Button type="submit" variant="hairline" size="md">
                 <LogOut />

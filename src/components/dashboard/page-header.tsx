@@ -5,23 +5,19 @@ import { cn } from "@/lib/utils";
 type PageHeaderProps = {
   title: string;
   description?: React.ReactNode;
-  /** Sits above the title, e.g. a preview or status pill. */
   badge?: React.ReactNode;
-  /** Right-aligned actions — buttons, filters. */
   actions?: React.ReactNode;
-  /** Small uppercase label above everything, naming the area. */
   eyebrow?: string;
   className?: string;
+  /** When true, hides the gradient rule separator (used on pages with their own header layout). */
+  noRule?: boolean;
 };
 
 /**
- * Consistent page title block for every route in the app shell.
+ * Enhanced page header — premium gradient rule, gold eyebrow accent.
  *
- * Carries the page's only two pieces of colour: a short gold dash leading the
- * eyebrow, and a gradient hairline closing the block. Both are structural rather
- * than ornamental — the dash marks where the page identifies itself, and the rule
- * separates the header from content on pages that otherwise open onto bare
- * background, which is what made them read as unfinished.
+ * Can be used standalone or with `noRule` for custom header layouts.
+ * When `eyebrow` is provided, it appears with a gold dash accent.
  */
 export function PageHeader({
   title,
@@ -30,6 +26,7 @@ export function PageHeader({
   actions,
   eyebrow,
   className,
+  noRule = false,
 }: PageHeaderProps) {
   return (
     <div className={cn("flex flex-col gap-6", className)}>
@@ -62,10 +59,12 @@ export function PageHeader({
         )}
       </div>
 
-      <span
-        aria-hidden="true"
-        className="h-px w-full bg-gradient-to-r from-brand-border via-hairline to-transparent"
-      />
+      {!noRule && (
+        <span
+          aria-hidden="true"
+          className="h-px w-full bg-gradient-to-r from-brand-border via-hairline to-transparent"
+        />
+      )}
     </div>
   );
 }

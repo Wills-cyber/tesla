@@ -931,7 +931,7 @@ export async function getReceiptSignedUrlAction(
     pathParts[1] === deposit.id &&
     /^receipt-[a-z0-9-]+\.(jpg|jpeg|png|webp|pdf)$/i.test(pathParts[2]);
 
-  if (!isExactReceiptPath) {
+  if (typeof receiptPath !== "string" || !isExactReceiptPath) {
     return {
       status: "error",
       message: "This deposit does not have a valid stored receipt path.",

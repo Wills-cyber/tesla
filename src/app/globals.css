@@ -19,9 +19,11 @@
      · Warm ivory page, pure-white cards, soft ivory section bands.
      · Charcoal type. Secondary text is contrast-checked to AA on every surface.
      · ONE decorative accent: champagne→bronze gold.
-     · Status hues — green, blue, amber, red — are allowed, but only where they
-       carry meaning: what a figure *is*, or what state something is in. See the
-       `.panel-tint` block. Nothing is coloured merely to look colourful.
+     · Status hues — green (profit), blue (deposits/system), orange (pending,
+       withdrawals), indigo (investments), red (security/failure) — are allowed,
+       but only where they carry meaning: what a figure *is*, or what state
+       something is in. See the `.panel-tint` block. Nothing is coloured merely
+       to look colourful.
      · Depth comes from soft shadows, not heavy borders.
    ============================================================================= */
 
@@ -88,6 +90,9 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-info-surface: var(--info-surface);
+  --color-invest: var(--invest);
+  --color-invest-foreground: var(--invest-foreground);
+  --color-invest-surface: var(--invest-surface);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -304,17 +309,26 @@
   --destructive-foreground: oklch(0.99 0.004 86);
   --destructive-surface: oklch(0.968 0.021 26);
 
+  /* Profit / positive — emerald. */
   --success: oklch(0.492 0.118 158);
   --success-foreground: oklch(0.99 0.004 86);
   --success-surface: oklch(0.964 0.028 158);
 
-  --warning: oklch(0.548 0.116 72);
+  /* Pending / waiting — a true orange, hue-distinct from the gold brand so a
+     pending state never reads as brand decoration. */
+  --warning: oklch(0.562 0.138 52);
   --warning-foreground: oklch(0.99 0.004 86);
-  --warning-surface: oklch(0.968 0.03 78);
+  --warning-surface: oklch(0.97 0.03 60);
 
+  /* Deposits / system — blue. */
   --info: oklch(0.512 0.098 248);
   --info-foreground: oklch(0.99 0.004 86);
   --info-surface: oklch(0.964 0.024 248);
+
+  /* Investments — indigo. */
+  --invest: oklch(0.512 0.188 292);
+  --invest-foreground: oklch(0.99 0.004 86);
+  --invest-surface: oklch(0.966 0.02 292);
 
   /* Hairlines: very light, warm-neutral. */
   --hairline: oklch(0.892 0.008 86);
@@ -422,13 +436,17 @@
   --success-foreground: oklch(0.16 0.02 158);
   --success-surface: color-mix(in oklch, oklch(0.78 0.13 158) 14%, transparent);
 
-  --warning: oklch(0.83 0.12 78);
-  --warning-foreground: oklch(0.18 0.02 78);
-  --warning-surface: color-mix(in oklch, oklch(0.83 0.12 78) 14%, transparent);
+  --warning: oklch(0.83 0.13 58);
+  --warning-foreground: oklch(0.18 0.03 58);
+  --warning-surface: color-mix(in oklch, oklch(0.83 0.13 58) 14%, transparent);
 
   --info: oklch(0.76 0.1 248);
   --info-foreground: oklch(0.16 0.02 248);
   --info-surface: color-mix(in oklch, oklch(0.76 0.1 248) 14%, transparent);
+
+  --invest: oklch(0.78 0.12 292);
+  --invest-foreground: oklch(0.17 0.03 292);
+  --invest-surface: color-mix(in oklch, oklch(0.78 0.12 292) 14%, transparent);
 
   --hairline: oklch(1 0 0 / 10%);
   --hairline-strong: oklch(1 0 0 / 18%);
@@ -632,6 +650,18 @@
     --tint-surface: var(--warning-surface);
     --tint-border: color-mix(in oklch, var(--warning) 30%, transparent);
     --tint-ink: color-mix(in oklch, var(--warning) 82%, var(--ink-900));
+  }
+
+  .tint-invest {
+    --tint-surface: var(--invest-surface);
+    --tint-border: color-mix(in oklch, var(--invest) 28%, transparent);
+    --tint-ink: var(--invest);
+  }
+
+  .tint-danger {
+    --tint-surface: var(--destructive-surface);
+    --tint-border: color-mix(in oklch, var(--destructive) 28%, transparent);
+    --tint-ink: var(--destructive);
   }
 
   .tint-neutral {

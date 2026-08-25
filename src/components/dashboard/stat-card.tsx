@@ -7,11 +7,19 @@ import { cn } from "@/lib/utils";
  * What the figure is, expressed as colour.
  *
  * Not decoration: `brand` is money you hold, `success` is money actually paid to
- * you, `info` is a position in flight, `warning` is something waiting on you.
+ * you, `invest` is capital committed to a plan, `info` is a position in flight,
+ * `warning` is something waiting on you, `danger` is a security or failure flag.
  * Reading down a column of these, the hue identifies the figure before the label
  * does. `neutral` is the plain white card, for figures with no such meaning.
  */
-export type StatTone = "neutral" | "brand" | "success" | "info" | "warning";
+export type StatTone =
+  | "neutral"
+  | "brand"
+  | "success"
+  | "info"
+  | "warning"
+  | "invest"
+  | "danger";
 
 type StatCardProps = {
   label: string;
@@ -37,6 +45,8 @@ const TONE_CLASS: Record<StatTone, string> = {
   success: "tint-success",
   info: "tint-info",
   warning: "tint-warning",
+  invest: "tint-invest",
+  danger: "tint-danger",
 };
 
 /**

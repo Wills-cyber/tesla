@@ -1,35 +1,19 @@
 import * as React from "react";
 import Link from "next/link";
-import {
-  BadgeCheck,
-  Bell,
-  CircleDollarSign,
-  Landmark,
-  Megaphone,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { MarkReadButton } from "@/components/dashboard/mark-read-button";
+import { getNotificationMeta } from "@/components/notifications/notification-meta";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Notification, NotificationType } from "@/types/notification";
+import type { Notification, NotificationCategory } from "@/types/notification";
 
-const typeIcons: Record<NotificationType, LucideIcon> = {
-  auth: BadgeCheck,
-  security: ShieldCheck,
-  deposit: Landmark,
-  withdrawal: Send,
-  investment: TrendingUp,
-  profit: CircleDollarSign,
-  wallet: Wallet,
-  system: Megaphone,
-  promotion: Sparkles,
-  announcement: Megaphone,
+/** Human labels for the coarse category column, shown beside the timestamp. */
+const categoryLabels: Record<NotificationCategory, string> = {
+  account: "Account",
+  investment: "Investment",
+  transaction: "Transaction",
+  security: "Security",
+  platform: "Platform",
 };
 
 /**
@@ -55,7 +39,8 @@ export function NotificationList({
   return (
     <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline shadow-card">
       {notifications.map((notification) => {
-        const Icon = typeIcons[notification.type] ?? Bell;
+        const meta = getNotificationMeta(notification.type);
+        const Icon = meta.icon;
         const unread = !notification.isRead;
 
         const body = (
@@ -64,9 +49,7 @@ export function NotificationList({
               aria-hidden="true"
               className={cn(
                 "grid size-10 shrink-0 place-items-center rounded-xl border",
-                unread
-                  ? "border-brand-border bg-brand-surface text-brand"
-                  : "border-hairline bg-surface-2 text-muted-foreground"
+                unread ? meta.unreadChip : meta.readChip
               )}
             >
               <Icon className="size-4" />
@@ -98,13 +81,18 @@ export function NotificationList({
                 {notification.body}
               </p>
 
-              <time
-                dateTime={notification.createdAt}
-                className="text-xs text-subtle-foreground"
-                title={formatDateTime(notification.createdAt)}
-              >
-                {formatRelativeTime(notification.createdAt)}
-              </time>
+              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-subtle-foreground">
+                <time
+                  dateTime={notification.createdAt}
+                  title={formatDateTime(notification.createdAt)}
+                >
+                  {formatRelativeTime(notification.createdAt)}
+                </time>
+                <span aria-hidden="true">·</span>
+                <span className="text-[0.62rem] font-semibold tracking-[0.12em] uppercase">
+                  {categoryLabels[notification.category] ?? notification.category}
+                </span>
+              </span>
             </div>
           </div>
         );

@@ -5,6 +5,7 @@ import { Info, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { InvestMarketplace } from "@/components/investment/invest-marketplace";
 import { PlanRiskNotice } from "@/components/investment/plan-details-dialog";
+import { ErrorBanner } from "@/components/common/error-banner";
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
 import { appRoutes } from "@/config/navigation";
@@ -58,12 +59,10 @@ export default async function InvestPage() {
       />
 
       {error && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-destructive/25 bg-destructive-surface p-5 text-sm text-foreground"
-        >
-          {error}
-        </div>
+        <ErrorBanner
+          message={error}
+          hint="The plans below are still the published catalogue, so they remain correct."
+        />
       )}
 
       {/* Rendered whenever there are plans to show, error or not. `error` here is

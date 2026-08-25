@@ -5,6 +5,7 @@ import { ArrowRight, ArrowUpFromLine, Receipt, ShieldCheck } from "lucide-react"
 import { FeatureCard } from "@/components/dashboard/feature-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+import { ErrorBanner } from "@/components/common/error-banner";
 import { StatusPill } from "@/components/common/status-pill";
 import { DepositList } from "@/components/wallet/deposit-list";
 import { DepositModal } from "@/components/wallet/deposit-modal";
@@ -115,8 +116,9 @@ export default async function WalletPage() {
             <DepositModal methods={depositMethods} />
 
             {/* A route, not a modal. The flow is five deliberate steps and an
-                irreversible action — see `wallet/withdraw/page.tsx`. */}
-            <Button asChild variant="accent" size="md">
+                irreversible action — see `wallet/withdraw/page.tsx`. One primary
+                per surface: deposit keeps the gold CTA, withdraw stays quiet. */}
+            <Button asChild variant="hairline" size="md">
               <Link href={appRoutes.withdraw}>
                 <ArrowUpFromLine />
                 Withdraw
@@ -222,12 +224,7 @@ export default async function WalletPage() {
         </div>
 
         {transactionsError ? (
-          <div
-            role="alert"
-            className="rounded-2xl border border-destructive/25 bg-destructive-surface p-5 text-sm text-foreground"
-          >
-            {transactionsError}
-          </div>
+          <ErrorBanner message={transactionsError} />
         ) : transactions.length === 0 ? (
           <EmptyState
             icon={Receipt}

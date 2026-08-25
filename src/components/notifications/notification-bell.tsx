@@ -2,22 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {
-  BadgeCheck,
-  Bell,
-  BellOff,
-  CheckCheck,
-  CircleDollarSign,
-  Landmark,
-  Megaphone,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Bell, BellOff, CheckCheck } from "lucide-react";
 
+import {
+  getNotificationMeta,
+  type NotificationMeta,
+} from "@/components/notifications/notification-meta";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,24 +20,11 @@ import {
 import { appRoutes } from "@/config/navigation";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Notification, NotificationType } from "@/types/notification";
+import type { Notification } from "@/types/notification";
 
 import { useNotifications } from "./notifications-provider";
 
 const DROPDOWN_ITEMS = 8;
-
-const typeIcons: Record<NotificationType, LucideIcon> = {
-  auth: BadgeCheck,
-  security: ShieldCheck,
-  deposit: Landmark,
-  withdrawal: Send,
-  investment: TrendingUp,
-  profit: CircleDollarSign,
-  wallet: Wallet,
-  system: Megaphone,
-  promotion: Sparkles,
-  announcement: Megaphone,
-};
 
 /**
  * Notification bell with its dropdown panel.
@@ -141,7 +118,7 @@ export function NotificationBell() {
             </div>
           ) : (
             visible.map((notification) => {
-              const Icon = typeIcons[notification.type] ?? Bell;
+              const meta = getNotificationMeta(notification.type);
               const unread = !notification.isRead;
 
               return (
@@ -158,7 +135,7 @@ export function NotificationBell() {
                     <Link href={notification.href} className="block w-full">
                       <NotificationRow
                         notification={notification}
-                        Icon={Icon}
+                        meta={meta}
                         unread={unread}
                       />
                     </Link>
@@ -166,7 +143,7 @@ export function NotificationBell() {
                     <button type="button" className="block w-full text-left">
                       <NotificationRow
                         notification={notification}
-                        Icon={Icon}
+                        meta={meta}
                         unread={unread}
                       />
                     </button>
@@ -196,22 +173,22 @@ export function NotificationBell() {
 
 function NotificationRow({
   notification,
-  Icon,
+  meta,
   unread,
 }: {
   notification: Notification;
-  Icon: LucideIcon;
+  meta: NotificationMeta;
   unread: boolean;
 }) {
+  const Icon = meta.icon;
+
   return (
     <span className="flex min-w-0 items-start gap-3">
       <span
         aria-hidden="true"
         className={cn(
           "grid size-9 shrink-0 place-items-center rounded-lg border",
-          unread
-            ? "border-brand-border bg-brand-surface text-brand"
-            : "border-hairline bg-surface-2 text-muted-foreground"
+          unread ? meta.unreadChip : meta.readChip
         )}
       >
         <Icon className="size-4" />

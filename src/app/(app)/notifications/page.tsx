@@ -4,6 +4,7 @@ import { BellOff } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+import { ErrorBanner } from "@/components/common/error-banner";
 import { MarkAllReadButton } from "@/components/dashboard/mark-all-read-button";
 import { NotificationFeed } from "@/components/dashboard/notification-feed";
 import { StatusPill } from "@/components/common/status-pill";
@@ -77,12 +78,7 @@ export default async function NotificationsPage() {
       />
 
       {error ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-destructive/25 bg-destructive-surface p-5 text-sm text-foreground"
-        >
-          {error}
-        </div>
+        <ErrorBanner message={error} />
       ) : page.items.length === 0 ? (
         <EmptyState
           icon={BellOff}

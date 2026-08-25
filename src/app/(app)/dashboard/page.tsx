@@ -2,37 +2,38 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
-  Banknote,
   Compass,
+  Receipt,
   ScrollText,
   ShieldCheck,
   TrendingUp,
   Wallet,
 } from "lucide-react";
 
+import { BalanceOverview } from "@/components/dashboard/balance-overview";
 import { DashboardGuide, type GuideStep } from "@/components/dashboard/dashboard-guide";
 import { FeatureCard } from "@/components/dashboard/feature-card";
+import { InvestmentOverview } from "@/components/dashboard/investment-overview";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { StatCard } from "@/components/dashboard/stat-card";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { EmptyState } from "@/components/common/empty-state";
-import { RevealGroup, RevealItem } from "@/components/common/reveal";
 import { StatusPill } from "@/components/common/status-pill";
+import { TransactionList } from "@/components/wallet/transaction-list";
 import { Button } from "@/components/ui/button";
-import {
-  dashboardGuideSteps,
-  platformExplainers,
-  walletExplainers,
-} from "@/config/content";
+import { dashboardGuideSteps, platformExplainers } from "@/config/content";
 import { appRoutes, legalRoutes } from "@/config/navigation";
 import { siteConfig } from "@/config/site";
 import { getAccountMode, getAccountUser, isPreviewMode } from "@/lib/auth/session";
 import {
   getInvestmentPlans,
+  getPaymentMethods,
   getUserBalance,
-  getUserInvestments,
+  getUserInvestmentsWithPayments,
+  getUserTransactions,
+  getUserWithdrawals,
   resolveOrEmpty,
 } from "@/lib/data";
-import { formatCurrency } from "@/lib/format";
+import { indexWithdrawalsByTransaction } from "@/lib/wallet/receipts";
 import { EMPTY_BALANCE } from "@/types/balance";
 
 export const metadata: Metadata = {
@@ -42,37 +43,37 @@ export const metadata: Metadata = {
 };
 
 /**
- * Cycles the icon-chip hue down the explainer grids.
- *
- * The educational sections are long columns of white cards, which is what made
- * the page read as unfinished. These four hues give the column rhythm without
- * tinting whole cards. The order is arbitrary but stable, so a card's colour never
- * moves between renders.
- */
-const EXPLAINER_TONES = ["brand", "info", "success", "warning"] as const;
-
-/**
  * Dashboard.
  *
- * Deliberately *not* a financial transaction page. Money lives in Wallet, the
- * marketplace lives in Invest, and positions live in Investments — duplicating any
- * of them here would leave four places showing the same numbers and no obvious
- * place to act.
+ * Finance first: the page opens with what the account holds — available
+ * balance, capital invested, profit credited, withdrawals pending — then the
+ * four quick actions, then the investments actually running, then the latest
+ * movements on the ledger. Everything below that explains how the platform
+ * works.
  *
- * What this page does instead: welcome the user, explain how the platform works,
- * and point at the right next step. The only figures shown are three high-level
- * ones, each read from the ledger, so a pre-launch account reads zero — which is
- * accurate rather than a placeholder.
+ * Every figure is read from the ledger (`user_balances`, `transactions`,
+ * `investments` + `investment_payments`), never derived from a plan's stated
+ * terms. A new account reads zero — the true state, not a placeholder.
  */
 export default async function DashboardPage() {
   const account = await getAccountMode();
   const user = getAccountUser(account);
   const preview = isPreviewMode(account);
 
-  const [balanceResult, investmentsResult, plansResult] = await Promise.all([
+  const [
+    balanceResult,
+    investmentsResult,
+    plansResult,
+    transactionsResult,
+    withdrawalsResult,
+    methodsResult,
+  ] = await Promise.all([
     getUserBalance(),
-    getUserInvestments(),
+    getUserInvestmentsWithPayments(),
     getInvestmentPlans(),
+    getUserTransactions({ limit: 5 }),
+    getUserWithdrawals(5),
+    getPaymentMethods(),
   ]);
 
   const { data: balance } = resolveOrEmpty(balanceResult, {
@@ -83,14 +84,16 @@ export default async function DashboardPage() {
 
   const { data: investments } = resolveOrEmpty(investmentsResult, []);
   const { data: plans } = resolveOrEmpty(plansResult, []);
-
-  const activeCount = investments.filter(
-    (investment) => investment.status === "active"
-  ).length;
+  const { data: transactions } = resolveOrEmpty(transactionsResult, []);
+  const { data: withdrawals } = resolveOrEmpty(withdrawalsResult, []);
+  const { data: methods } = resolveOrEmpty(methodsResult, []);
 
   const firstName = user?.fullName?.split(" ")[0];
   const hasInvestment = investments.length > 0;
   const hasBalance = balance.availableCents > 0;
+  const activeCount = investments.filter(
+    (investment) => investment.status === "active"
+  ).length;
 
   /**
    * Step completion is evidence-based: a step is ticked only where a backend
@@ -113,8 +116,10 @@ export default async function DashboardPage() {
       {/* --------------------------------------------------------- Welcome */}
       <PageHeader
         eyebrow="Dashboard"
-        title={firstName ? `Welcome back, ${firstName}` : "Welcome to TESLA Electronics"}
-        description="This is your starting point for exploring the platform: how investing works here, what each area is for, and what to do next. Your money and your positions live in Wallet and Investments."
+        title={
+          firstName ? `Welcome back, ${firstName}` : "Welcome to TESLA Electronics"
+        }
+        description="Your balances, your investments and the latest movement on your account — and, below them, how everything works."
         badge={
           preview ? (
             <StatusPill tone="brand" dot className="self-start">
@@ -122,81 +127,62 @@ export default async function DashboardPage() {
             </StatusPill>
           ) : null
         }
-        actions={
-          <Button asChild variant="accent" size="md">
-            <Link href={appRoutes.invest}>
-              Explore Plans
-              <ArrowRight />
-            </Link>
-          </Button>
-        }
       />
 
-      {/* ------------------------------------------------ High-level figures */}
-      <section aria-labelledby="account-summary-heading" className="flex flex-col gap-4">
-        <h2 id="account-summary-heading" className="sr-only">
-          Account summary
-        </h2>
+      {/* ------------------------------------------------- Account balances */}
+      <BalanceOverview balance={balance} />
 
-        <RevealGroup className="grid gap-4 sm:grid-cols-3" stagger={0.07}>
-          <RevealItem className="flex">
-            <StatCard
-              label="Wallet Balance"
-              value={formatCurrency(balance.availableCents)}
-              icon={Wallet}
-              note="Available to invest or withdraw."
-              tone="brand"
-            />
-          </RevealItem>
-          <RevealItem className="flex">
-            <StatCard
-              label="Active Investments"
-              value={String(activeCount)}
-              icon={TrendingUp}
-              note={
-                activeCount === 0
-                  ? "You haven't activated an investment yet."
-                  : "In progress right now."
-              }
-              tone="info"
-            />
-          </RevealItem>
-          <RevealItem className="flex">
-            <StatCard
-              label="Profit Credited"
-              value={formatCurrency(balance.totalProfitCents)}
-              icon={Banknote}
-              note="Payments actually received — never projected."
-              tone="success"
-            />
-          </RevealItem>
-        </RevealGroup>
+      {/* ---------------------------------------------------- Quick actions */}
+      <QuickActions methods={methods} />
 
-        <p className="text-xs leading-relaxed text-subtle-foreground">
-          Figures come from your ledger, which is maintained server-side from
-          settled transactions. They are never calculated from a plan&apos;s stated
-          terms.
-        </p>
-      </section>
+      {/* -------------------------------------------------- Investments */}
+      <InvestmentOverview
+        investments={investments}
+        plans={plans}
+        balance={balance}
+      />
 
-      {/* ------------------------------------------------- Onboarding state */}
-      {!hasInvestment && (
-        <EmptyState
-          title="You haven't activated an investment yet"
-          description="Start by reading the plan terms in Invest. When you've chosen one, fund your wallet and activate it — your progress will then appear in Investments."
-          note={siteConfig.prelaunchNotice}
-          action={
-            <>
-              <Button asChild variant="accent" size="md">
+      {/* --------------------------------------------------- Recent activity */}
+      <section aria-labelledby="recent-activity-heading" className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <div className="flex flex-col gap-1.5">
+            <h2 id="recent-activity-heading" className="text-lg font-semibold">
+              Recent activity
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              The latest deposits, withdrawals, funding and profit credits.
+            </p>
+          </div>
+
+          {transactions.length > 0 && (
+            <Button asChild variant="ghost" size="sm">
+              <Link href={appRoutes.walletActivity}>
+                View all
+                <ArrowRight />
+              </Link>
+            </Button>
+          )}
+        </div>
+
+        {transactions.length === 0 ? (
+          <EmptyState
+            icon={Receipt}
+            size="sm"
+            title="No transactions yet"
+            description="Nothing has moved on your account. Every entry that appears here corresponds to a real recorded event."
+            action={
+              <Button asChild variant="hairline" size="md">
                 <Link href={appRoutes.invest}>Explore Investment Plans</Link>
               </Button>
-              <Button asChild variant="hairline" size="md">
-                <Link href={appRoutes.wallet}>Open Wallet</Link>
-              </Button>
-            </>
-          }
-        />
-      )}
+            }
+          />
+        ) : (
+          <TransactionList
+            transactions={transactions}
+            withdrawalsByTransactionId={indexWithdrawalsByTransaction(withdrawals)}
+          />
+        )}
+      </section>
 
       {/* -------------------------------------------------------- Start here */}
       <section aria-labelledby="start-here-heading" className="flex flex-col gap-5">
@@ -240,7 +226,7 @@ export default async function DashboardPage() {
             description="Only the investments you actually hold, split into active, pending and completed, each with its real payment schedule."
             href={appRoutes.investments}
             linkLabel="View investments"
-            tone="info"
+            tone="invest"
           />
           <FeatureCard
             icon={Wallet}
@@ -287,44 +273,6 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* ------------------------------------------------------ Wallet basics */}
-      <section aria-labelledby="wallet-basics-heading" className="flex flex-col gap-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <h2
-              id="wallet-basics-heading"
-              className="text-xl font-semibold sm:text-2xl"
-            >
-              Deposits and withdrawals
-            </h2>
-            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
-              Both live in your Wallet. Crypto transfers cannot be reversed, so both
-              flows are built to make the asset and network unambiguous.
-            </p>
-          </div>
-
-          <Button asChild variant="hairline" size="md">
-            <Link href={appRoutes.wallet}>
-              Open Wallet
-              <ArrowRight />
-            </Link>
-          </Button>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          {walletExplainers.map((explainer, index) => (
-            <FeatureCard
-              key={explainer.id}
-              icon={explainer.icon}
-              title={explainer.title}
-              description={explainer.description}
-              points={explainer.points}
-              tone={EXPLAINER_TONES[(index + 1) % EXPLAINER_TONES.length]}
-            />
-          ))}
-        </div>
-      </section>
-
       {/* ------------------------------------------------------------- Legal */}
       <section
         aria-labelledby="legal-heading"
@@ -343,9 +291,9 @@ export default async function DashboardPage() {
         </div>
 
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground text-pretty">
-          The figures on every plan are <strong>stated terms</strong> — what the plan
-          proposes to pay if it performs as published. Nothing on this platform is
-          financial, investment, tax or legal advice.
+          The figures on every plan are <strong>stated terms</strong> — what the
+          plan proposes to pay if it performs as published. Nothing on this
+          platform is financial, investment, tax or legal advice.
         </p>
 
         <p className="max-w-3xl text-xs leading-relaxed text-subtle-foreground">
@@ -364,3 +312,9 @@ export default async function DashboardPage() {
     </>
   );
 }
+
+/**
+ * Cycles the icon-chip hue down the explainer grids. Stable order, so a card's
+ * colour never moves between renders.
+ */
+const EXPLAINER_TONES = ["brand", "invest", "success", "warning"] as const;

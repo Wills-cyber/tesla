@@ -4,8 +4,9 @@ import { ArrowLeft, Receipt } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+import { ErrorBanner } from "@/components/common/error-banner";
 import { StatusPill } from "@/components/common/status-pill";
-import { TransactionList } from "@/components/wallet/transaction-list";
+import { TransactionFilter } from "@/components/wallet/transaction-filter";
 import { Button } from "@/components/ui/button";
 import { appRoutes } from "@/config/navigation";
 import { getAccountMode, isPreviewMode } from "@/lib/auth/session";
@@ -70,12 +71,7 @@ export default async function WalletActivityPage() {
       />
 
       {error ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-destructive/25 bg-destructive-surface p-5 text-sm text-foreground"
-        >
-          {error}
-        </div>
+        <ErrorBanner message={error} />
       ) : transactions.length === 0 ? (
         <EmptyState
           icon={Receipt}
@@ -90,7 +86,7 @@ export default async function WalletActivityPage() {
           }
         />
       ) : (
-        <TransactionList
+        <TransactionFilter
           transactions={transactions}
           withdrawalsByTransactionId={indexWithdrawalsByTransaction(withdrawals)}
         />

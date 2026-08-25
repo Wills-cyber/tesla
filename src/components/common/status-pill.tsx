@@ -10,7 +10,8 @@ export type PillTone =
   | "success"
   | "warning"
   | "danger"
-  | "info";
+  | "info"
+  | "invest";
 
 type StatusPillProps = {
   children: React.ReactNode;
@@ -34,6 +35,7 @@ const toneClasses: Record<PillTone, string> = {
   warning: "border-warning/25 bg-warning-surface text-warning",
   danger: "border-destructive/25 bg-destructive-surface text-destructive",
   info: "border-info/25 bg-info-surface text-info",
+  invest: "border-invest/25 bg-invest-surface text-invest",
 };
 
 const dotClasses: Record<PillTone, string> = {
@@ -43,6 +45,7 @@ const dotClasses: Record<PillTone, string> = {
   warning: "bg-warning",
   danger: "bg-destructive",
   info: "bg-info",
+  invest: "bg-invest",
 };
 
 /** Small capsule label. Deliberately the only badge style in the product. */
@@ -106,7 +109,7 @@ export const investmentStatusCopy: Record<
 > = {
   pending_activation: { label: "Pending", tone: "warning" },
   active: { label: "Active", tone: "success" },
-  completed: { label: "Completed", tone: "info" },
+  completed: { label: "Completed", tone: "invest" },
   cancelled: { label: "Cancelled", tone: "neutral" },
 };
 

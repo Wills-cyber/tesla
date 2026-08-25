@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
 import { Providers } from "@/components/providers";
 import { ThemeScript } from "@/components/theme/theme-provider";
@@ -8,15 +8,24 @@ import { THEME_COLORS } from "@/config/theme";
 
 import "./globals.css";
 
-const geistSans = Geist({
+/**
+ * Geist, self-hosted from the official `geist` package (`src/app/fonts/`).
+ *
+ * The variable woff2 files ship in the repo, so the build never depends on
+ * reaching fonts.googleapis.com — identical output on Vercel, in CI and
+ * offline, with one less third-party request on every page load.
+ */
+const geistSans = localFont({
+  src: "./fonts/Geist-Variable.woff2",
   variable: "--font-sans",
-  subsets: ["latin"],
+  weight: "100 900",
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
   display: "swap",
 });
 

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Banknote, Compass, TrendingUp, Wallet } from "lucide-react";
+import { Banknote, CheckCircle2, Compass, TrendingUp, Wallet } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { InvestmentsTabs } from "@/components/investment/investments-tabs";
+import { ErrorBanner } from "@/components/common/error-banner";
 import { RevealGroup, RevealItem } from "@/components/common/reveal";
 import { StatusPill } from "@/components/common/status-pill";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,10 @@ export default async function InvestmentsPage() {
     (investment) => investment.status === "active"
   ).length;
 
+  const completedCount = investments.filter(
+    (investment) => investment.status === "completed"
+  ).length;
+
   return (
     <>
       <PageHeader
@@ -87,7 +92,7 @@ export default async function InvestmentsPage() {
           Investment totals
         </h2>
 
-        <RevealGroup className="grid gap-4 sm:grid-cols-3" stagger={0.07}>
+        <RevealGroup className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" stagger={0.07}>
           <RevealItem className="flex">
             <StatCard
               label="Active Investments"
@@ -98,7 +103,7 @@ export default async function InvestmentsPage() {
                   ? `${investments.length} on record in total.`
                   : "In progress right now."
               }
-              tone="info"
+              tone="invest"
             />
           </RevealItem>
           <RevealItem className="flex">
@@ -107,7 +112,7 @@ export default async function InvestmentsPage() {
               value={formatCurrency(balance.totalInvestedCents)}
               icon={Wallet}
               note="Capital committed from settled transactions."
-              tone="brand"
+              tone="invest"
             />
           </RevealItem>
           <RevealItem className="flex">
@@ -115,20 +120,28 @@ export default async function InvestmentsPage() {
               label="Profit Credited"
               value={formatCurrency(balance.totalProfitCents)}
               icon={Banknote}
-              note="Payments actually received."
+              note="Payments actually received — never projected."
               tone="success"
+            />
+          </RevealItem>
+          <RevealItem className="flex">
+            <StatCard
+              label="Completed"
+              value={String(completedCount)}
+              icon={CheckCircle2}
+              note={
+                completedCount === 0
+                  ? "Positions appear here at end of term."
+                  : "Reached the end of their term."
+              }
+              tone="neutral"
             />
           </RevealItem>
         </RevealGroup>
       </section>
 
       {error ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-destructive/25 bg-destructive-surface p-5 text-sm text-foreground"
-        >
-          {error}
-        </div>
+        <ErrorBanner message={error} />
       ) : (
         <InvestmentsTabs investments={investments} plans={plans} />
       )}

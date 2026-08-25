@@ -52,13 +52,18 @@ visible "backend not connected" label and all figures read zero.
 | --- | --- |
 | `/` | Landing page — hero, plans, process, facts, vehicles, about, FAQ, CTA |
 | `/login` · `/register` · `/forgot-password` | Authentication UI |
-| `/dashboard` | Overview — balances, active position, recent activity |
-| `/dashboard/investments` | Positions and the published plan catalogue |
-| `/dashboard/transactions` | Account history |
-| `/dashboard/notifications` | Account and platform updates |
-| `/dashboard/profile` | Details, account status, security, sign out |
-| `/dashboard/deposit` · `/dashboard/withdraw` | Availability status — no payment flow |
+| `/dashboard` | Balances, quick actions, investment overview, recent activity, guide |
+| `/invest` · `/invest/[slug]` | Plan marketplace and full plan terms + activation |
+| `/investments` | The positions you hold, grouped active / pending / completed |
+| `/wallet` | Balance, deposit dialog, withdrawal history, recent activity |
+| `/wallet/activity` | Full account history with type filters |
+| `/wallet/withdraw` · `/wallet/withdraw/[id]` | Five-step withdrawal flow and request status |
+| `/notifications` | Notification feed with categories and read state |
+| `/profile` | Details, account status, security, notifications, appearance, sign out |
+| `/admin/notifications` | Admin broadcast surface (admins table only) |
 | `/terms` · `/privacy` | Legal |
+
+Legacy `/dashboard/*` URLs redirect to their new homes via `next.config.ts`.
 
 ## Architecture
 
@@ -110,9 +115,16 @@ rewrite.
 
 ## Design system
 
-One dark theme. Deep near-black surfaces (`--ink-*`), off-white type, and a single
-champagne-gold accent (`--gold-*`) defined in `src/app/globals.css`. Glass and
-glow are used sparingly — the navbar, one hero chip, a handful of section washes.
+Two themes in `src/app/globals.css`: a warm ivory light theme (the default) and a
+deep-graphite dark preference, sharing one token vocabulary. The single decorative
+accent is champagne-gold (`--gold-*`); every other hue is semantic and encodes
+what a figure *is* — emerald for profit actually credited, blue for deposits and
+system events, orange for pending/withdrawals, indigo for investments, red for
+security and failure. Tinted panels (`.panel-tint` + `tint-*`) and `StatCard`
+tones apply those hues consistently, and status pills never rely on colour alone.
+Glass and glow are used sparingly — the navbar, one hero chip, a handful of
+section washes. Type is self-hosted Geist (`src/app/fonts/`), so builds never
+depend on Google Fonts.
 
 Motion is centralised in `src/lib/motion.ts`: everything eases from the same
 curve and nothing travels more than ~24px. `<MotionConfig reducedMotion="user">`

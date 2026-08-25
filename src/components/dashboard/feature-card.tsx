@@ -34,6 +34,8 @@ const TONE_CLASS: Record<StatTone, string> = {
   success: "tint-success",
   info: "tint-info",
   warning: "tint-warning",
+  invest: "tint-invest",
+  danger: "tint-danger",
 };
 
 /**

@@ -5,24 +5,24 @@
 @custom-variant dark (&:is(.dark *));
 
 /* =============================================================================
-   TESLA Electronics — design tokens
-
-   One place to restyle the entire product.
-
-   Structure:
-     1. @theme inline  — maps CSS variables onto Tailwind utility names.
-     2. :root          — the LIGHT theme. This is the default experience.
-     3. .dark          — the optional dark theme. Same token names, new values.
-     4. base/components/utilities — semantic classes built from those tokens.
-
-   Rules the palette follows:
-     · Warm ivory page, pure-white cards, soft ivory section bands.
-     · Charcoal type. Secondary text is contrast-checked to AA on every surface.
-     · ONE decorative accent: champagne→bronze gold.
-     · Status hues — green, blue, amber, red — are allowed, but only where they
-       carry meaning: what a figure *is*, or what state something is in. See the
-       `.panel-tint` block. Nothing is coloured merely to look colourful.
-     · Depth comes from soft shadows, not heavy borders.
+   TESLA Electronics — Design System (Premium Fintech Edition)
+   
+   Token structure:
+     1. @theme inline  — maps CSS variables onto Tailwind utility names
+     2. :root          — the LIGHT theme (default)
+     3. .dark          — the DARK theme
+     4. base/components/utilities — semantic classes
+   
+   Color strategy:
+     · Warm neutral foundation (ivory page, charcoal text) for trust
+     · Gold/champagne as the primary brand accent
+     · Teal/emerald for positive financial signals (profit, growth)
+     · Blue for information (deposits, pending)
+     · Purple/indigo for investment
+     · Amber/orange for warnings
+     · Red for errors/destructive actions
+   
+   Every color carries semantic meaning. No color is used purely for decoration.
    ============================================================================= */
 
 @theme inline {
@@ -33,7 +33,7 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
 
-  /* --------------------------------------------------- Brand accent scale */
+  /* --------------------------------------------------- Brand accent scale (Gold) */
   --color-gold-50: var(--gold-50);
   --color-gold-100: var(--gold-100);
   --color-gold-200: var(--gold-200);
@@ -44,7 +44,7 @@
   --color-gold-700: var(--gold-700);
   --color-gold-800: var(--gold-800);
 
-  /* Semantic brand roles — prefer these over the raw scale in components. */
+  /* --------------------------------------------------------- Semantic brand roles */
   --color-brand: var(--brand);
   --color-brand-emphasis: var(--brand-emphasis);
   --color-brand-surface: var(--brand-surface);
@@ -52,10 +52,34 @@
   --color-brand-border: var(--brand-border);
   --color-brand-contrast: var(--brand-contrast);
 
+  /* --------------------------------------------------- Financial semantic colors */
+  --color-profit: var(--profit);
+  --color-profit-emphasis: var(--profit-emphasis);
+  --color-profit-surface: var(--profit-surface);
+  --color-profit-border: var(--profit-border);
+
+  --color-deposit: var(--deposit);
+  --color-deposit-emphasis: var(--deposit-emphasis);
+  --color-deposit-surface: var(--deposit-surface);
+  --color-deposit-border: var(--deposit-border);
+
+  --color-investment-accent: var(--investment-accent);
+  --color-investment-emphasis: var(--investment-emphasis);
+  --color-investment-surface: var(--investment-surface);
+  --color-investment-border: var(--investment-border);
+
+  --color-withdrawal: var(--withdrawal);
+  --color-withdrawal-surface: var(--withdrawal-surface);
+  --color-withdrawal-border: var(--withdrawal-border);
+
+  --color-security: var(--security);
+  --color-security-surface: var(--security-surface);
+
   /* ------------------------------------------------------------- Surfaces */
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
   --color-surface-inverse: var(--surface-inverse);
   --color-surface-inverse-foreground: var(--surface-inverse-foreground);
 
@@ -121,11 +145,15 @@
   --shadow-lift: var(--elevation-lift);
   --shadow-float: var(--elevation-float);
   --shadow-inset-hairline: var(--elevation-inset-hairline);
+  --shadow-glow-brand: var(--elevation-glow-brand);
+  --shadow-glow-profit: var(--elevation-glow-profit);
 
   /* --------------------------------------------------------------- Motion */
   --ease-luxe: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out-luxe: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  /* Keyframes */
   --animate-float: float 14s var(--ease-in-out-luxe) infinite;
   --animate-float-slow: float 22s var(--ease-in-out-luxe) infinite;
   --animate-drift: drift 26s linear infinite;
@@ -135,113 +163,71 @@
   --animate-mark-breathe: mark-breathe 2.4s var(--ease-in-out-luxe) infinite;
   --animate-mark-halo: mark-halo 2.4s var(--ease-in-out-luxe) infinite;
   --animate-orbit: orbit 1.15s linear infinite;
+  --animate-skeleton-pulse: skeleton-pulse 2s var(--ease-in-out-luxe) infinite;
+  --animate-count-up: count-up 0.6s var(--ease-spring) forwards;
 
   @keyframes float {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
-    }
-    50% {
-      transform: translate3d(0, -14px, 0);
-    }
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -14px, 0); }
   }
 
   @keyframes drift {
-    0% {
-      transform: translate3d(-2%, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(2%, -1.5%, 0) scale(1.06);
-    }
-    100% {
-      transform: translate3d(-2%, 0, 0) scale(1);
-    }
+    0% { transform: translate3d(-2%, 0, 0) scale(1); }
+    50% { transform: translate3d(2%, -1.5%, 0) scale(1.06); }
+    100% { transform: translate3d(-2%, 0, 0) scale(1); }
   }
 
   @keyframes shimmer {
-    0% {
-      background-position: -140% 0;
-    }
-    100% {
-      background-position: 240% 0;
-    }
+    0% { background-position: -140% 0; }
+    100% { background-position: 240% 0; }
   }
 
   @keyframes marquee {
-    from {
-      transform: translate3d(0, 0, 0);
-    }
-    to {
-      transform: translate3d(-50%, 0, 0);
-    }
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
   }
 
   @keyframes pulse-ring {
-    0%,
-    100% {
-      opacity: 0.35;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.9;
-      transform: scale(1.08);
-    }
+    0%, 100% { opacity: 0.35; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.08); }
   }
 
-  /* ---- Branded loader ---------------------------------------------------
-     The mark breathes under a glowing halo, both on the same duration so they
-     stay locked in phase. The stroke trace that used to open the sequence went
-     when the mark became raster artwork — `.te-mark-sheen` sweeps light across
-     the badge instead. */
-
   @keyframes mark-breathe {
-    0% {
-      transform: scale(0.94);
-      opacity: 0.55;
-    }
-    45% {
-      transform: scale(1.015);
-      opacity: 1;
-    }
-    75% {
-      transform: scale(0.995);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(0.94);
-      opacity: 0.55;
-    }
+    0% { transform: scale(0.94); opacity: 0.55; }
+    45% { transform: scale(1.015); opacity: 1; }
+    75% { transform: scale(0.995); opacity: 1; }
+    100% { transform: scale(0.94); opacity: 0.55; }
   }
 
   @keyframes mark-halo {
-    0%,
-    100% {
-      opacity: 0.12;
-      transform: scale(0.9);
-    }
-    50% {
-      opacity: 0.42;
-      transform: scale(1.14);
-    }
+    0%, 100% { opacity: 0.12; transform: scale(0.9); }
+    50% { opacity: 0.42; transform: scale(1.14); }
   }
 
   @keyframes orbit {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes skeleton-pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
+
+  @keyframes count-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
 
 /* =============================================================================
-   LIGHT THEME — the default
+   LIGHT THEME — the default experience
    ============================================================================= */
 :root {
   color-scheme: light;
 
-  /* Champagne → bronze. The single accent in the product. */
+  /* Champagne → bronze. The primary brand accent. */
   --gold-50: oklch(0.982 0.012 88);
   --gold-100: oklch(0.958 0.026 87);
   --gold-200: oklch(0.918 0.045 86);
@@ -252,22 +238,23 @@
   --gold-700: oklch(0.522 0.09 72);
   --gold-800: oklch(0.432 0.081 68);
 
-  /* Charcoal ink, faint cool cast so it never reads brown next to the gold. */
-  --ink-950: oklch(0.165 0.008 264);
-  --ink-900: oklch(0.222 0.009 264);
-  --ink-800: oklch(0.302 0.01 264);
-  --ink-700: oklch(0.392 0.01 264);
-  --ink-600: oklch(0.485 0.009 264);
-  --ink-500: oklch(0.605 0.008 264);
-  --ink-400: oklch(0.735 0.007 264);
+  /* Charcoal ink, cool cast */
+  --ink-950: oklch(0.12 0.01 264);
+  --ink-900: oklch(0.18 0.01 264);
+  --ink-800: oklch(0.26 0.01 264);
+  --ink-700: oklch(0.35 0.01 264);
+  --ink-600: oklch(0.48 0.01 264);
+  --ink-500: oklch(0.6 0.008 264);
+  --ink-400: oklch(0.73 0.007 264);
 
-  /* Warm ivory page, pure-white cards, soft ivory bands. */
-  --background: oklch(0.978 0.005 86);
+  /* Warm ivory page, pure-white cards */
+  --background: oklch(0.975 0.004 86);
   --foreground: var(--ink-900);
 
   --surface-1: oklch(1 0 0);
-  --surface-2: oklch(0.962 0.007 86);
-  --surface-3: oklch(0.938 0.009 86);
+  --surface-2: oklch(0.96 0.005 86);
+  --surface-3: oklch(0.93 0.008 86);
+  --surface-4: oklch(0.89 0.01 86);
   --surface-inverse: var(--ink-950);
   --surface-inverse-foreground: oklch(0.97 0.004 86);
 
@@ -277,7 +264,6 @@
   --popover: oklch(1 0 0);
   --popover-foreground: var(--foreground);
 
-  /* Primary action: charcoal on ivory. Reads premium, contrasts perfectly. */
   --primary: var(--ink-900);
   --primary-foreground: oklch(0.985 0.004 86);
 
@@ -291,7 +277,7 @@
   --accent: var(--surface-2);
   --accent-foreground: var(--ink-900);
 
-  /* Semantic brand roles. */
+  /* ----------------------------------------------------- Brand roles */
   --brand: var(--gold-600);
   --brand-emphasis: var(--gold-800);
   --brand-surface: color-mix(in oklch, var(--gold-500) 12%, white);
@@ -299,24 +285,53 @@
   --brand-border: color-mix(in oklch, var(--gold-600) 32%, transparent);
   --brand-contrast: oklch(0.26 0.038 68);
 
-  /* Status colours, each contrast-checked against white. */
+  /* ----------------------------------------------------- Financial semantics */
+
+  /* Profit / Positive — Emerald / Teal */
+  --profit: oklch(0.52 0.13 165);
+  --profit-emphasis: oklch(0.38 0.11 165);
+  --profit-surface: oklch(0.965 0.025 165);
+  --profit-border: color-mix(in oklch, var(--profit) 28%, transparent);
+
+  /* Deposit — Blue */
+  --deposit: oklch(0.52 0.1 248);
+  --deposit-emphasis: oklch(0.38 0.1 248);
+  --deposit-surface: oklch(0.965 0.025 248);
+  --deposit-border: color-mix(in oklch, var(--deposit) 28%, transparent);
+
+  /* Investment — Purple/Indigo */
+  --investment-accent: oklch(0.54 0.12 285);
+  --investment-emphasis: oklch(0.38 0.12 285);
+  --investment-surface: oklch(0.965 0.03 285);
+  --investment-border: color-mix(in oklch, var(--investment-accent) 28%, transparent);
+
+  /* Withdrawal — Warm Amber */
+  --withdrawal: oklch(0.6 0.1 55);
+  --withdrawal-surface: oklch(0.97 0.02 55);
+  --withdrawal-border: color-mix(in oklch, var(--withdrawal) 28%, transparent);
+
+  /* Security — Rose/Red */
+  --security: oklch(0.55 0.15 15);
+  --security-surface: oklch(0.97 0.025 15);
+
+  /* Status colours */
   --destructive: oklch(0.522 0.192 26);
   --destructive-foreground: oklch(0.99 0.004 86);
   --destructive-surface: oklch(0.968 0.021 26);
 
-  --success: oklch(0.492 0.118 158);
+  --success: var(--profit);
   --success-foreground: oklch(0.99 0.004 86);
-  --success-surface: oklch(0.964 0.028 158);
+  --success-surface: var(--profit-surface);
 
-  --warning: oklch(0.548 0.116 72);
+  --warning: oklch(0.6 0.1 72);
   --warning-foreground: oklch(0.99 0.004 86);
-  --warning-surface: oklch(0.968 0.03 78);
+  --warning-surface: oklch(0.97 0.03 78);
 
-  --info: oklch(0.512 0.098 248);
+  --info: var(--deposit);
   --info-foreground: oklch(0.99 0.004 86);
-  --info-surface: oklch(0.964 0.024 248);
+  --info-surface: var(--deposit-surface);
 
-  /* Hairlines: very light, warm-neutral. */
+  /* Hairlines */
   --hairline: oklch(0.892 0.008 86);
   --hairline-strong: oklch(0.838 0.01 86);
   --border: var(--hairline);
@@ -324,12 +339,12 @@
   --ring: color-mix(in oklch, var(--gold-600) 55%, transparent);
 
   --chart-1: var(--gold-600);
-  --chart-2: var(--ink-700);
-  --chart-3: var(--ink-500);
-  --chart-4: var(--gold-400);
-  --chart-5: var(--ink-400);
+  --chart-2: var(--profit);
+  --chart-3: var(--investment-accent);
+  --chart-4: var(--deposit);
+  --chart-5: var(--ink-500);
 
-  /* Soft, layered, warm-tinted. Depth without weight. */
+  /* Elevation */
   --elevation-soft: 0 1px 2px -1px oklch(0.222 0.009 264 / 6%);
   --elevation-card:
     0 1px 2px -1px oklch(0.222 0.009 264 / 5%),
@@ -342,21 +357,22 @@
     0 18px 44px -16px oklch(0.222 0.009 264 / 16%),
     0 40px 80px -40px oklch(0.222 0.009 264 / 14%);
   --elevation-inset-hairline: inset 0 0 0 1px oklch(0.222 0.009 264 / 7%);
+  --elevation-glow-brand: 0 0 24px -8px color-mix(in oklch, var(--gold-500) 40%, transparent);
+  --elevation-glow-profit: 0 0 24px -8px color-mix(in oklch, var(--profit) 35%, transparent);
 
   --radius: 0.75rem;
 
   /* Layout rhythm */
-  --header-height: 4rem;
+  --header-height: 3.75rem;
+  /* 60px — more compact than 4rem */
   --bottom-nav-height: 4.5rem;
-  /* Clearance below page content so the floating nav never covers anything. */
   --bottom-nav-clearance: calc(
     var(--bottom-nav-height) + 1.75rem + env(safe-area-inset-bottom, 0px)
   );
 }
 
 /* =============================================================================
-   DARK THEME — optional preference. Same token names, deep-graphite values.
-   Light remains the default; this must never be less readable.
+   DARK THEME — optional preference
    ============================================================================= */
 .dark {
   color-scheme: dark;
@@ -371,41 +387,38 @@
   --gold-700: oklch(0.61 0.078 80);
   --gold-800: oklch(0.48 0.062 78);
 
-  --ink-950: oklch(0.145 0.005 264);
-  --ink-900: oklch(0.178 0.006 264);
-  --ink-800: oklch(0.228 0.007 264);
-  --ink-700: oklch(0.3 0.008 264);
+  --ink-950: oklch(0.09 0.005 264);
+  --ink-900: oklch(0.14 0.006 264);
+  --ink-800: oklch(0.19 0.007 264);
+  --ink-700: oklch(0.26 0.008 264);
   --ink-600: oklch(0.72 0.008 264);
   --ink-500: oklch(0.61 0.008 264);
   --ink-400: oklch(0.5 0.007 264);
 
-  --background: var(--ink-950);
-  --foreground: oklch(0.968 0.003 264);
+  --background: oklch(0.07 0.005 264);
+  --foreground: oklch(0.965 0.003 264);
 
-  --surface-1: oklch(0.195 0.006 264);
-  --surface-2: oklch(0.228 0.007 264);
-  --surface-3: oklch(0.262 0.008 264);
-  --surface-inverse: oklch(0.968 0.003 264);
+  --surface-1: oklch(0.14 0.006 264);
+  --surface-2: oklch(0.18 0.007 264);
+  --surface-3: oklch(0.22 0.008 264);
+  --surface-4: oklch(0.26 0.008 264);
+  --surface-inverse: oklch(0.965 0.003 264);
   --surface-inverse-foreground: var(--ink-950);
 
   --card: var(--surface-1);
   --card-foreground: var(--foreground);
-
-  --popover: oklch(0.215 0.007 264);
+  --popover: oklch(0.18 0.006 264);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.968 0.003 264);
+  --primary: oklch(0.965 0.003 264);
   --primary-foreground: var(--ink-950);
-
   --secondary: var(--surface-2);
-  --secondary-foreground: oklch(0.955 0.003 264);
-
+  --secondary-foreground: oklch(0.95 0.003 264);
   --muted: var(--surface-2);
-  --muted-foreground: oklch(0.735 0.008 264);
-  --subtle-foreground: oklch(0.615 0.008 264);
-
+  --muted-foreground: oklch(0.7 0.008 264);
+  --subtle-foreground: oklch(0.6 0.008 264);
   --accent: var(--surface-3);
-  --accent-foreground: oklch(0.968 0.003 264);
+  --accent-foreground: oklch(0.965 0.003 264);
 
   --brand: var(--gold-500);
   --brand-emphasis: var(--gold-200);
@@ -414,21 +427,43 @@
   --brand-border: color-mix(in oklch, var(--gold-500) 30%, transparent);
   --brand-contrast: oklch(0.18 0.02 70);
 
+  --profit: oklch(0.75 0.13 165);
+  --profit-emphasis: oklch(0.95 0.05 165);
+  --profit-surface: color-mix(in oklch, oklch(0.78 0.13 158) 14%, transparent);
+  --profit-border: color-mix(in oklch, var(--profit) 25%, transparent);
+
+  --deposit: oklch(0.72 0.1 248);
+  --deposit-emphasis: oklch(0.92 0.05 248);
+  --deposit-surface: color-mix(in oklch, oklch(0.76 0.1 248) 14%, transparent);
+  --deposit-border: color-mix(in oklch, var(--deposit) 25%, transparent);
+
+  --investment-accent: oklch(0.74 0.12 285);
+  --investment-emphasis: oklch(0.94 0.05 285);
+  --investment-surface: color-mix(in oklch, oklch(0.78 0.13 285) 14%, transparent);
+  --investment-border: color-mix(in oklch, var(--investment-accent) 25%, transparent);
+
+  --withdrawal: oklch(0.78 0.1 55);
+  --withdrawal-surface: color-mix(in oklch, oklch(0.8 0.1 55) 14%, transparent);
+  --withdrawal-border: color-mix(in oklch, var(--withdrawal) 25%, transparent);
+
+  --security: oklch(0.76 0.12 15);
+  --security-surface: color-mix(in oklch, oklch(0.78 0.12 15) 14%, transparent);
+
   --destructive: oklch(0.72 0.17 26);
   --destructive-foreground: oklch(0.16 0.01 26);
   --destructive-surface: color-mix(in oklch, oklch(0.72 0.17 26) 14%, transparent);
 
-  --success: oklch(0.78 0.13 158);
+  --success: var(--profit);
   --success-foreground: oklch(0.16 0.02 158);
-  --success-surface: color-mix(in oklch, oklch(0.78 0.13 158) 14%, transparent);
+  --success-surface: var(--profit-surface);
 
-  --warning: oklch(0.83 0.12 78);
+  --warning: oklch(0.82 0.1 78);
   --warning-foreground: oklch(0.18 0.02 78);
   --warning-surface: color-mix(in oklch, oklch(0.83 0.12 78) 14%, transparent);
 
-  --info: oklch(0.76 0.1 248);
+  --info: var(--deposit);
   --info-foreground: oklch(0.16 0.02 248);
-  --info-surface: color-mix(in oklch, oklch(0.76 0.1 248) 14%, transparent);
+  --info-surface: var(--deposit-surface);
 
   --hairline: oklch(1 0 0 / 10%);
   --hairline-strong: oklch(1 0 0 / 18%);
@@ -438,19 +473,24 @@
 
   --chart-1: var(--gold-500);
   --chart-2: oklch(0.72 0.03 264);
-  --chart-3: oklch(0.56 0.02 264);
-  --chart-4: var(--gold-300);
+  --chart-3: var(--investment-accent);
+  --chart-4: var(--deposit);
   --chart-5: oklch(0.4 0.015 264);
 
   --elevation-soft: 0 1px 2px -1px oklch(0 0 0 / 40%);
   --elevation-card:
-    0 1px 2px -1px oklch(0 0 0 / 45%), 0 8px 20px -12px oklch(0 0 0 / 55%);
+    0 1px 2px -1px oklch(0 0 0 / 45%),
+    0 8px 20px -12px oklch(0 0 0 / 55%);
   --elevation-lift:
-    0 2px 4px -2px oklch(0 0 0 / 45%), 0 16px 36px -16px oklch(0 0 0 / 65%);
+    0 2px 4px -2px oklch(0 0 0 / 45%),
+    0 16px 36px -16px oklch(0 0 0 / 65%);
   --elevation-float:
-    0 2px 6px -2px oklch(0 0 0 / 50%), 0 20px 48px -18px oklch(0 0 0 / 70%),
+    0 2px 6px -2px oklch(0 0 0 / 50%),
+    0 20px 48px -18px oklch(0 0 0 / 70%),
     0 44px 88px -44px oklch(0 0 0 / 60%);
   --elevation-inset-hairline: inset 0 0 0 1px oklch(1 0 0 / 8%);
+  --elevation-glow-brand: 0 0 30px -8px color-mix(in oklch, var(--gold-500) 25%, transparent);
+  --elevation-glow-profit: 0 0 30px -8px color-mix(in oklch, var(--profit) 20%, transparent);
 }
 
 /* =============================================================================
@@ -470,16 +510,14 @@
 
   body {
     @apply bg-background text-foreground;
-    /* `clip` keeps position: sticky working, unlike `hidden`. */
     overflow-x: clip;
     text-rendering: optimizeLegibility;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
+  h1, h2, h3, h4 {
     @apply font-heading text-balance;
     letter-spacing: -0.022em;
   }
@@ -500,34 +538,27 @@
     scrollbar-color: var(--hairline-strong) transparent;
   }
 
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
     background-color: var(--hairline-strong);
     border-radius: 9999px;
-    border: 3px solid transparent;
+    border: 2px solid transparent;
     background-clip: content-box;
   }
 
-  /* Numeric data reads as data. */
   [data-numeric] {
     @apply font-mono tabular-nums;
     letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
   }
 }
 
 /* =============================================================================
-   Components — semantic classes shared across the app
+   Components — semantic classes
    ============================================================================= */
 @layer components {
-  /* A resting card. The single most-used surface in the product. */
+  /* Card panels */
   .panel {
     background-color: var(--surface-1);
     border: 1px solid var(--hairline);
@@ -535,27 +566,23 @@
     box-shadow: var(--elevation-card);
   }
 
-  /* A card that responds to the pointer. */
   .panel-interactive {
     transition:
       border-color 400ms var(--ease-luxe),
       box-shadow 400ms var(--ease-luxe),
       transform 400ms var(--ease-luxe);
   }
-
   .panel-interactive:hover {
     border-color: var(--hairline-strong);
     box-shadow: var(--elevation-lift);
   }
 
-  /* A soft band used to separate long pages into readable sections. */
   .panel-sunken {
     background-color: var(--surface-2);
     border: 1px solid var(--hairline);
     border-radius: var(--radius-xl);
   }
 
-  /* Faint gold wash — an accent block, used sparingly. */
   .panel-brand {
     background-image: linear-gradient(
       160deg,
@@ -567,7 +594,6 @@
     box-shadow: var(--elevation-card);
   }
 
-  /* Charcoal block for the one moment per page that needs weight. */
   .panel-inverse {
     background-color: var(--surface-inverse);
     color: var(--surface-inverse-foreground);
@@ -575,19 +601,7 @@
     box-shadow: var(--elevation-lift);
   }
 
-  /* ==========================================================================
-     Tinted surfaces
-
-     The palette rule is still one decorative accent — these are not decoration.
-     A tint here always encodes what the number *is*: gold for money you hold,
-     green for money actually earned, blue for positions in flight, amber for
-     something waiting on you. Read down a dashboard column and the colour tells
-     you which figure you are looking at before you have read the label.
-
-     Set the hue with a `tint-*` class and the surface follows. Every tint is a
-     wash that resolves into `--surface-1` well before the text starts, so body
-     copy is always read against a near-white ground at full contrast.
-     ========================================================================== */
+  /* Tinted panels for financial semantics */
   .panel-tint {
     background-image: linear-gradient(
       158deg,
@@ -599,54 +613,59 @@
     box-shadow: var(--elevation-card);
   }
 
-  /* The icon chip that sits on a tinted panel. */
   .tint-chip {
     border: 1px solid var(--tint-border);
     background-color: var(--surface-1);
     color: var(--tint-ink);
   }
 
-  .tint-ink {
-    color: var(--tint-ink);
-  }
+  .tint-ink { color: var(--tint-ink); }
+  .tint-bg { background-color: var(--tint-surface); }
 
   .tint-brand {
     --tint-surface: var(--brand-surface);
     --tint-border: var(--brand-border);
     --tint-ink: var(--brand-emphasis);
   }
-
-  .tint-success {
-    --tint-surface: var(--success-surface);
-    --tint-border: color-mix(in oklch, var(--success) 30%, transparent);
-    --tint-ink: var(--success);
+  .tint-profit, .tint-success {
+    --tint-surface: var(--profit-surface);
+    --tint-border: var(--profit-border);
+    --tint-ink: var(--profit);
   }
-
-  .tint-info {
-    --tint-surface: var(--info-surface);
-    --tint-border: color-mix(in oklch, var(--info) 28%, transparent);
-    --tint-ink: var(--info);
+  .tint-deposit, .tint-info {
+    --tint-surface: var(--deposit-surface);
+    --tint-border: var(--deposit-border);
+    --tint-ink: var(--deposit);
   }
-
-  .tint-warning {
-    --tint-surface: var(--warning-surface);
-    --tint-border: color-mix(in oklch, var(--warning) 30%, transparent);
-    --tint-ink: color-mix(in oklch, var(--warning) 82%, var(--ink-900));
+  .tint-investment {
+    --tint-surface: var(--investment-surface);
+    --tint-border: var(--investment-border);
+    --tint-ink: var(--investment-accent);
   }
-
+  .tint-withdrawal, .tint-warning {
+    --tint-surface: var(--withdrawal-surface);
+    --tint-border: var(--withdrawal-border);
+    --tint-ink: var(--withdrawal);
+  }
   .tint-neutral {
     --tint-surface: var(--surface-2);
     --tint-border: var(--hairline);
     --tint-ink: var(--foreground);
   }
 
-  /* Floating navigation and overlays only. */
+  /* Glass */
   .glass {
-    background-color: color-mix(in oklch, var(--surface-1) 82%, transparent);
+    background-color: color-mix(in oklch, var(--surface-1) 85%, transparent);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
+  .glass-strong {
+    background-color: color-mix(in oklch, var(--surface-1) 92%, transparent);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+  }
 
+  /* Gold gradient text */
   .text-brand-gradient {
     background-image: linear-gradient(
       100deg,
@@ -659,6 +678,7 @@
     color: transparent;
   }
 
+  /* Gradient rules */
   .rule-gradient {
     background-image: linear-gradient(
       to right,
@@ -669,7 +689,7 @@
     );
   }
 
-  /* Faint engineering grid behind hero / CTA blocks. */
+  /* Grid background */
   .grid-field {
     background-image:
       linear-gradient(to right, var(--hairline) 1px, transparent 1px),
@@ -677,38 +697,33 @@
     background-size: 72px 72px;
   }
 
+  /* Glow effects */
   .glow-brand {
     box-shadow:
       0 0 0 1px var(--brand-border),
-      0 18px 50px -26px color-mix(in oklch, var(--gold-500) 60%, transparent);
+      var(--elevation-glow-brand);
+  }
+  .glow-profit {
+    box-shadow:
+      0 0 0 1px var(--profit-border),
+      var(--elevation-glow-profit);
   }
 
+  /* Mask utilities */
   .mask-fade-b {
     mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
   }
-
   .mask-fade-x {
     mask-image: linear-gradient(
-      to right,
-      transparent,
-      black 12%,
-      black 88%,
-      transparent
+      to right, transparent, black 12%, black 88%, transparent
     );
     -webkit-mask-image: linear-gradient(
-      to right,
-      transparent,
-      black 12%,
-      black 88%,
-      transparent
+      to right, transparent, black 12%, black 88%, transparent
     );
   }
 
-  /* A light sweep across the loader's badge.
-     Stands in for the stroke trace the inline-SVG mark used to draw: a raster
-     cannot be traced, but a highlight crossing the chrome reads as the same beat
-     and suits the artwork better. Masked to the badge's own rounded shape. */
+  /* Brand loader sheen */
   .te-mark-sheen::after {
     content: "";
     position: absolute;
@@ -720,66 +735,108 @@
       rgba(255, 255, 255, 0.42) 48%,
       transparent 64%
     );
-    /* `shimmer` drives background-position, so the gradient has to be wider than
-       the box for there to be anything to slide. */
     background-size: 240% 100%;
     animation: shimmer 2.6s var(--ease-in-out-luxe) infinite;
   }
 
   /* ==========================================================================
-     Route entrance
-
-     A page's top-level sections fade and lift into place in sequence. Driven
-     entirely by the compositor: no hydration, no observer, no per-section motion
-     component. `PageEnter` re-keys the container on navigation so this re-runs on
-     every route change rather than only on first paint.
-
-     The final frame is `transform: none`, not `translate3d(0,0,0)`. With
-     `animation-fill-mode: both` the last keyframe sticks, and any transform other
-     than `none` would leave every animated section a containing block for fixed
-     and absolutely positioned descendants — quietly breaking `position: sticky`
-     inside a page for the rest of the session.
+     Page entrance animation
      ========================================================================== */
   @keyframes page-section-in {
-    from {
-      opacity: 0;
-      transform: translate3d(0, 14px, 0);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
+    from { opacity: 0; transform: translate3d(0, 14px, 0); }
+    to { opacity: 1; transform: none; }
   }
 
   .page-enter > * {
     animation: page-section-in 620ms var(--ease-luxe) both;
   }
 
-  /* Hand-written rather than generated: the cascade beyond the eighth section is
-     capped so a long page never trails into a visibly late entrance. */
-  .page-enter > *:nth-child(1) {
-    animation-delay: 0ms;
+  .page-enter > *:nth-child(1) { animation-delay: 0ms; }
+  .page-enter > *:nth-child(2) { animation-delay: 60ms; }
+  .page-enter > *:nth-child(3) { animation-delay: 120ms; }
+  .page-enter > *:nth-child(4) { animation-delay: 175ms; }
+  .page-enter > *:nth-child(5) { animation-delay: 225ms; }
+  .page-enter > *:nth-child(6) { animation-delay: 270ms; }
+  .page-enter > *:nth-child(7) { animation-delay: 310ms; }
+  .page-enter > *:nth-child(n+8) { animation-delay: 340ms; }
+
+  /* ==========================================================================
+     Skeleton loading
+     ========================================================================== */
+  .skeleton-base {
+    background: linear-gradient(
+      90deg,
+      var(--surface-2) 25%,
+      var(--surface-3) 50%,
+      var(--surface-2) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s var(--ease-in-out-luxe) infinite;
+    border-radius: var(--radius-md);
   }
-  .page-enter > *:nth-child(2) {
-    animation-delay: 60ms;
+
+  .skeleton-text {
+    height: 0.875rem;
+    width: 100%;
+    border-radius: 4px;
   }
-  .page-enter > *:nth-child(3) {
-    animation-delay: 120ms;
+
+  .skeleton-title {
+    height: 1.5rem;
+    width: 60%;
+    border-radius: 6px;
   }
-  .page-enter > *:nth-child(4) {
-    animation-delay: 175ms;
+
+  .skeleton-card {
+    height: 8rem;
+    border-radius: var(--radius-xl);
   }
-  .page-enter > *:nth-child(5) {
-    animation-delay: 225ms;
+
+  /* ==========================================================================
+     Quick action cards
+     ========================================================================== */
+  .quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--hairline);
+    background-color: var(--surface-1);
+    transition: all 350ms var(--ease-luxe);
+    cursor: pointer;
   }
-  .page-enter > *:nth-child(6) {
-    animation-delay: 270ms;
+  .quick-action:hover {
+    border-color: var(--hairline-strong);
+    box-shadow: var(--elevation-lift);
+    transform: translateY(-2px);
   }
-  .page-enter > *:nth-child(7) {
-    animation-delay: 310ms;
+  .quick-action:active {
+    transform: translateY(0px);
   }
-  .page-enter > *:nth-child(n + 8) {
-    animation-delay: 340ms;
+
+  /* Quick action color variants */
+  .quick-action-deposit {
+    --qa-icon: var(--deposit);
+    --qa-bg: var(--deposit-surface);
+    --qa-border: var(--deposit-border);
+  }
+  .quick-action-withdraw {
+    --qa-icon: var(--withdrawal);
+    --qa-bg: var(--withdrawal-surface);
+    --qa-border: var(--withdrawal-border);
+  }
+  .quick-action-invest {
+    --qa-icon: var(--investment-accent);
+    --qa-bg: var(--investment-surface);
+    --qa-border: var(--investment-border);
+  }
+  .quick-action-transactions {
+    --qa-icon: var(--ink-600);
+    --qa-bg: var(--surface-2);
+    --qa-border: var(--hairline);
   }
 }
 
@@ -793,47 +850,25 @@
     max-width: 84rem;
     padding-inline: 1.25rem;
   }
+  @media (min-width: 768px) { .container-wide { padding-inline: 2rem; } }
+  @media (min-width: 1280px) { .container-wide { padding-inline: 2.5rem; } }
 
-  @media (min-width: 768px) {
-    .container-wide {
-      padding-inline: 2rem;
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .container-wide {
-      padding-inline: 2.5rem;
-    }
-  }
-
-  /* App shell reading column — narrower than marketing, easier to scan. */
   .container-app {
     width: 100%;
     margin-inline: auto;
     max-width: 72rem;
     padding-inline: 1.125rem;
   }
-
-  @media (min-width: 768px) {
-    .container-app {
-      padding-inline: 2rem;
-    }
-  }
+  @media (min-width: 768px) { .container-app { padding-inline: 2rem; } }
 
   .eyebrow {
-    @apply text-[0.7rem] font-medium tracking-[0.2em] text-muted-foreground uppercase;
+    @apply text-[0.68rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase;
   }
 
-  /* Keeps page content clear of the floating bottom navigation. */
   .pb-bottom-nav {
     padding-bottom: var(--bottom-nav-clearance);
   }
 
-  /* A page's primary action, pinned within reach on a phone.
-     `bottom` is the same clearance token the nav reserves, so the bar settles
-     directly above the floating nav on every breakpoint instead of hiding
-     behind it. Used by the withdrawal flow, where the confirm action must never
-     require scrolling past the address the user is checking. */
   .sticky-actions {
     position: sticky;
     bottom: var(--bottom-nav-clearance);
@@ -843,318 +878,113 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* Hide scrollbar while still scrollable */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 }
 
 /* =============================================================================
-   Automotive brand layer
-
-   The vehicle photograph in `public/images/branding/` is one flat raster, so
-   nothing inside it can move on its own. Everything below is therefore an
-   *overlay* keyed to measured coordinates (see `src/config/vehicle-visual.ts`):
-   a circular crop of a wheel spun in place, a glow pinned to the headlight
-   lens, light that travels past the car rather than the car travelling across
-   the screen.
-
-   All of it is CSS. There is no animation loop, no canvas and no particle
-   engine — only `transform`, `opacity` and `filter`, which the compositor can
-   run off the main thread. The body itself barely moves: a ~12px figure-eight
-   drift. The read of speed comes from the wheels and the environment, which is
-   also how it is shot in real automotive film work, and it means the loop is
-   seamless without the car ever appearing to reverse.
-
-   Keyframes live at the top level (not in `@theme`) because they are consumed
-   by the semantic classes below rather than by `animate-*` utilities.
+   Automotive brand layer (unchanged from original — vehicle animations)
    ============================================================================= */
 
-/* ---- Wheels ---------------------------------------------------------------
-   Seven turns per cycle, sampled from θ(t) = 2520t − 210.08·sin(2πt): a smooth
-   drive cycle whose angular velocity peaks mid-loop at ~3.2x its slowest and
-   whose acceleration is zero at both ends. That last property is what keeps the
-   loop invisible — and what stops it reading as a loading spinner, which is
-   exactly the constant-rate case this curve avoids. */
+/* ---- Wheels --------------------------------------------------------------- */
 @keyframes te-wheel-roll {
-  0% {
-    transform: rotate(0deg);
-  }
-  5% {
-    transform: rotate(61.1deg);
-  }
-  10% {
-    transform: rotate(128.5deg);
-  }
-  15% {
-    transform: rotate(208deg);
-  }
-  20% {
-    transform: rotate(304.2deg);
-  }
-  25% {
-    transform: rotate(419.9deg);
-  }
-  30% {
-    transform: rotate(556.2deg);
-  }
-  35% {
-    transform: rotate(712deg);
-  }
-  40% {
-    transform: rotate(884.5deg);
-  }
-  45% {
-    transform: rotate(1069.1deg);
-  }
-  50% {
-    transform: rotate(1260deg);
-  }
-  55% {
-    transform: rotate(1450.9deg);
-  }
-  60% {
-    transform: rotate(1635.5deg);
-  }
-  65% {
-    transform: rotate(1808deg);
-  }
-  70% {
-    transform: rotate(1963.8deg);
-  }
-  75% {
-    transform: rotate(2100.1deg);
-  }
-  80% {
-    transform: rotate(2215.8deg);
-  }
-  85% {
-    transform: rotate(2312deg);
-  }
-  90% {
-    transform: rotate(2391.5deg);
-  }
-  95% {
-    transform: rotate(2458.9deg);
-  }
-  100% {
-    transform: rotate(2520deg);
-  }
+  0% { transform: rotate(0deg); }
+  5% { transform: rotate(61.1deg); }
+  10% { transform: rotate(128.5deg); }
+  15% { transform: rotate(208deg); }
+  20% { transform: rotate(304.2deg); }
+  25% { transform: rotate(419.9deg); }
+  30% { transform: rotate(556.2deg); }
+  35% { transform: rotate(712deg); }
+  40% { transform: rotate(884.5deg); }
+  45% { transform: rotate(1069.1deg); }
+  50% { transform: rotate(1260deg); }
+  55% { transform: rotate(1450.9deg); }
+  60% { transform: rotate(1635.5deg); }
+  65% { transform: rotate(1808deg); }
+  70% { transform: rotate(1963.8deg); }
+  75% { transform: rotate(2100.1deg); }
+  80% { transform: rotate(2215.8deg); }
+  85% { transform: rotate(2312deg); }
+  90% { transform: rotate(2391.5deg); }
+  95% { transform: rotate(2458.9deg); }
+  100% { transform: rotate(2520deg); }
 }
 
-/* ---- Body -----------------------------------------------------------------
-   X follows sin²(πt) and Y follows sin(2πt): both return to zero with zero
-   velocity, so the loop has no seam and no visible reversal. */
+/* ---- Body ----------------------------------------------------------------- */
 @keyframes te-drive {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  10% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.0955),
-      calc(var(--te-drive-y) * -0.588),
-      0
-    );
-  }
-  20% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.3455),
-      calc(var(--te-drive-y) * -0.951),
-      0
-    );
-  }
-  30% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.6545),
-      calc(var(--te-drive-y) * -0.951),
-      0
-    );
-  }
-  40% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.9045),
-      calc(var(--te-drive-y) * -0.588),
-      0
-    );
-  }
-  50% {
-    transform: translate3d(var(--te-drive-x), 0, 0);
-  }
-  60% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.9045),
-      calc(var(--te-drive-y) * 0.588),
-      0
-    );
-  }
-  70% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.6545),
-      calc(var(--te-drive-y) * 0.951),
-      0
-    );
-  }
-  80% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.3455),
-      calc(var(--te-drive-y) * 0.951),
-      0
-    );
-  }
-  90% {
-    transform: translate3d(
-      calc(var(--te-drive-x) * 0.0955),
-      calc(var(--te-drive-y) * 0.588),
-      0
-    );
-  }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  10% { transform: translate3d(calc(var(--te-drive-x) * 0.0955), calc(var(--te-drive-y) * -0.588), 0); }
+  20% { transform: translate3d(calc(var(--te-drive-x) * 0.3455), calc(var(--te-drive-y) * -0.951), 0); }
+  30% { transform: translate3d(calc(var(--te-drive-x) * 0.6545), calc(var(--te-drive-y) * -0.951), 0); }
+  40% { transform: translate3d(calc(var(--te-drive-x) * 0.9045), calc(var(--te-drive-y) * -0.588), 0); }
+  50% { transform: translate3d(var(--te-drive-x), 0, 0); }
+  60% { transform: translate3d(calc(var(--te-drive-x) * 0.9045), calc(var(--te-drive-y) * 0.588), 0); }
+  70% { transform: translate3d(calc(var(--te-drive-x) * 0.6545), calc(var(--te-drive-y) * 0.951), 0); }
+  80% { transform: translate3d(calc(var(--te-drive-x) * 0.3455), calc(var(--te-drive-y) * 0.951), 0); }
+  90% { transform: translate3d(calc(var(--te-drive-x) * 0.0955), calc(var(--te-drive-y) * 0.588), 0); }
 }
 
-/* ---- Lighting -------------------------------------------------------------
-   Low → bright → a touch brighter → soft fade → repeat, with two ~8% dips that
-   read as a lamp settling rather than a fault. Nothing here drops far enough or
-   fast enough to look broken, and nothing flashes. */
+/* ---- Lighting ------------------------------------------------------------- */
 @keyframes te-headlight {
-  0%,
-  100% {
-    opacity: 0.58;
-  }
-  10% {
-    opacity: 0.86;
-  }
-  16% {
-    opacity: 0.78;
-  }
-  24% {
-    opacity: 0.97;
-  }
-  38% {
-    opacity: 1;
-  }
-  48% {
-    opacity: 0.93;
-  }
-  60% {
-    opacity: 1;
-  }
-  74% {
-    opacity: 0.88;
-  }
-  88% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 0.58; }
+  10% { opacity: 0.86; }
+  16% { opacity: 0.78; }
+  24% { opacity: 0.97; }
+  38% { opacity: 1; }
+  48% { opacity: 0.93; }
+  60% { opacity: 1; }
+  74% { opacity: 0.88; }
+  88% { opacity: 0.7; }
 }
-
 @keyframes te-taillight {
-  0%,
-  100% {
-    opacity: 0.42;
-  }
-  50% {
-    opacity: 0.78;
-  }
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.78; }
 }
-
 @keyframes te-beam {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: translateY(-50%) scaleX(0.94);
-  }
-  45% {
-    opacity: 0.58;
-    transform: translateY(-50%) scaleX(1.05);
-  }
+  0%, 100% { opacity: 0.3; transform: translateY(-50%) scaleX(0.94); }
+  45% { opacity: 0.58; transform: translateY(-50%) scaleX(1.05); }
 }
-
-/* ---- Environment ---------------------------------------------------------- */
-
-/* Light travelling past the car, right to left. */
 @keyframes te-streak {
-  0% {
-    transform: translate3d(118%, 0, 0) scaleX(0.45);
-    opacity: 0;
-  }
-  14% {
-    opacity: 1;
-  }
-  72% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(-150%, 0, 0) scaleX(1.4);
-    opacity: 0;
-  }
+  0% { transform: translate3d(118%, 0, 0) scaleX(0.45); opacity: 0; }
+  14% { opacity: 1; }
+  72% { opacity: 1; }
+  100% { transform: translate3d(-150%, 0, 0) scaleX(1.4); opacity: 0; }
 }
-
-/* Ground rushing under the wheels. The layer is 200% wide, so a half-shift
-   lands on an identical repeat and the loop is invisible. */
 @keyframes te-road {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
 }
-
 @keyframes te-particle {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0;
-  }
-  18% {
-    opacity: 1;
-  }
-  82% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(-11rem, -2.2rem, 0) scale(0.55);
-    opacity: 0;
-  }
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0; }
+  18% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translate3d(-11rem, -2.2rem, 0) scale(0.55); opacity: 0; }
 }
-
 @keyframes te-contact {
-  0%,
-  100% {
-    opacity: 0.48;
-    transform: translateX(-50%) scaleX(0.97);
-  }
-  50% {
-    opacity: 0.74;
-    transform: translateX(-50%) scaleX(1.03);
-  }
+  0%, 100% { opacity: 0.48; transform: translateX(-50%) scaleX(0.97); }
+  50% { opacity: 0.74; transform: translateX(-50%) scaleX(1.03); }
 }
 
 @layer components {
-  /* -------------------------------------------------------------- The vehicle
-     `overflow` is deliberately NOT clipped here: the headlight bloom and beam
-     bleed past the bodywork on purpose. Clipping is the job of the ancestor
-     surface (the hero `<section>`, or the backdrop's own `overflow-hidden`),
-     which is what keeps the glow from ever creating a horizontal scrollbar. */
   .te-vehicle {
     position: relative;
-    /* Contains the internal layer order (image → wheels → lighting) so it can
-       never out-paint whatever the host places around the vehicle, and scopes
-       the wheel sheen's blend to the car rather than to the page behind it. */
     isolation: isolate;
-    /* Distance is a share of the vehicle's own width, so the drift reads the
-       same whether the car is 320px or 1100px wide. */
     --te-drive-x: 1.8%;
     --te-drive-y: 7px;
     --te-wheel-duration: 4.2s;
     --te-drive-duration: 13s;
     --te-light-duration: 7.5s;
   }
-
   .te-vehicle-drive {
     animation: te-drive var(--te-drive-duration) linear infinite;
     will-change: transform;
   }
-
-  /* A circular window onto one wheel. The child is the same photograph,
-     enlarged and offset so this wheel exactly fills the window; rotating the
-     child therefore spins the wheel and nothing else. Clipped to 90% of the
-     tyre radius so the rotation never reaches the white fender arch above it —
-     the outer sliver stays the static image, which is uniform rubber. */
   .te-wheel {
     position: absolute;
     aspect-ratio: 1;
@@ -1162,7 +992,6 @@
     overflow: hidden;
     clip-path: circle(45% at 50% 50%);
   }
-
   .te-wheel-spin {
     position: absolute;
     inset: 0;
@@ -1170,9 +999,6 @@
     animation: te-wheel-roll var(--te-wheel-duration) linear infinite;
     will-change: transform;
   }
-
-  /* Standing in for true radial motion blur: two soft highlight arcs sweeping
-     with the rim. Cheap, and it stops the spokes from strobing. */
   .te-wheel-sheen {
     position: absolute;
     inset: 8%;
@@ -1183,7 +1009,7 @@
       rgba(255, 255, 255, 0.2) 24deg,
       transparent 52deg,
       transparent 180deg,
-      rgba(255, 255, 255, 0.14) 204deg,
+      rgba(255,255,255,0.14)204deg,
       transparent 232deg,
       transparent 360deg
     );
@@ -1191,87 +1017,44 @@
     mix-blend-mode: screen;
     animation: te-wheel-roll var(--te-wheel-duration) linear infinite;
   }
-
-  /* Contact patch. Grounds the cutout so it reads as a car on a surface rather
-     than a sticker floating on the page. */
   .te-contact-shadow {
     position: absolute;
     left: 50%;
     border-radius: 50%;
-    background: radial-gradient(
-      closest-side,
-      oklch(0.222 0.009 264 / 46%),
-      transparent 74%
-    );
+    background: radial-gradient(closest-side, oklch(0.222 0.009 264 / 46%), transparent 74%);
     filter: blur(12px);
     animation: te-contact var(--te-drive-duration) var(--ease-in-out-luxe) infinite;
   }
-
-  /* ------------------------------------------------------------------ Lights
-     Cool-white core over a wide bloom. Both are tinted rather than pure white
-     so they still register as *light* against the ivory theme, where a white
-     glow on a near-white page would be invisible. */
   .te-lamp {
     position: absolute;
     transform: translate(-50%, -50%);
     border-radius: 50%;
     animation: te-headlight var(--te-light-duration) var(--ease-in-out-luxe) infinite;
   }
-
   .te-lamp-core {
-    background: radial-gradient(
-      closest-side,
-      rgba(255, 255, 255, 0.98),
-      rgba(226, 241, 255, 0.85) 34%,
-      rgba(150, 199, 255, 0.4) 66%,
-      transparent 100%
-    );
+    background: radial-gradient(closest-side, rgba(255,255,255,0.98), rgba(226,241,255,0.85) 34%, rgba(150,199,255,0.4) 66%, transparent 100%);
     filter: blur(3px);
   }
-
   .te-lamp-bloom {
-    background: radial-gradient(
-      closest-side,
-      rgba(203, 228, 255, 0.6),
-      rgba(150, 195, 255, 0.2) 44%,
-      transparent 78%
-    );
+    background: radial-gradient(closest-side, rgba(203,228,255,0.6), rgba(150,195,255,0.2) 44%, transparent 78%);
     filter: blur(16px);
   }
-
-  /* Light thrown forward from the nose. A clipped cone rather than a rectangle,
-     masked to nothing at its far end, so there is no edge to see. */
   .te-lamp-beam {
     position: absolute;
     transform-origin: 0% 50%;
-    background: linear-gradient(
-      to right,
-      rgba(219, 236, 255, 0.5),
-      rgba(180, 214, 255, 0.16) 46%,
-      transparent 100%
-    );
+    background: linear-gradient(to right, rgba(219,236,255,0.5), rgba(180,214,255,0.16) 46%, transparent 100%);
     clip-path: polygon(0% 40%, 100% 0%, 100% 100%, 0% 60%);
     filter: blur(9px);
-    animation: te-beam calc(var(--te-light-duration) * 1.15)
-      var(--ease-in-out-luxe) infinite;
+    animation: te-beam calc(var(--te-light-duration) * 1.15) var(--ease-in-out-luxe) infinite;
   }
-
   .te-lamp-tail {
     position: absolute;
     transform: translate(-50%, -50%);
     border-radius: 50%;
-    background: radial-gradient(
-      closest-side,
-      rgba(255, 92, 84, 0.62),
-      rgba(226, 46, 40, 0.2) 46%,
-      transparent 80%
-    );
+    background: radial-gradient(closest-side, rgba(255,92,84,0.62), rgba(226,46,40,0.2) 46%, transparent 80%);
     filter: blur(8px);
-    animation: te-taillight calc(var(--te-light-duration) * 1.4)
-      var(--ease-in-out-luxe) infinite;
+    animation: te-taillight calc(var(--te-light-duration) * 1.4) var(--ease-in-out-luxe) infinite;
   }
-
-  /* ------------------------------------------------------------- Environment */
   .te-streak {
     position: absolute;
     border-radius: 9999px;
@@ -1282,11 +1065,9 @@
       color-mix(in oklch, var(--gold-300) 78%, transparent) 58%,
       transparent
     );
-    animation: te-streak var(--te-streak-duration, 9s) var(--ease-in-out-luxe)
-      infinite;
+    animation: te-streak var(--te-streak-duration, 9s) var(--ease-in-out-luxe) infinite;
     will-change: transform, opacity;
   }
-
   .te-road {
     position: absolute;
     width: 200%;
@@ -1302,7 +1083,6 @@
     animation: te-road var(--te-road-duration, 6s) linear infinite;
     filter: blur(1px);
   }
-
   .te-particle {
     position: absolute;
     border-radius: 9999px;
@@ -1310,53 +1090,24 @@
     box-shadow: 0 0 6px 1px color-mix(in oklch, var(--gold-500) 45%, transparent);
     animation: te-particle var(--te-particle-duration, 16s) linear infinite;
   }
-
-  /* Keeps whatever sits on top legible: the layer fades out toward the top of
-     the viewport, where headings and page copy live on bare background. */
   .te-fade-top {
     mask-image: linear-gradient(to bottom, transparent 0%, black 46%, black 100%);
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      transparent 0%,
-      black 46%,
-      black 100%
-    );
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 46%, black 100%);
   }
-
-  /* ------------------------------------------------ Category photographs
-     The four category photographs are 3/4-view rasters on an opaque road
-     background, so none of the hero's techniques transfer. A wheel drawn in
-     perspective is an ellipse, and clipping a circle out of it would drag the
-     road round with it; a glow pasted over lit paint reads as a smudge. What
-     does work is moving the frame and blending the light — the same read of a
-     car under way, with nothing distorted.
-
-     Vehicles here face LEFT (the hero faces right), which happens to suit
-     `te-streak` as-is: it already travels right to left. */
   .te-photo-frame {
     position: relative;
     overflow: hidden;
-    /* Scopes the lamp's screen blend to the photograph. Without it the blend
-       group reaches up to whatever ancestor happens to establish a stacking
-       context, and the glow starts brightening the card behind the frame. */
     isolation: isolate;
     --te-drive-x: 1.6%;
     --te-drive-y: 6px;
     --te-drive-duration: 15s;
     --te-light-duration: 7.5s;
   }
-
-  /* Tracking-shot drift. Scaled up a touch so the travel can never expose the
-     frame edge — 1.6% of width and 6px of rise against ~2.7% of overhang. */
   .te-photo-drive {
     scale: 1.055;
     animation: te-drive var(--te-drive-duration) var(--ease-in-out-luxe) infinite;
     will-change: transform;
   }
-
-  /* Screen blending brightens the lamp that is already in the photograph rather
-     than laying an opaque disc on top of it, which is what the difference between
-     "headlight coming on" and "white blob on the wing" comes down to. */
   .te-lamp-photo {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -1364,81 +1115,31 @@
     mix-blend-mode: screen;
     animation: te-headlight var(--te-light-duration) var(--ease-in-out-luxe) infinite;
   }
-
   .te-lamp-photo-core {
-    background: radial-gradient(
-      closest-side,
-      rgba(255, 255, 255, 0.92),
-      rgba(222, 239, 255, 0.5) 42%,
-      transparent 100%
-    );
+    background: radial-gradient(closest-side, rgba(255,255,255,0.92), rgba(222,239,255,0.5) 42%, transparent 100%);
     filter: blur(5px);
   }
-
   .te-lamp-photo-bloom {
-    background: radial-gradient(
-      closest-side,
-      rgba(190, 222, 255, 0.4),
-      rgba(140, 190, 255, 0.13) 48%,
-      transparent 80%
-    );
+    background: radial-gradient(closest-side, rgba(190,222,255,0.4), rgba(140,190,255,0.13) 48%, transparent 80%);
     filter: blur(18px);
   }
 }
 
-/* Phones get a shorter drift, a smaller light budget and no drifting motes —
-   the same treatment, costing less. */
 @media (max-width: 640px) {
-  .te-vehicle {
-    --te-drive-x: 1%;
-    --te-drive-y: 4px;
-  }
-
-  .te-photo-frame {
-    --te-drive-x: 0.9%;
-    --te-drive-y: 3px;
-  }
-
-  .te-particle,
-  .te-road {
-    display: none;
-  }
-
-  .te-streak:nth-child(even) {
-    display: none;
-  }
+  .te-vehicle { --te-drive-x: 1%; --te-drive-y: 4px; }
+  .te-photo-frame { --te-drive-x: 0.9%; --te-drive-y: 3px; }
+  .te-particle, .te-road { display: none; }
+  .te-streak:nth-child(even) { display: none; }
 }
 
-/* Anyone who asks for less motion gets less motion — everywhere, including
-   Motion-driven transforms, which read this via MotionConfig reducedMotion. */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-
-  /* The rule above freezes every animation on its final keyframe, which for the
-     vehicle is its resting state — lights softly on, wheels at a whole number
-     of turns, body at origin. Travelling decoration has no resting state worth
-     showing, so it is removed outright rather than parked mid-flight. */
-  .te-streak,
-  .te-particle,
-  .te-road,
-  .te-wheel-sheen {
-    display: none !important;
-  }
-
-  /* The overscan only exists to give the drift somewhere to travel. With the
-     drift parked, show the photograph exactly as it was cropped. */
-  .te-photo-drive {
-    scale: 1 !important;
-  }
+  .te-streak, .te-particle, .te-road, .te-wheel-sheen { display: none !important; }
+  .te-photo-drive { scale: 1 !important; }
 }

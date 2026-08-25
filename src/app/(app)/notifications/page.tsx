@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BellOff } from "lucide-react";
 
-import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { MarkAllReadButton } from "@/components/dashboard/mark-all-read-button";
 import { NotificationFeed } from "@/components/dashboard/notification-feed";
@@ -23,18 +22,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Notifications.
- *
- * Reachable from the top bar and from Profile, deliberately not from the bottom
- * navigation — five primary areas is the practical ceiling on a phone, and a
- * notification feed is something you visit when prompted rather than a place you
- * navigate to.
- *
- * The page renders only the first page (20 rows) server-side; the client feed
- * loads older rows on demand with a keyset cursor, so an account with years of
- * history never ships them all at once. New notifications still arrive through
- * the realtime provider — a toast, an updated badge, and a route refresh — while
- * this page is open.
+ * Notifications page — premium header.
  */
 export default async function NotificationsPage() {
   const account = await getAccountMode();
@@ -49,32 +37,34 @@ export default async function NotificationsPage() {
     pageResult,
     EMPTY_NOTIFICATION_PAGE
   );
-  // The exact unread count comes from the server (a head count), not from the
-  // first page, so the "mark all" label is truthful however many rows are loaded.
   const { data: unreadCount } = resolveOrEmpty(unreadResult, 0);
 
   return (
     <>
-      <PageHeader
-        eyebrow="Notifications"
-        title="Notifications"
-        description="Account activity and platform announcements, including when deposits and withdrawals open."
-        badge={
-          preview ? (
-            <StatusPill tone="brand" dot className="self-start">
-              UI Preview · No account connected
-            </StatusPill>
-          ) : null
-        }
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-3">
+        <p className="eyebrow text-brand-emphasis">Notifications</p>
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-[2.25rem]">
+              Notifications
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
+              Account activity and platform announcements.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+            {preview && (
+              <StatusPill tone="brand" dot className="self-start">
+                UI Preview · No account connected
+              </StatusPill>
+            )}
             {!preview && <MarkAllReadButton unreadCount={unreadCount} />}
             <Button asChild variant="ghost" size="md">
               <Link href={`${appRoutes.profile}#notifications`}>Preferences</Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {error ? (
         <div

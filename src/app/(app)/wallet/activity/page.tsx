@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Receipt } from "lucide-react";
 
-import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { StatusPill } from "@/components/common/status-pill";
 import { TransactionList } from "@/components/wallet/transaction-list";
@@ -19,12 +18,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Full account history.
- *
- * The Wallet page shows the ten most recent movements; this is the complete list.
- * Rows exist only where value actually moved — nothing in this build writes to the
- * `transactions` table, so the empty state is the correct render, not a loading
- * fallback.
+ * Full account history — premium style with consistent header.
  */
 export default async function WalletActivityPage() {
   const account = await getAccountMode();
@@ -32,8 +26,6 @@ export default async function WalletActivityPage() {
 
   const [transactionsResult, withdrawalsResult] = await Promise.all([
     getUserTransactions({ limit: 100 }),
-    // Only to enrich receipts with asset, network, destination and hash — the feed
-    // itself is the ledger, not this list.
     getUserWithdrawals(100),
   ]);
 
@@ -56,18 +48,25 @@ export default async function WalletActivityPage() {
         </Button>
       </div>
 
-      <PageHeader
-        eyebrow="Wallet"
-        title="Account activity"
-        description="Every deposit, investment, profit payment, principal return and withdrawal on your account."
-        badge={
-          preview ? (
-            <StatusPill tone="brand" dot className="self-start">
+      <div className="flex flex-col gap-3">
+        <p className="eyebrow text-brand-emphasis">Wallet</p>
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-[2.25rem]">
+              Account activity
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
+              Every deposit, investment, profit payment, principal return and withdrawal
+              on your account.
+            </p>
+          </div>
+          {preview && (
+            <StatusPill tone="brand" dot className="self-start shrink-0">
               UI Preview · No account connected
             </StatusPill>
-          ) : null
-        }
-      />
+          )}
+        </div>
+      </div>
 
       {error ? (
         <div

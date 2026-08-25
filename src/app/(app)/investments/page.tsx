@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Banknote, Compass, TrendingUp, Wallet } from "lucide-react";
 
-import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { InvestmentsTabs } from "@/components/investment/investments-tabs";
 import { RevealGroup, RevealItem } from "@/components/common/reveal";
@@ -26,16 +25,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * The user's investments — and nothing else.
- *
- * This page deliberately contains no marketplace content: browsing plans is Invest's
- * job, and mixing the two is exactly how a pre-launch product ends up looking like
- * it has investors. Plans are fetched only so each position can name the plan it was
- * opened against.
- *
- * Every figure comes from the user's own `investments` and `investment_payments`
- * rows. A period is reported paid because a payment record says so — never because
- * time has passed.
+ * My Investments page — premium portfolio overview.
  */
 export default async function InvestmentsPage() {
   const account = await getAccountMode();
@@ -61,26 +51,32 @@ export default async function InvestmentsPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Investments"
-        title="My investments"
-        description="Every investment your account holds, with its real payment schedule and progress. To browse available plans, go to Invest."
-        badge={
-          preview ? (
-            <StatusPill tone="brand" dot className="self-start">
-              UI Preview · No account connected
-            </StatusPill>
-          ) : null
-        }
-        actions={
-          <Button asChild variant="hairline" size="md">
-            <Link href={appRoutes.invest}>
-              <Compass />
-              Explore Plans
-            </Link>
-          </Button>
-        }
-      />
+      <div className="flex flex-col gap-3">
+        <p className="eyebrow text-brand-emphasis">Investments</p>
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-[2.25rem]">
+              My investments
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground text-pretty">
+              Every investment your account holds, with real payment schedules and progress.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+            {preview && (
+              <StatusPill tone="brand" dot className="self-start">
+                UI Preview · No account connected
+              </StatusPill>
+            )}
+            <Button asChild variant="hairline" size="md">
+              <Link href={appRoutes.invest}>
+                <Compass />
+                Explore Plans
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <section aria-labelledby="portfolio-heading" className="flex flex-col gap-4">
         <h2 id="portfolio-heading" className="sr-only">

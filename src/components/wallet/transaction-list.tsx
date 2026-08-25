@@ -9,20 +9,10 @@ import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
 /**
- * Account activity feed.
+ * Premium transaction list.
  *
- * Covers every kind of movement on the ledger — deposits, withdrawals, investment
- * funding, profit credits, principal returns — because they all live in the same
- * `transactions` table and separating them by type would hide the running story of
- * the account.
- *
- * Every row opens its receipt. `withdrawalsByTransactionId` supplies the asset,
- * network, destination and hash for withdrawal rows, keyed by the ledger row that
- * reserved the funds; rows with no entry render a receipt without those lines
- * rather than with invented ones.
- *
- * Renders nothing when the list is empty: the caller shows the appropriate
- * `EmptyState`, which can explain *why* it's empty and offer a next step.
+ * Renders transactions as a clean, shadowed list. Each row opens a receipt dialog.
+ * On mobile, items use a card-like layout within the list.
  */
 export function TransactionList({
   transactions,
@@ -36,22 +26,21 @@ export function TransactionList({
   if (transactions.length === 0) return null;
 
   return (
-    <ul
+    <div
       aria-label="Account activity, most recent first"
       className={cn(
-        "flex flex-col divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline shadow-card",
+        "flex flex-col overflow-hidden rounded-2xl border border-hairline shadow-card",
         className
       )}
     >
       {transactions.map((transaction) => (
-        <li key={transaction.id}>
-          <TransactionReceipt
-            transaction={transaction}
-            withdrawal={withdrawalsByTransactionId?.[transaction.id] ?? null}
-            trigger={<TransactionItem transaction={transaction} as="div" />}
-          />
-        </li>
+        <TransactionReceipt
+          key={transaction.id}
+          transaction={transaction}
+          withdrawal={withdrawalsByTransactionId?.[transaction.id] ?? null}
+          trigger={<TransactionItem transaction={transaction} as="div" />}
+        />
       ))}
-    </ul>
+    </div>
   );
 }

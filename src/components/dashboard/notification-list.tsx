@@ -3,24 +3,33 @@ import Link from "next/link";
 import {
   BadgeCheck,
   Bell,
+  CircleDollarSign,
+  Landmark,
   Megaphone,
-  Receipt,
+  Send,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { MarkReadButton } from "@/components/dashboard/mark-read-button";
-import { formatRelativeTime } from "@/lib/format";
+import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Notification, NotificationCategory } from "@/types/notification";
+import type { Notification, NotificationType } from "@/types/notification";
 
-const categoryIcons: Record<NotificationCategory, LucideIcon> = {
-  account: BadgeCheck,
-  investment: TrendingUp,
-  transaction: Receipt,
+const typeIcons: Record<NotificationType, LucideIcon> = {
+  auth: BadgeCheck,
   security: ShieldCheck,
-  platform: Megaphone,
+  deposit: Landmark,
+  withdrawal: Send,
+  investment: TrendingUp,
+  profit: CircleDollarSign,
+  wallet: Wallet,
+  system: Megaphone,
+  promotion: Sparkles,
+  announcement: Megaphone,
 };
 
 /**
@@ -46,8 +55,8 @@ export function NotificationList({
   return (
     <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline shadow-card">
       {notifications.map((notification) => {
-        const Icon = categoryIcons[notification.category] ?? Bell;
-        const unread = notification.readAt === null;
+        const Icon = typeIcons[notification.type] ?? Bell;
+        const unread = !notification.isRead;
 
         const body = (
           <div className="flex gap-4">
@@ -92,6 +101,7 @@ export function NotificationList({
               <time
                 dateTime={notification.createdAt}
                 className="text-xs text-subtle-foreground"
+                title={formatDateTime(notification.createdAt)}
               >
                 {formatRelativeTime(notification.createdAt)}
               </time>

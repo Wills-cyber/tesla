@@ -29,6 +29,8 @@ export const appRoutes = {
   withdrawalDetail: (id: string) => `/wallet/withdraw/${id}`,
   profile: "/profile",
   notifications: "/notifications",
+  /** Admin-only broadcast surface. The page re-checks the `admins` table. */
+  adminNotifications: "/admin/notifications",
 } as const;
 
 export const legalRoutes = {

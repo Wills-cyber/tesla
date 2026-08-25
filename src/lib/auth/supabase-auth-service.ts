@@ -147,6 +147,20 @@ export const supabaseAuthService: AuthService = {
       return { status: "error", message: error.message };
     }
 
+    // Record the *request* in the account's in-app feed. Like the failed-login
+    // notice, this is throttled and deliberately non-fatal: a reset notification
+    // that could not be written must never turn a sent email into an error. The
+    // "Password Changed" notice itself comes from the `auth.users` trigger in
+    // migration 0009, when the new password is actually stored.
+    const device = await readUserAgent();
+    const { error: noticeError } = await supabase.rpc(
+      "record_password_reset_requested",
+      { p_email: email, p_device: device }
+    );
+    if (noticeError) {
+      console.error("[auth:passwordReset] reset notice", noticeError);
+    }
+
     // Always the same response, whether or not the address exists.
     return {
       status: "success",

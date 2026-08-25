@@ -23,6 +23,7 @@ export {
   getUnreadNotificationCount,
   getUserNotifications,
 } from "./notifications";
+export { getIsAdmin } from "@/lib/notifications/service";
 export { getUserBalance } from "./balances";
 export {
   getPaymentMethods,

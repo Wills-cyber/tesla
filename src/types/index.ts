@@ -19,7 +19,15 @@ export type DataResult<T> =
   | { status: "error"; message: string };
 
 export type ActionResult =
-  | { status: "success"; message?: string; redirectTo?: string }
+  | {
+      status: "success";
+      message?: string;
+      redirectTo?: string;
+      /** Real `investments.id` (uuid) returned by `activate_investment`. */
+      investmentId?: string;
+      /** Ledger reference of the debit transaction created by activation. */
+      reference?: string;
+    }
   | { status: "error"; message: string; fieldErrors?: Record<string, string> }
   /** The feature exists in the UI but has no backend yet. */
   | { status: "unavailable"; message: string };

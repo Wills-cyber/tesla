@@ -8,6 +8,7 @@ export {
 
 export { getCurrentProfile, updateFullName } from "./profiles";
 export {
+  getDatabasePlanBySlug,
   getInvestmentPlanBySlug,
   getInvestmentPlans,
 } from "./investment-plans";

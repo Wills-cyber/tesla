@@ -11,7 +11,6 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { ProfileAvatar } from "@/components/dashboard/profile-avatar";
 import { NotificationPreferences } from "@/components/profile/notification-preferences";
 import { PasswordChangeButton } from "@/components/profile/password-change-button";
 import { ProfileDetailsForm } from "@/components/profile/profile-details-form";
@@ -109,15 +108,7 @@ export default async function ProfilePage() {
             title="Account details"
             heading="account-details-heading"
           >
-            <ProfileAvatar
-              fullName={fullName}
-              avatarUrl={profile?.avatarUrl ?? user?.avatarUrl ?? null}
-              editable={!preview}
-            />
-
-            <div className="border-t border-hairline pt-6">
-              <ProfileDetailsForm fullName={fullName} disabled={preview} />
-            </div>
+            <ProfileDetailsForm fullName={fullName} disabled={preview} />
 
             <dl className="flex flex-col divide-y divide-hairline border-t border-hairline">
               <DetailRow

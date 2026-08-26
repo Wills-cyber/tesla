@@ -6,7 +6,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { InvestmentPlan, VehicleCategory } from "@/types/investment";
 import type { Tables } from "@/types/database";
 
-import { describeError, ready, type DataResult } from "./query-context";
+import { describeError, failed, ready, type DataResult } from "./query-context";
 
 /**
  * Investment plan catalogue access.
@@ -144,11 +144,28 @@ export async function getInvestmentPlans(): Promise<
   return ready(mapped);
 }
 
+export type InvestmentPlanLookupOptions = {
+  /**
+   * Whether a failed or missing database lookup may fall back to the static
+   * catalogue. Defaults to `true` for display surfaces.
+   *
+   * Pass `false` on any path that will hand `plan.id` to a financial operation:
+   * the catalogue's ids are synthetic strings (e.g. `plan-model-3-starter-001`),
+   * not the real `uuid`s that `activate_investment` requires. Display may always
+   * fall back; activation must never receive a synthetic id.
+   */
+  allowCatalogueFallback?: boolean;
+};
+
 export async function getInvestmentPlanBySlug(
-  slug: string
+  slug: string,
+  options: InvestmentPlanLookupOptions = {}
 ): Promise<DataResult<InvestmentPlan | null>> {
+  const allowFallback = options.allowCatalogueFallback !== false;
   const fromCatalogue = () =>
-    investmentPlans.find((plan) => plan.slug === slug) ?? null;
+    allowFallback
+      ? (investmentPlans.find((plan) => plan.slug === slug) ?? null)
+      : null;
 
   if (!isSupabaseConfigured()) return ready(fromCatalogue());
 
@@ -162,6 +179,15 @@ export async function getInvestmentPlanBySlug(
     .maybeSingle();
 
   if (error) {
+    if (!allowFallback) {
+      // A failed query must not turn into a synthetic plan on a path that could
+      // pass its id to the database. Report the failure instead; the static
+      // catalogue stays available for display via the default option.
+      describeError(error, "getInvestmentPlanBySlug");
+      return failed(
+        "This investment plan could not be loaded from the database."
+      );
+    }
     fallbackToCatalogue(error, "getInvestmentPlanBySlug");
     return ready(fromCatalogue());
   }
@@ -170,9 +196,67 @@ export async function getInvestmentPlanBySlug(
 
   const mapped = mapPlanRow(data);
   if (!mapped) {
+    if (!allowFallback) {
+      return failed(
+        "This investment plan could not be loaded from the database."
+      );
+    }
     warnStaleSchema("getInvestmentPlanBySlug");
     return ready(fromCatalogue());
   }
 
   return ready(mapped);
+}
+
+/**
+ * Reads a plan row straight from `public.investment_plans` by slug.
+ *
+ * This is the activation-safe lookup. It NEVER consults the static catalogue:
+ * the catalogue's ids are synthetic strings (e.g. `plan-model-3-starter-001`)
+ * that are not valid `uuid` values, so `p_plan_id` must always come from a real
+ * row. Activation reads the plan from here, never from
+ * `getInvestmentPlanBySlug`.
+ *
+ *   - `ready(row)`        → the database row exists; `row.id` is a real uuid
+ *   - `ready(null)`       → no row with this slug; not an error, just absent
+ *   - `error`             → the backend is unconfigured or the query failed
+ *
+ * The query is exactly `select * from investment_plans where slug = ? limit 1`.
+ */
+export async function getDatabasePlanBySlug(
+  slug: string
+): Promise<DataResult<Tables<"investment_plans"> | null>> {
+  if (!isSupabaseConfigured()) {
+    return failed(
+      "The database is not connected, so the plan cannot be verified."
+    );
+  }
+
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return failed(
+      "The database is not connected, so the plan cannot be verified."
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("investment_plans")
+    .select("*")
+    .eq("slug", slug)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[data:getDatabasePlanBySlug]", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return failed(
+      "This investment plan could not be loaded from the database."
+    );
+  }
+
+  return ready(data);
 }

@@ -1037,7 +1037,10 @@ begin
     v_user, 'investment', 'completed', -v_plan.investment_amount_cents, 'USD',
     'Investment activated — ' || v_plan.name, v_investment, v_started
   )
-  returning reference into v_txn_ref;
+  -- `reference` is also the name of this function's OUT column, so the
+  -- RETURNING reference must be table-qualified or PL/pgSQL rejects the
+  -- statement as ambiguous (SQLSTATE 42702).
+  returning transactions.reference into v_txn_ref;
 
   -- The stated schedule, as `scheduled` rows. Due dates are spread evenly across
   -- the term from the real start date, so period 4 of a 30-day plan lands on the

@@ -6,10 +6,10 @@ import { z } from "zod";
 import { appRoutes } from "@/config/navigation";
 import { featureFlags } from "@/config/site";
 import { getAccountMode } from "@/lib/auth/session";
-import { getInvestmentPlanBySlug, getUserBalance } from "@/lib/data";
+import { getDatabasePlanBySlug, getUserBalance } from "@/lib/data";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/format";
-import type { ActionResult } from "@/types";
+import type { ActionResult, Tables } from "@/types";
 
 /**
  * Investment Server Actions.
@@ -30,6 +30,11 @@ import type { ActionResult } from "@/types";
  *   3. **No fabricated state.** The balance moves because a `transactions` row was
  *      inserted and the ledger trigger recomputed it. This action never writes
  *      `user_balances`, never marks a payment paid, and never credits profit.
+ *   4. **The plan id comes from the database, always.** The static catalogue's ids
+ *      are synthetic strings (`plan-model-3-starter-001`) that are not valid
+ *      `uuid`s. Activation re-reads the plan row by slug from
+ *      `public.investment_plans` and passes its real `id` to the RPC — a
+ *      catalogue plan can never reach `activate_investment`.
  */
 
 const activateSchema = z.object({
@@ -42,6 +47,38 @@ const activateSchema = z.object({
     // keeps anything exotic from getting that far.
     .regex(/^[a-z0-9-]+$/, "That plan reference isn't valid."),
 });
+
+/**
+ * Canonical hyphenated UUID shape (8-4-4-4-12 hex digits), the form PostgreSQL
+ * stores and returns. Deliberately version-agnostic: any real uuid column value
+ * qualifies, while a synthetic catalogue id never can.
+ */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
+type DatabaseErrorLike = {
+  code?: string | null;
+  message: string;
+  details?: string | null;
+  hint?: string | null;
+};
+
+/**
+ * Logs the full Postgres error for an activation failure. The client only ever
+ * sees a safe summary; the code, message, details and hint stay server-side.
+ */
+function logDatabaseError(error: DatabaseErrorLike, context: string): void {
+  console.error(`[investment:${context}]`, {
+    code: error.code ?? null,
+    message: error.message,
+    details: error.details ?? null,
+    hint: error.hint ?? null,
+  });
+}
 
 /**
  * Activates a plan for the signed-in user.
@@ -74,20 +111,63 @@ export async function activateInvestmentAction(
     };
   }
 
+  /*
+   * The plan id for the RPC is read directly from `investment_plans` by slug.
+   * `getInvestmentPlanBySlug` may legitimately serve the static catalogue for
+   * display, but its ids are synthetic strings; activation must never use one.
+   * This lookup has no fallback, so `dbPlan` is either a real database row or
+   * nothing at all.
+   */
   const [planResult, balanceResult] = await Promise.all([
-    getInvestmentPlanBySlug(parsed.data.planSlug),
+    getDatabasePlanBySlug(parsed.data.planSlug),
     getUserBalance(),
   ]);
 
-  const plan = planResult.status === "ready" ? planResult.data : null;
-  if (!plan) {
-    return { status: "error", message: "That plan could not be found." };
+  if (planResult.status !== "ready") {
+    // `getDatabasePlanBySlug` already logged the underlying failure with code,
+    // message, details and hint. No synthetic plan is substituted here.
+    return {
+      status: "error",
+      message: "Investment activation failed. Please try again.",
+    };
   }
 
-  if (plan.status !== "open") {
+  const dbPlan: Tables<"investment_plans"> | null = planResult.data;
+  if (!dbPlan) {
+    return {
+      status: "error",
+      message:
+        "This investment plan is not available in the database. Please refresh and try again.",
+    };
+  }
+
+  /*
+   * Strict UUID guard before the RPC call. `p_plan_id` is a Postgres `uuid`;
+   * passing anything else (a synthetic catalogue id included) fails inside
+   * Postgres with an obscure error. If the database ever returns a non-uuid
+   * here, stop before the RPC and log it.
+   */
+  if (!isUuid(dbPlan.id)) {
+    logDatabaseError(
+      {
+        code: "22P02",
+        message:
+          `investment_plans.id "${dbPlan.id}" (slug "${dbPlan.slug}") is not a valid UUID; ` +
+          "refusing to call activate_investment.",
+      },
+      "plan-id-invalid"
+    );
+    return {
+      status: "error",
+      message:
+        "Investment activation aborted: the plan id from the database is not a valid UUID.",
+    };
+  }
+
+  if (dbPlan.status !== "open") {
     return {
       status: "unavailable",
-      message: `The ${plan.name} plan is not open for investment.`,
+      message: `The ${dbPlan.name} plan is not open for investment.`,
     };
   }
 
@@ -105,13 +185,13 @@ export async function activateInvestmentAction(
     const { availableCents, pendingWithdrawalCents } = balanceResult.data;
     const spendableCents = Math.max(0, availableCents - pendingWithdrawalCents);
 
-    if (spendableCents < plan.investmentAmountCents) {
+    if (spendableCents < dbPlan.investment_amount_cents) {
       return {
         status: "error",
         message: "Insufficient wallet balance.",
         fieldErrors: {
           amount:
-            `This plan needs ${formatCurrency(plan.investmentAmountCents)} and ` +
+            `This plan needs ${formatCurrency(dbPlan.investment_amount_cents)} and ` +
             `${formatCurrency(spendableCents)} is available.`,
         },
       };
@@ -127,11 +207,11 @@ export async function activateInvestmentAction(
   }
 
   const { data, error } = await supabase.rpc("activate_investment", {
-    p_plan_id: plan.id,
+    p_plan_id: dbPlan.id,
   });
 
   if (error) {
-    console.error("[investment:activate]", error);
+    logDatabaseError(error, "activate");
 
     // P0004 is the insufficient-funds signal raised by `activate_investment`. Its
     // message is written for the account holder and already carries both figures,
@@ -143,15 +223,16 @@ export async function activateInvestmentAction(
         fieldErrors: { amount: error.message },
       };
     }
-    if (error.code === "P0001" || error.code === "P0002") {
+    if (error.code === "P0001" || error.code === "P0002" || error.code === "P0003") {
       return { status: "unavailable", message: error.message };
     }
 
+    // Unexpected RPC failure. The full error — code, message, details, hint — was
+    // logged above; the client gets a safe, useful summary instead of the old
+    // generic line that hid every failure behind "balance unchanged".
     return {
       status: "error",
-      message:
-        "The investment was not created and your balance is unchanged. " +
-        "Please try again, and contact support if it keeps failing.",
+      message: "Investment activation failed. Please try again.",
     };
   }
 
@@ -171,14 +252,16 @@ export async function activateInvestmentAction(
   revalidatePath(appRoutes.dashboard);
   revalidatePath(appRoutes.investments);
   revalidatePath(appRoutes.invest);
-  revalidatePath(appRoutes.planDetail(plan.slug));
+  revalidatePath(appRoutes.planDetail(dbPlan.slug));
   revalidatePath(appRoutes.wallet);
   revalidatePath(appRoutes.walletActivity);
   revalidatePath(appRoutes.notifications);
 
   return {
     status: "success",
-    message: `${plan.name} activated.`,
+    message: `${dbPlan.name} activated.`,
     redirectTo: appRoutes.investments,
+    investmentId: created.investment_id,
+    reference: created.reference,
   };
 }
